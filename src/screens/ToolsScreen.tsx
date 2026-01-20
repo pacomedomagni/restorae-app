@@ -1,19 +1,16 @@
 /**
  * ToolsScreen
- * Premium tools collection following RESTORAE_SPEC.md
  * 
- * Features:
- * - Featured tool card with gradient accent
- * - Tool grid with category cards (shadows, proper elevation)
- * - 6 tools as per spec: Breathe, Ground, Reset, Focus, Journal, SOS
- * - Press animations and haptic feedback
+ * Wellness toolkit with categorized breathing exercises,
+ * grounding techniques, and focus tools.
  */
-import React from 'react';
-import { 
-  View, 
-  StyleSheet, 
+import React, { useState, useCallback } from 'react';
+import {
+  View,
+  StyleSheet,
   ScrollView,
   Pressable,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -23,69 +20,160 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
+  withTiming,
   FadeIn,
   FadeInDown,
+  Layout,
+  Easing,
 } from 'react-native-reanimated';
 import { useHaptics } from '../hooks/useHaptics';
-
 import { useTheme } from '../contexts/ThemeContext';
-import { Text, Card, Button, SpaBackdrop, SpaMotif, SpaCardTexture, ScreenHeader } from '../components/ui';
+import {
+  Text,
+  GlassCard,
+  AmbientBackground,
+  PremiumButton,
+} from '../components/ui';
 import { LuxeIcon } from '../components/LuxeIcon';
 import { spacing, borderRadius, layout, withAlpha } from '../theme';
 import { RootStackParamList } from '../types';
 
-// =============================================================================
-// TOOL DATA
-// =============================================================================
-type ToolChoiceId = 'breathe' | 'ground' | 'reset' | 'focus' | 'sos' | 'more';
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CARD_WIDTH = (SCREEN_WIDTH - layout.screenPaddingHorizontal * 2 - spacing[4]) / 2;
 
-interface ToolChoice {
-  id: ToolChoiceId;
+// =============================================================================
+// TYPES & DATA
+// =============================================================================
+type ToolCategory = 'all' | 'breathe' | 'body' | 'mind' | 'emergency';
+
+interface Tool {
+  id: string;
   name: string;
   description: string;
-  icon: 'breathe' | 'ground' | 'reset' | 'focus' | 'sos' | 'tools';
-  meta: string;
-  tone?: 'primary' | 'warm' | 'calm';
+  icon: 'breathe' | 'ground' | 'reset' | 'focus' | 'journal' | 'sos';
+  duration: string;
+  category: ToolCategory;
+  tone: 'primary' | 'warm' | 'calm';
+  featured?: boolean;
+  route: keyof RootStackParamList;
+  routeParams?: any;
 }
 
-const coreTools: ToolChoice[] = [
-  { id: 'breathe', name: 'Breathwork', description: 'Gentle breathing patterns.', icon: 'breathe', meta: '3-6 min', tone: 'primary' },
-  { id: 'ground', name: 'Grounding', description: 'Anchor your senses and body.', icon: 'ground', meta: '4 min', tone: 'warm' },
-  { id: 'reset', name: 'Reset', description: 'Release tension and soften.', icon: 'reset', meta: '6 min', tone: 'warm' },
-  { id: 'focus', name: 'Focus', description: 'Deep work sessions and ambience.', icon: 'focus', meta: '10 min', tone: 'calm' },
+const TOOLS: Tool[] = [
+  {
+    id: 'calm-breath',
+    name: 'Calm Breath',
+    description: 'A gentle pattern to bring you back to center',
+    icon: 'breathe',
+    duration: '4 min',
+    category: 'breathe',
+    tone: 'primary',
+    featured: true,
+    route: 'Breathing',
+    routeParams: { patternId: 'calm-breath' },
+  },
+  {
+    id: 'box-breathing',
+    name: 'Box Breathing',
+    description: 'Used by Navy SEALs to stay calm under pressure',
+    icon: 'breathe',
+    duration: '3 min',
+    category: 'breathe',
+    tone: 'primary',
+    route: 'Breathing',
+    routeParams: { patternId: 'box-breathing' },
+  },
+  {
+    id: '478-sleep',
+    name: '4-7-8 Sleep',
+    description: 'Dr. Weil\'s relaxation technique for sleep',
+    icon: 'breathe',
+    duration: '5 min',
+    category: 'breathe',
+    tone: 'calm',
+    route: 'Breathing',
+    routeParams: { patternId: '478-sleep' },
+  },
+  {
+    id: 'grounding',
+    name: '5-4-3-2-1',
+    description: 'Anchor your senses in the present moment',
+    icon: 'ground',
+    duration: '4 min',
+    category: 'body',
+    tone: 'warm',
+    route: 'Grounding',
+  },
+  {
+    id: 'body-scan',
+    name: 'Body Scan',
+    description: 'Release tension from head to toe',
+    icon: 'reset',
+    duration: '8 min',
+    category: 'body',
+    tone: 'calm',
+    route: 'Reset',
+  },
+  {
+    id: 'focus-session',
+    name: 'Focus Mode',
+    description: 'Deep work with ambient soundscapes',
+    icon: 'focus',
+    duration: '25 min',
+    category: 'mind',
+    tone: 'primary',
+    route: 'Focus',
+  },
+  {
+    id: 'journal',
+    name: 'Free Write',
+    description: 'Let thoughts flow without judgment',
+    icon: 'journal',
+    duration: '5 min',
+    category: 'mind',
+    tone: 'calm',
+    route: 'Journal',
+  },
+  {
+    id: 'sos',
+    name: 'SOS',
+    description: 'Immediate support when you need it most',
+    icon: 'sos',
+    duration: '1 min',
+    category: 'emergency',
+    tone: 'warm',
+    route: 'Sos',
+  },
 ];
 
-const supportTools: ToolChoice[] = [
-  { id: 'sos', name: 'SOS', description: 'Fast relief when you need it.', icon: 'sos', meta: '1 min', tone: 'warm' },
-  { id: 'more', name: 'Full Library', description: 'Browse rituals and tracks.', icon: 'tools', meta: 'Explore', tone: 'primary' },
+const CATEGORIES: { id: ToolCategory; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'breathe', label: 'Breathe' },
+  { id: 'body', label: 'Body' },
+  { id: 'mind', label: 'Mind' },
+  { id: 'emergency', label: 'SOS' },
 ];
 
 // =============================================================================
-// TOOL CARD COMPONENT
+// CATEGORY PILL
 // =============================================================================
-interface ToolRowProps {
-  tool: ToolChoice;
+interface CategoryPillProps {
+  category: { id: ToolCategory; label: string };
+  isActive: boolean;
   onPress: () => void;
-  delay: number;
 }
 
-function ToolRow({ tool, onPress, delay }: ToolRowProps) {
-  const { colors, reduceMotion } = useTheme();
-  const scale = useSharedValue(1);
+function CategoryPill({ category, isActive, onPress }: CategoryPillProps) {
+  const { colors } = useTheme();
   const { impactLight } = useHaptics();
-  const toneColor =
-    tool.tone === 'warm' ? colors.accentWarm : tool.tone === 'calm' ? colors.accentCalm : colors.accentPrimary;
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
+  const scale = useSharedValue(1);
 
   const handlePressIn = () => {
-    scale.value = withSpring(0.96, { damping: 15, stiffness: 400 });
+    scale.value = withSpring(0.95, { damping: 15, stiffness: 400 });
   };
 
   const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 15, stiffness: 400 });
+    scale.value = withSpring(1, { damping: 12, stiffness: 300 });
   };
 
   const handlePress = async () => {
@@ -93,37 +181,235 @@ function ToolRow({ tool, onPress, delay }: ToolRowProps) {
     onPress();
   };
 
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Pressable
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      onPress={handlePress}
+    >
+      <Animated.View
+        style={[
+          styles.categoryPill,
+          animatedStyle,
+          {
+            backgroundColor: isActive
+              ? colors.accentPrimary
+              : withAlpha(colors.canvasElevated, 0.6),
+            borderColor: isActive
+              ? colors.accentPrimary
+              : withAlpha(colors.border, 0.5),
+          },
+        ]}
+      >
+        <Text
+          variant="labelMedium"
+          style={{ color: isActive ? colors.inkInverse : colors.inkMuted }}
+        >
+          {category.label}
+        </Text>
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+// =============================================================================
+// TOOL CARD
+// =============================================================================
+interface ToolCardProps {
+  tool: Tool;
+  index: number;
+  onPress: () => void;
+  compact?: boolean;
+}
+
+function ToolCard({ tool, index, onPress, compact = false }: ToolCardProps) {
+  const { colors, reduceMotion } = useTheme();
+  const { impactLight } = useHaptics();
+  const scale = useSharedValue(1);
+
+  const toneColor =
+    tool.tone === 'warm'
+      ? colors.accentWarm
+      : tool.tone === 'calm'
+      ? colors.accentCalm
+      : colors.accentPrimary;
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.96, { damping: 15, stiffness: 400 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 12, stiffness: 300 });
+  };
+
+  const handlePress = async () => {
+    await impactLight();
+    onPress();
+  };
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
   return (
     <Animated.View
-      entering={reduceMotion ? undefined : FadeInDown.delay(delay).duration(400)}
+      entering={
+        reduceMotion
+          ? undefined
+          : FadeInDown.delay(200 + index * 80)
+              .duration(400)
+              .easing(Easing.out(Easing.ease))
+      }
+      layout={Layout.springify().damping(18).stiffness(200)}
+      style={compact ? styles.toolCardCompact : styles.toolCard}
     >
       <Pressable
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={handlePress}
       >
-        <Animated.View
-          style={[
-            styles.toolRow,
-            animatedStyle,
-          ]}
-        >
-          <View style={styles.cardHeader}>
-            <View style={[styles.iconContainer, { backgroundColor: withAlpha(toneColor, 0.12) }]}>
-              <LuxeIcon name={tool.icon} size={24} color={toneColor} />
+        <Animated.View style={animatedStyle}>
+          <GlassCard
+            variant={compact ? 'default' : 'elevated'}
+            padding={compact ? 'md' : 'lg'}
+            glow={tool.tone}
+          >
+            <View style={[styles.toolIconContainer, { backgroundColor: withAlpha(toneColor, 0.12) }]}>
+              <LuxeIcon name={tool.icon} size={compact ? 22 : 28} color={toneColor} />
             </View>
-            <View style={styles.toolText}>
-              <Text variant="headlineSmall" color="ink" style={styles.toolName}>
-                {tool.name}
-              </Text>
-              <Text variant="bodySmall" color="inkMuted">
+            
+            <Text
+              variant={compact ? 'headlineSmall' : 'headlineMedium'}
+              color="ink"
+              style={styles.toolName}
+            >
+              {tool.name}
+            </Text>
+            
+            {!compact && (
+              <Text variant="bodySmall" color="inkMuted" style={styles.toolDescription}>
                 {tool.description}
               </Text>
+            )}
+            
+            <View style={styles.toolMeta}>
+              <Text variant="labelSmall" style={{ color: toneColor }}>
+                {tool.duration}
+              </Text>
             </View>
-            <Text variant="labelSmall" style={{ color: withAlpha(toneColor, 0.85) }}>
-              {tool.meta}
-            </Text>
-          </View>
+          </GlassCard>
+        </Animated.View>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+// =============================================================================
+// FEATURED TOOL CARD
+// =============================================================================
+interface FeaturedToolCardProps {
+  tool: Tool;
+  onPress: () => void;
+}
+
+function FeaturedToolCard({ tool, onPress }: FeaturedToolCardProps) {
+  const { colors, isDark, reduceMotion } = useTheme();
+  const { impactMedium } = useHaptics();
+  const scale = useSharedValue(1);
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.98, { damping: 15, stiffness: 400 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 12, stiffness: 300 });
+  };
+
+  const handlePress = async () => {
+    await impactMedium();
+    onPress();
+  };
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Animated.View
+      entering={reduceMotion ? undefined : FadeInDown.delay(100).duration(500)}
+    >
+      <Pressable
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        onPress={handlePress}
+      >
+        <Animated.View style={animatedStyle}>
+          <GlassCard variant="hero" padding="xl" glow="primary">
+            {/* Decorative elements */}
+            <View style={styles.featuredDecoration}>
+              <LinearGradient
+                colors={[
+                  withAlpha(colors.accentPrimary, 0.15),
+                  'transparent',
+                ]}
+                style={styles.featuredGradient}
+                start={{ x: 1, y: 0 }}
+                end={{ x: 0, y: 1 }}
+              />
+            </View>
+
+            <View style={styles.featuredContent}>
+              <Text variant="labelSmall" color="inkFaint" style={styles.featuredLabel}>
+                FEATURED
+              </Text>
+              
+              <Text variant="displaySmall" color="ink" style={styles.featuredTitle}>
+                {tool.name}
+              </Text>
+              
+              <Text variant="bodyLarge" color="inkMuted" style={styles.featuredDescription}>
+                {tool.description}
+              </Text>
+
+              <View style={styles.featuredFooter}>
+                <View style={styles.featuredMeta}>
+                  <View
+                    style={[
+                      styles.featuredMetaPill,
+                      { backgroundColor: withAlpha(colors.accentPrimary, 0.12) },
+                    ]}
+                  >
+                    <Text variant="labelSmall" style={{ color: colors.accentPrimary }}>
+                      {tool.duration}
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.featuredMetaPill,
+                      { backgroundColor: withAlpha(colors.accentWarm, 0.12) },
+                    ]}
+                  >
+                    <Text variant="labelSmall" color="inkMuted">
+                      Breathing
+                    </Text>
+                  </View>
+                </View>
+
+                <PremiumButton
+                  variant="primary"
+                  size="md"
+                  tone="primary"
+                  onPress={handlePress}
+                >
+                  Start Now
+                </PremiumButton>
+              </View>
+            </View>
+          </GlassCard>
         </Animated.View>
       </Pressable>
     </Animated.View>
@@ -134,105 +420,98 @@ function ToolRow({ tool, onPress, delay }: ToolRowProps) {
 // TOOLS SCREEN
 // =============================================================================
 export function ToolsScreen() {
-  const { colors, gradients, reduceMotion } = useTheme();
+  const { colors, reduceMotion } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const [activeCategory, setActiveCategory] = useState<ToolCategory>('all');
 
-  const handleToolPress = (tool: ToolChoice) => {
-    if (tool.id === 'breathe') {
-      navigation.navigate('Breathing', { patternId: 'calm-breath' });
-    }
-    if (tool.id === 'ground') {
-      navigation.navigate('Grounding');
-    }
-    if (tool.id === 'reset') {
-      navigation.navigate('Reset');
-    }
-    if (tool.id === 'focus') {
-      navigation.navigate('Focus');
-    }
-    if (tool.id === 'sos') {
-      navigation.navigate('Sos');
-    }
-    if (tool.id === 'more') {
-      navigation.navigate('ToolsMore');
-    }
-  };
+  const featuredTool = TOOLS.find((t) => t.featured);
+  const filteredTools = TOOLS.filter(
+    (t) =>
+      !t.featured &&
+      (activeCategory === 'all' || t.category === activeCategory)
+  );
+
+  const handleToolPress = useCallback(
+    (tool: Tool) => {
+      if (tool.routeParams) {
+        navigation.navigate(tool.route as any, tool.routeParams);
+      } else {
+        navigation.navigate(tool.route as any);
+      }
+    },
+    [navigation]
+  );
 
   return (
     <View style={styles.container}>
-      {/* Subtle gradient background */}
-      <LinearGradient
-        colors={gradients.calm}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-      />
-      <SpaBackdrop />
+      <AmbientBackground variant="calm" intensity="subtle" />
 
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
+        <View
+          style={styles.scrollContent}
         >
           {/* Header */}
-          <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(600)}>
-            <ScreenHeader
-              eyebrow="WELLNESS"
-              title="Tools"
-              subtitle="Curated rituals and grounding tools"
-            />
+          <Animated.View
+            entering={reduceMotion ? undefined : FadeIn.duration(600)}
+            style={styles.header}
+          >
+            <Text variant="labelSmall" color="inkFaint" style={styles.eyebrow}>
+              WELLNESS TOOLKIT
+            </Text>
+            <Text variant="displayMedium" color="ink">
+              Tools
+            </Text>
+            <Text variant="bodyLarge" color="inkMuted" style={styles.subtitle}>
+              Curated practices for every moment
+            </Text>
           </Animated.View>
 
-          <Card style={styles.heroCard} elevation="hero">
-            <SpaMotif />
-            <SpaCardTexture />
-            <Text variant="labelSmall" color="inkFaint">
-              FEATURED RITUAL
-            </Text>
-            <Text variant="headlineLarge" color="ink" style={styles.heroTitle}>
-              Restorative Breath
-            </Text>
-            <Text variant="bodyMedium" color="inkMuted" style={styles.heroText}>
-              A guided breath sequence to slow the nervous system.
-            </Text>
-            <Button
-              variant="primary"
-              size="lg"
-              fullWidth
-              tone="calm"
-              haptic="medium"
-              onPress={() => navigation.navigate('Breathing', { patternId: 'calm-breath' })}
-              style={styles.heroButton}
+          {/* Category Filter */}
+          <Animated.View
+            entering={reduceMotion ? undefined : FadeIn.delay(100).duration(400)}
+          >
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.categoriesContainer}
             >
-              Begin Session
-            </Button>
-          </Card>
+              {CATEGORIES.map((category) => (
+                <CategoryPill
+                  key={category.id}
+                  category={category}
+                  isActive={activeCategory === category.id}
+                  onPress={() => setActiveCategory(category.id)}
+                />
+              ))}
+            </ScrollView>
+          </Animated.View>
 
-          <View style={styles.section}>
-            <Text variant="labelSmall" color="inkFaint" style={styles.sectionLabel}>
-              CORE TOOLS
-            </Text>
-            {coreTools.map((tool, index) => (
-              <Card key={tool.id} padding="none" style={styles.listItemCard} elevation="soft">
-                <ToolRow tool={tool} onPress={() => handleToolPress(tool)} delay={300 + index * 80} />
-              </Card>
+          {/* Featured Tool */}
+          {featuredTool && activeCategory === 'all' && (
+            <View style={styles.featuredSection}>
+              <FeaturedToolCard
+                tool={featuredTool}
+                onPress={() => handleToolPress(featuredTool)}
+              />
+            </View>
+          )}
+
+          {/* Tools Grid */}
+          <View style={styles.toolsGrid}>
+            {filteredTools.map((tool, index) => (
+              <ToolCard
+                key={tool.id}
+                tool={tool}
+                index={index}
+                compact
+                onPress={() => handleToolPress(tool)}
+              />
             ))}
           </View>
 
-          <View style={styles.section}>
-            <Text variant="labelSmall" color="inkFaint" style={styles.sectionLabel}>
-              SUPPORT
-            </Text>
-            {supportTools.map((tool, index) => (
-              <Card key={tool.id} padding="none" style={styles.listItemCard} elevation="soft">
-                <ToolRow tool={tool} onPress={() => handleToolPress(tool)} delay={520 + index * 80} />
-              </Card>
-            ))}
-          </View>
-
-          {/* Bottom spacing for tab bar */}
-          <View style={{ height: layout.tabBarHeight }} />
-        </ScrollView>
+          {/* Bottom spacing */}
+          <View style={{ height: layout.tabBarHeight + spacing[4] }} />
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -249,52 +528,106 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    flex: 1,
     paddingHorizontal: layout.screenPaddingHorizontal,
   },
-  heroCard: {
-    marginTop: spacing[3],
-    padding: spacing[6],
+  header: {
+    paddingTop: spacing[4],
+    paddingBottom: spacing[4],
   },
-  heroTitle: {
+  eyebrow: {
+    marginBottom: spacing[1],
+    letterSpacing: 2,
+  },
+  subtitle: {
     marginTop: spacing[2],
   },
-  heroText: {
-    marginTop: spacing[2],
-  },
-  heroButton: {
-    marginTop: spacing[5],
-  },
-  section: {
-    marginTop: spacing[6],
-  },
-  sectionLabel: {
-    marginBottom: spacing[3],
-  },
-  listItemCard: {
-    marginBottom: spacing[3],
-  },
-  toolRow: {
+  categoriesContainer: {
+    paddingVertical: spacing[3],
+    gap: spacing[2],
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing[4],
+  },
+  categoryPill: {
     paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    marginRight: spacing[2],
   },
-  cardHeader: {
+  featuredSection: {
+    marginTop: spacing[4],
+    marginBottom: spacing[6],
+  },
+  featuredDecoration: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    overflow: 'hidden',
+    borderRadius: borderRadius['2xl'],
+  },
+  featuredGradient: {
+    position: 'absolute',
+    top: -50,
+    right: -50,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+  },
+  featuredContent: {
+    position: 'relative',
+  },
+  featuredLabel: {
+    letterSpacing: 2,
+    marginBottom: spacing[2],
+  },
+  featuredTitle: {
+    marginBottom: spacing[2],
+  },
+  featuredDescription: {
+    marginBottom: spacing[5],
+  },
+  featuredFooter: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: borderRadius.lg,
+  featuredMeta: {
+    flexDirection: 'row',
+    gap: spacing[2],
+  },
+  featuredMetaPill: {
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.full,
+  },
+  toolsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing[4],
+  },
+  toolCard: {
+    width: '100%',
+  },
+  toolCardCompact: {
+    width: CARD_WIDTH,
+  },
+  toolIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  toolText: {
-    flex: 1,
-    marginLeft: spacing[4],
+    marginBottom: spacing[3],
   },
   toolName: {
     marginBottom: spacing[1],
+  },
+  toolDescription: {
+    marginBottom: spacing[3],
+  },
+  toolMeta: {
+    marginTop: spacing[2],
   },
 });

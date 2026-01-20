@@ -1,9 +1,9 @@
 /**
- * Text Component
- * Typography following RESTORAE_SPEC.md
+ * Text Component - Premium Typography
+ * Following RESTORAE_SPEC.md with enhanced readability
  */
 import React from 'react';
-import { Text as RNText, TextProps as RNTextProps, StyleSheet } from 'react-native';
+import { Text as RNText, TextProps as RNTextProps, StyleSheet, Platform } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { textStyles } from '../../theme';
 
@@ -33,13 +33,22 @@ export function Text({
     accent: colors.accentPrimary,
   }[color];
 
+  // Enhanced text rendering
+  const enhancedStyle = {
+    ...textStyles[variant],
+    color: textColor,
+    textAlign: align,
+    // Better text rendering on iOS
+    ...(Platform.OS === 'ios' && {
+      fontVariant: ['tabular-nums' as const],
+    }),
+  } as const;
+
   return (
     <RNText
-      style={[
-        textStyles[variant],
-        { color: textColor, textAlign: align },
-        style,
-      ]}
+      style={[enhancedStyle, style]}
+      allowFontScaling={true}
+      maxFontSizeMultiplier={1.3}
       {...props}
     >
       {children}

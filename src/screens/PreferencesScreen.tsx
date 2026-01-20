@@ -1,23 +1,16 @@
 /**
  * PreferencesScreen
- * Preference categories
+ * Preference categories - Consistent UI
  */
 import React from 'react';
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, {
-  FadeIn,
-  FadeInDown,
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useTheme } from '../contexts/ThemeContext';
-import { Text, Card, SpaBackdrop, ScreenHeader } from '../components/ui';
+import { Text, GlassCard, AmbientBackground, ScreenHeader } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { spacing, borderRadius, layout, withAlpha } from '../theme';
 import { RootStackParamList } from '../types';
@@ -27,7 +20,7 @@ type PreferenceChoice = {
   id: 'appearance' | 'sound' | 'notifications';
   title: string;
   description: string;
-  icon: 'home' | 'focus' | 'journal';
+  icon: 'home' | 'focus' | 'journal-tab';
   route: keyof RootStackParamList;
 };
 
@@ -50,79 +43,21 @@ const choices: PreferenceChoice[] = [
     id: 'notifications',
     title: 'Reminders',
     description: 'Set gentle ritual reminders.',
-    icon: 'journal',
+    icon: 'journal-tab',
     route: 'Reminders',
   },
 ];
 
-interface ChoiceCardProps {
-  choice: PreferenceChoice;
-  delay: number;
-  onPress: () => void;
-}
-
-function ChoiceCard({ choice, delay, onPress }: ChoiceCardProps) {
-  const { colors, reduceMotion } = useTheme();
-  const scale = useSharedValue(1);
-  const { impactLight } = useHaptics();
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const handlePressIn = () => {
-    scale.value = withSpring(0.98, { damping: 15, stiffness: 400 });
-  };
-
-  const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 15, stiffness: 400 });
-  };
-
-  const handlePress = async () => {
-    await impactLight();
-    onPress();
-  };
-
-  return (
-    <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(delay).duration(400)}>
-      <Pressable onPressIn={handlePressIn} onPressOut={handlePressOut} onPress={handlePress}>
-        <Animated.View
-          style={[styles.choiceCard, animatedStyle]}
-        >
-          <Card elevation="lift">
-            <View style={[styles.choiceIcon, { backgroundColor: withAlpha(colors.accentPrimary, 0.12) }]}>
-              <Icon name={choice.icon} size={24} color={colors.accentPrimary} />
-            </View>
-            <View style={styles.choiceText}>
-              <Text variant="headlineSmall" color="ink" style={styles.choiceTitle}>
-                {choice.title}
-              </Text>
-              <Text variant="bodySmall" color="inkMuted">
-                {choice.description}
-              </Text>
-            </View>
-          </Card>
-        </Animated.View>
-      </Pressable>
-    </Animated.View>
-  );
-}
-
 export function PreferencesScreen() {
-  const { gradients, reduceMotion } = useTheme();
+  const { colors, reduceMotion } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { impactLight } = useHaptics();
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={gradients.morning}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-      />
-      <SpaBackdrop />
+      <AmbientBackground />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.scrollContent}>
           <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(600)}>
             <ScreenHeader
               title="Preferences"
@@ -133,17 +68,38 @@ export function PreferencesScreen() {
 
           <View style={styles.choiceList}>
             {choices.map((choice, index) => (
-              <ChoiceCard
+              <Animated.View
                 key={choice.id}
-                choice={choice}
-                delay={200 + index * 120}
-                onPress={() => navigation.navigate(choice.route)}
-              />
+                entering={reduceMotion ? undefined : FadeInDown.delay(200 + index * 120).duration(400)}
+              >
+                <GlassCard
+                  variant="default"
+                  padding="md"
+                  onPress={async () => {
+                    await impactLight();
+                    navigation.navigate(choice.route as any);
+                  }}
+                >
+                  <View style={styles.choiceContent}>
+                    <View style={[styles.choiceIcon, { backgroundColor: withAlpha(colors.accentPrimary, 0.12) }]}>
+                      <Icon name={choice.icon} size={24} color={colors.accentPrimary} />
+                    </View>
+                    <View style={styles.choiceText}>
+                      <Text variant="headlineSmall" color="ink" style={styles.choiceTitle}>
+                        {choice.title}
+                      </Text>
+                      <Text variant="bodySmall" color="inkMuted">
+                        {choice.description}
+                      </Text>
+                    </View>
+                  </View>
+                </GlassCard>
+              </Animated.View>
             ))}
           </View>
 
           <View style={{ height: layout.tabBarHeight }} />
-        </ScrollView>
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -157,14 +113,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    flex: 1,
     paddingHorizontal: layout.screenPaddingHorizontal,
   },
   choiceList: {
     gap: spacing[4],
     paddingBottom: spacing[6],
   },
-  choiceCard: {
-    borderRadius: borderRadius.xl,
+  choiceContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   choiceIcon: {
     width: 48,

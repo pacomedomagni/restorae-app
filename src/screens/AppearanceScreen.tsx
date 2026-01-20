@@ -1,20 +1,14 @@
 /**
  * AppearanceScreen
- * Light / Dark / System choices (max 3)
+ * Light / Dark / System choices - Consistent UI
  */
 import React from 'react';
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, {
-  FadeIn,
-  FadeInDown,
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+
 import { useTheme } from '../contexts/ThemeContext';
-import { Text, Card, SpaBackdrop, ScreenHeader } from '../components/ui';
+import { Text, GlassCard, AmbientBackground, ScreenHeader } from '../components/ui';
 import { spacing, borderRadius, layout } from '../theme';
 import { ThemeMode } from '../types';
 import { useHaptics } from '../hooks/useHaptics';
@@ -25,80 +19,15 @@ const options: { id: ThemeMode; title: string; description: string }[] = [
   { id: 'system', title: 'System', description: 'Match your device setting.' },
 ];
 
-interface ThemeOptionCardProps {
-  option: typeof options[number];
-  selected: boolean;
-  delay: number;
-  onPress: () => void;
-}
-
-function ThemeOptionCard({ option, selected, delay, onPress }: ThemeOptionCardProps) {
-  const { colors, reduceMotion } = useTheme();
-  const scale = useSharedValue(1);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const handlePressIn = () => {
-    scale.value = withSpring(0.98, { damping: 15, stiffness: 400 });
-  };
-
-  const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 15, stiffness: 400 });
-  };
-
-  const handlePress = () => {
-    onPress();
-  };
-
-  return (
-    <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(delay).duration(400)}>
-      <Pressable onPressIn={handlePressIn} onPressOut={handlePressOut} onPress={handlePress}>
-        <Animated.View
-          style={[styles.optionCard, animatedStyle]}
-        >
-          <Card
-            elevation="lift"
-            style={[
-              styles.optionSurface,
-              {
-                borderColor: selected ? colors.accentPrimary : colors.border,
-                borderWidth: selected ? 2 : 1,
-              },
-            ]}
-          >
-            <View style={[styles.optionDot, { backgroundColor: selected ? colors.accentPrimary : colors.borderMuted }]} />
-            <View style={styles.optionText}>
-              <Text variant="headlineSmall" color="ink" style={styles.optionTitle}>
-                {option.title}
-              </Text>
-              <Text variant="bodySmall" color="inkMuted">
-                {option.description}
-              </Text>
-            </View>
-          </Card>
-        </Animated.View>
-      </Pressable>
-    </Animated.View>
-  );
-}
-
 export function AppearanceScreen() {
-  const { gradients, mode, setMode, reduceMotion } = useTheme();
+  const { colors, mode, setMode, reduceMotion } = useTheme();
   const { impactLight } = useHaptics();
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={gradients.morning}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-      />
-      <SpaBackdrop />
+      <AmbientBackground />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.scrollContent}>
           <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(600)}>
             <ScreenHeader
               title="Appearance"
@@ -108,22 +37,50 @@ export function AppearanceScreen() {
           </Animated.View>
 
           <View style={styles.options}>
-            {options.map((option, index) => (
-              <ThemeOptionCard
-                key={option.id}
-                option={option}
-                selected={mode === option.id}
-                delay={200 + index * 120}
-                onPress={async () => {
-                  await impactLight();
-                  setMode(option.id);
-                }}
-              />
-            ))}
+            {options.map((option, index) => {
+              const selected = mode === option.id;
+              return (
+                <Animated.View
+                  key={option.id}
+                  entering={reduceMotion ? undefined : FadeInDown.delay(200 + index * 120).duration(400)}
+                >
+                  <GlassCard
+                    variant={selected ? 'elevated' : 'default'}
+                    padding="md"
+                    glow={selected ? 'primary' : 'none'}
+                    onPress={async () => {
+                      await impactLight();
+                      setMode(option.id);
+                    }}
+                  >
+                    <View style={styles.optionContent}>
+                      <View
+                        style={[
+                          styles.optionDot,
+                          {
+                            backgroundColor: selected ? colors.accentPrimary : colors.borderMuted,
+                            borderWidth: selected ? 0 : 2,
+                            borderColor: colors.border,
+                          },
+                        ]}
+                      />
+                      <View style={styles.optionText}>
+                        <Text variant="headlineSmall" color="ink" style={styles.optionTitle}>
+                          {option.title}
+                        </Text>
+                        <Text variant="bodySmall" color="inkMuted">
+                          {option.description}
+                        </Text>
+                      </View>
+                    </View>
+                  </GlassCard>
+                </Animated.View>
+              );
+            })}
           </View>
 
           <View style={{ height: layout.tabBarHeight }} />
-        </ScrollView>
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -137,23 +94,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    flex: 1,
     paddingHorizontal: layout.screenPaddingHorizontal,
   },
   options: {
     gap: spacing[4],
     paddingBottom: spacing[6],
   },
-  optionCard: {
-    borderRadius: borderRadius.xl,
-  },
-  optionSurface: {
+  optionContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   optionDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     marginRight: spacing[4],
   },
   optionText: {

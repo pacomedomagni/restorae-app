@@ -1,140 +1,146 @@
 /**
- * QuickResetScreen
- * Fast tools for immediate relief
+ * QuickResetScreen - Consistent UI
  */
-import React from 'react';
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, {
-  FadeIn,
-  FadeInDown,
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
+import Animated, { 
+  FadeIn, 
+  FadeInDown, 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withRepeat, 
+  withTiming,
+  withSequence,
+  Easing,
 } from 'react-native-reanimated';
-import { useHaptics } from '../hooks/useHaptics';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 
 import { useTheme } from '../contexts/ThemeContext';
-import { Text, Card, SpaBackdrop, ScreenHeader } from '../components/ui';
-import { Icon } from '../components/Icon';
-import { spacing, borderRadius, layout, withAlpha } from '../theme';
-import { RootStackParamList } from '../types';
-
-type QuickTool = {
-  id: 'breathe' | 'ground' | 'reset';
-  title: string;
-  description: string;
-  icon: 'breathe' | 'ground' | 'reset';
-};
-
-const quickTools: QuickTool[] = [
-  { id: 'breathe', title: 'Breathe', description: 'Guided calm in 2-4 minutes.', icon: 'breathe' },
-  { id: 'ground', title: 'Ground', description: 'Anchor your senses and reset.', icon: 'ground' },
-  { id: 'reset', title: 'Reset', description: 'Release tension with gentle movement.', icon: 'reset' },
-];
-
-interface ToolCardProps {
-  tool: QuickTool;
-  delay: number;
-  onPress: () => void;
-}
-
-function ToolCard({ tool, delay, onPress }: ToolCardProps) {
-  const { colors, reduceMotion } = useTheme();
-  const scale = useSharedValue(1);
-  const { impactLight } = useHaptics();
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const handlePressIn = () => {
-    scale.value = withSpring(0.98, { damping: 15, stiffness: 400 });
-  };
-
-  const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 15, stiffness: 400 });
-  };
-
-  const handlePress = async () => {
-    await impactLight();
-    onPress();
-  };
-
-  return (
-    <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(delay).duration(400)}>
-      <Pressable onPressIn={handlePressIn} onPressOut={handlePressOut} onPress={handlePress}>
-        <Animated.View
-          style={[styles.toolCard, animatedStyle]}
-        >
-          <Card elevation="lift">
-            <View style={[styles.toolIcon, { backgroundColor: withAlpha(colors.accentPrimary, 0.12) }]}>
-              <Icon name={tool.icon} size={28} color={colors.accentPrimary} />
-            </View>
-            <Text variant="headlineSmall" color="ink" style={styles.toolTitle}>
-              {tool.title}
-            </Text>
-            <Text variant="bodySmall" color="inkMuted">
-              {tool.description}
-            </Text>
-          </Card>
-        </Animated.View>
-      </Pressable>
-    </Animated.View>
-  );
-}
+import { Text, Button, GlassCard, AmbientBackground } from '../components/ui';
+import { spacing, layout } from '../theme';
+import { useHaptics } from '../hooks/useHaptics';
+import type { RootStackParamList } from '../types';
 
 export function QuickResetScreen() {
-  const { gradients, reduceMotion } = useTheme();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { reduceMotion } = useTheme();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const { notificationSuccess, impactMedium } = useHaptics();
+  const [phase, setPhase] = useState<'ready' | 'inhale' | 'hold' | 'exhale' | 'complete'>('ready');
+  const [cycles, setCycles] = useState(0);
 
-  const handleToolPress = (toolId: QuickTool['id']) => {
-    if (toolId === 'breathe') {
-      navigation.navigate('Breathing', { patternId: 'calm-breath' });
-    }
-    if (toolId === 'ground') {
-      navigation.navigate('Grounding');
-    }
-    if (toolId === 'reset') {
-      navigation.navigate('Reset');
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(0.6);
+
+  const breathingStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
+
+  const startBreathing = async () => {
+    await impactMedium();
+    setPhase('inhale');
+    runBreathCycle();
+  };
+
+  const runBreathCycle = () => {
+    // Inhale - 4 seconds
+    scale.value = withTiming(1.4, { duration: 4000, easing: Easing.inOut(Easing.ease) });
+    opacity.value = withTiming(1, { duration: 4000 });
+    
+    setTimeout(() => {
+      setPhase('hold');
+      // Hold - 4 seconds
+      setTimeout(() => {
+        setPhase('exhale');
+        // Exhale - 4 seconds
+        scale.value = withTiming(1, { duration: 4000, easing: Easing.inOut(Easing.ease) });
+        opacity.value = withTiming(0.6, { duration: 4000 });
+        
+        setTimeout(() => {
+          setCycles(c => {
+            if (c < 2) {
+              setPhase('inhale');
+              runBreathCycle();
+              return c + 1;
+            } else {
+              setPhase('complete');
+              notificationSuccess();
+              return 0;
+            }
+          });
+        }, 4000);
+      }, 4000);
+    }, 4000);
+  };
+
+  const getPhaseText = () => {
+    switch (phase) {
+      case 'ready': return 'Ready when you are';
+      case 'inhale': return 'Breathe in...';
+      case 'hold': return 'Hold...';
+      case 'exhale': return 'Breathe out...';
+      case 'complete': return 'Well done 💚';
     }
   };
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={gradients.calm}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-      />
-      <SpaBackdrop />
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <AmbientBackground />
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.content}>
           <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(600)}>
-            <ScreenHeader
-              title="Quick Reset"
-              subtitle="Fast tools for immediate relief"
-              compact
-            />
+            <Text variant="displaySmall" color="ink" align="center">
+              Quick Reset
+            </Text>
+            <Text variant="bodyLarge" color="inkMuted" align="center" style={styles.subtitle}>
+              3 breath cycles • 2 minutes
+            </Text>
           </Animated.View>
 
-          <View style={styles.cardList}>
-            {quickTools.map((tool, index) => (
-              <ToolCard
-                key={tool.id}
-                tool={tool}
-                delay={200 + index * 100}
-                onPress={() => handleToolPress(tool.id)}
-              />
-            ))}
-          </View>
+          <Animated.View 
+            entering={reduceMotion ? undefined : FadeInDown.delay(200).duration(400)}
+            style={styles.breathContainer}
+          >
+            <Animated.View style={[styles.breathCircle, breathingStyle]}>
+              <View style={styles.innerCircle}>
+                <Text variant="headlineMedium" color="ink" align="center">
+                  {getPhaseText()}
+                </Text>
+              </View>
+            </Animated.View>
+          </Animated.View>
 
-          <View style={{ height: layout.tabBarHeight }} />
-        </ScrollView>
+          <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(300).duration(400)}>
+            {phase === 'ready' && (
+              <Button
+                variant="primary"
+                size="lg"
+                fullWidth
+                onPress={startBreathing}
+              >
+                Begin
+              </Button>
+            )}
+            
+            {phase === 'complete' && (
+              <GlassCard variant="elevated" padding="lg" glow="cool">
+                <Text variant="bodyLarge" color="ink" align="center">
+                  You've completed your quick reset. Take a moment to notice how you feel.
+                </Text>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  fullWidth
+                  onPress={() => navigation.goBack()}
+                  style={styles.doneButton}
+                >
+                  Done
+                </Button>
+              </GlassCard>
+            )}
+          </Animated.View>
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -147,25 +153,39 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  scrollContent: {
+  content: {
+    flex: 1,
     paddingHorizontal: layout.screenPaddingHorizontal,
+    justifyContent: 'center',
   },
-  cardList: {
-    gap: spacing[4],
-    paddingBottom: spacing[6],
+  subtitle: {
+    marginTop: spacing[2],
   },
-  toolCard: {
-    borderRadius: borderRadius.xl,
-  },
-  toolIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: borderRadius.lg,
+  breathContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing[3],
+    marginVertical: spacing[10],
   },
-  toolTitle: {
-    marginBottom: spacing[1],
+  breathCircle: {
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(125, 211, 192, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(125, 211, 192, 0.4)',
+  },
+  innerCircle: {
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(125, 211, 192, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing[4],
+  },
+  doneButton: {
+    marginTop: spacing[4],
   },
 });

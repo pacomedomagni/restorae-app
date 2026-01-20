@@ -31,18 +31,18 @@ export type RootStackParamList = {
   Tools: undefined;
   Journal: undefined;
   Profile: undefined;
-  Breathing: { patternId: string };
-  Meditation: { sessionId: string };
-  MoodLog: { initialMood?: MoodType };
-  Ritual: { type: 'morning' | 'evening' };
+  Breathing: { patternId: string } | undefined;
+  Meditation: { sessionId: string } | undefined;
+  MoodLog: { initialMood?: MoodType } | undefined;
+  Ritual: { type?: 'morning' | 'evening' } | undefined;
   QuickReset: undefined;
-  MoodCheckin: undefined;
-  MoodSelect: { group: 'positive' | 'challenging' };
-  MoodResult: { mood: MoodType };
+  MoodCheckin: { mood?: string } | undefined;
+  MoodSelect: { group?: 'positive' | 'challenging' } | undefined;
+  MoodResult: { mood: string; note?: string };
   ToolsMore: undefined;
   JournalPrompts: undefined;
   JournalEntries: undefined;
-  JournalEntry: { mode: 'new' | 'prompt' | 'view'; prompt?: string; entry?: { title?: string; content: string } };
+  JournalEntry: { mode?: 'new' | 'prompt' | 'view'; prompt?: string; entry?: { title?: string; content: string } } | undefined;
   Appearance: undefined;
   Preferences: undefined;
   SoundHaptics: undefined;
@@ -53,6 +53,7 @@ export type RootStackParamList = {
   Reset: undefined;
   Focus: undefined;
   Sos: undefined;
+  Subscription: undefined;
 };
 
 export type MainTabParamList = {

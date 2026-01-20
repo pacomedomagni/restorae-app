@@ -1,23 +1,16 @@
 /**
  * HomeScreen
- * Premium home experience following RESTORAE_SPEC.md
  * 
- * Features:
- * - Warm gradient background (morning cream to off-white)
- * - Personalized greeting with time awareness
- * - Mood selector (6 choices in a 2x3 grid)
- * - Quick reset tools (3 options max)
- * - Daily ritual card with premium feel
- * - Proper shadows, spacing, and visual hierarchy
+ * Main home experience with mood selection, quick actions,
+ * and personalized greetings based on time of day.
  */
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
-  ScrollView,
+  Dimensions,
   Pressable,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -25,48 +18,114 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
+  withTiming,
+  withDelay,
   FadeIn,
   FadeInDown,
+  FadeInUp,
+  interpolate,
+  Easing,
 } from 'react-native-reanimated';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useHaptics } from '../hooks/useHaptics';
-
 import { useTheme } from '../contexts/ThemeContext';
-import { Text, Card, Button, SpaBackdrop, SpaMotif, SpaCardTexture, ScreenHeader } from '../components/ui';
+import {
+  Text,
+  GlassCard,
+  AmbientBackground,
+  MoodOrb,
+  PremiumButton,
+} from '../components/ui';
 import { LuxeIcon } from '../components/LuxeIcon';
+import { Icon } from '../components/Icon';
 import { spacing, borderRadius, layout, withAlpha } from '../theme';
-import { RootStackParamList } from '../types';
+import { RootStackParamList, MoodType } from '../types';
 
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // =============================================================================
-// MENU ROW COMPONENT
+// TYPES & DATA
 // =============================================================================
-interface MenuRowProps {
-  title: string;
-  description: string;
-  icon: 'breathe' | 'journal' | 'focus' | 'ground' | 'reset' | 'sos';
-  meta: string;
-  tone?: 'primary' | 'warm' | 'calm';
-  onPress: () => void;
-  delay: number;
+interface QuickAction {
+  id: string;
+  label: string;
+  sublabel: string;
+  icon: 'breathe' | 'ground' | 'journal' | 'focus';
+  duration: string;
+  tone: 'primary' | 'warm' | 'calm';
+  route: keyof RootStackParamList;
 }
 
-function MenuRow({ title, description, icon, meta, tone = 'primary', onPress, delay }: MenuRowProps) {
+const QUICK_ACTIONS: QuickAction[] = [
+  {
+    id: 'breathe',
+    label: 'Breathe',
+    sublabel: 'Find calm',
+    icon: 'breathe',
+    duration: '3 min',
+    tone: 'primary',
+    route: 'QuickReset',
+  },
+  {
+    id: 'ground',
+    label: 'Ground',
+    sublabel: 'Be present',
+    icon: 'ground',
+    duration: '4 min',
+    tone: 'warm',
+    route: 'Grounding',
+  },
+  {
+    id: 'journal',
+    label: 'Reflect',
+    sublabel: 'Write freely',
+    icon: 'journal',
+    duration: '5 min',
+    tone: 'calm',
+    route: 'Journal',
+  },
+];
+
+const MOODS: { id: MoodType; label: string }[] = [
+  { id: 'energized', label: 'Energized' },
+  { id: 'calm', label: 'Calm' },
+  { id: 'good', label: 'Good' },
+  { id: 'anxious', label: 'Anxious' },
+  { id: 'low', label: 'Low' },
+  { id: 'tough', label: 'Tough' },
+];
+
+// =============================================================================
+// QUICK ACTION CARD
+// =============================================================================
+interface QuickActionCardProps {
+  action: QuickAction;
+  index: number;
+  onPress: () => void;
+}
+
+function QuickActionCard({ action, index, onPress }: QuickActionCardProps) {
   const { colors, reduceMotion } = useTheme();
   const scale = useSharedValue(1);
   const { impactLight } = useHaptics();
+
   const toneColor =
-    tone === 'warm' ? colors.accentWarm : tone === 'calm' ? colors.accentCalm : colors.accentPrimary;
+    action.tone === 'warm'
+      ? colors.accentWarm
+      : action.tone === 'calm'
+      ? colors.accentCalm
+      : colors.accentPrimary;
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
 
   const handlePressIn = () => {
-    scale.value = withSpring(0.98, { damping: 15, stiffness: 400 });
+    scale.value = withSpring(0.95, { damping: 15, stiffness: 400 });
   };
 
   const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 15, stiffness: 400 });
+    scale.value = withSpring(1, { damping: 12, stiffness: 300 });
   };
 
   const handlePress = async () => {
@@ -75,32 +134,45 @@ function MenuRow({ title, description, icon, meta, tone = 'primary', onPress, de
   };
 
   return (
-    <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(delay).duration(400)}>
+    <Animated.View
+      entering={
+        reduceMotion
+          ? undefined
+          : FadeInUp.delay(400 + index * 100)
+              .duration(500)
+              .easing(Easing.out(Easing.ease))
+      }
+      style={styles.quickActionWrapper}
+    >
       <Pressable
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={handlePress}
       >
-        <Animated.View
-          style={[
-            styles.menuRow,
-            animatedStyle,
-          ]}
-        >
-          <View style={[styles.menuIcon, { backgroundColor: withAlpha(toneColor, 0.12) }]}>
-            <LuxeIcon name={icon} size={22} color={toneColor} />
-          </View>
-          <View style={styles.menuText}>
-            <Text variant="headlineSmall" color="ink" style={styles.menuTitle}>
-              {title}
-            </Text>
-            <Text variant="bodySmall" color="inkMuted">
-              {description}
-            </Text>
-          </View>
-          <Text variant="labelSmall" style={{ color: withAlpha(toneColor, 0.85) }}>
-            {meta}
-          </Text>
+        <Animated.View style={animatedStyle}>
+          <GlassCard variant="elevated" padding="md" glow={action.tone}>
+            <View style={styles.quickActionContent}>
+              <View
+                style={[
+                  styles.quickActionIcon,
+                  { backgroundColor: withAlpha(toneColor, 0.15) },
+                ]}
+              >
+                <LuxeIcon name={action.icon} size={24} color={toneColor} />
+              </View>
+              <Text variant="headlineSmall" color="ink" style={styles.quickActionLabel}>
+                {action.label}
+              </Text>
+              <Text variant="bodySmall" color="inkMuted">
+                {action.sublabel}
+              </Text>
+              <View style={styles.quickActionMeta}>
+                <Text variant="labelSmall" style={{ color: toneColor }}>
+                  {action.duration}
+                </Text>
+              </View>
+            </View>
+          </GlassCard>
         </Animated.View>
       </Pressable>
     </Animated.View>
@@ -111,9 +183,19 @@ function MenuRow({ title, description, icon, meta, tone = 'primary', onPress, de
 // HOME SCREEN
 // =============================================================================
 export function HomeScreen() {
-  const { colors, gradients, reduceMotion } = useTheme();
+  const { colors, isDark, reduceMotion } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { impactMedium } = useHaptics();
+  const { impactMedium, impactLight } = useHaptics();
+
+  const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
+  const [userName, setUserName] = useState<string>('');
+
+  // Load user preferences
+  useEffect(() => {
+    AsyncStorage.getItem('@restorae/user_name').then((name) => {
+      if (name) setUserName(name);
+    });
+  }, []);
 
   // Time-based greeting
   const getGreeting = useCallback(() => {
@@ -123,162 +205,183 @@ export function HomeScreen() {
     return 'Good evening';
   }, []);
 
-  // Determine if it's morning or evening for gradient
-  const isMorning = new Date().getHours() < 17;
-  const backgroundGradient = gradients.morning;
+  // Time-based background variant
+  const getBackgroundVariant = useCallback(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'morning' as const;
+    if (hour < 17) return 'calm' as const;
+    return 'evening' as const;
+  }, []);
+
+  const handleMoodSelect = async (mood: MoodType) => {
+    await impactMedium();
+    setSelectedMood(mood);
+    
+    // Save and navigate after a brief moment
+    await AsyncStorage.setItem('@restorae/last_mood', mood);
+    setTimeout(() => {
+      navigation.navigate('MoodResult', { mood });
+    }, 300);
+  };
+
+  const handleQuickAction = (route: keyof RootStackParamList) => {
+    navigation.navigate(route as any);
+  };
 
   const handleStartRitual = async () => {
     await impactMedium();
-    navigation.navigate('Ritual', { type: isMorning ? 'morning' : 'evening' });
+    const hour = new Date().getHours();
+    navigation.navigate('Ritual', { type: hour < 17 ? 'morning' : 'evening' });
   };
 
-  const handleMoodCheckin = () => {
-    navigation.navigate('MoodCheckin');
-  };
-
-  const handleQuickReset = () => {
-    navigation.navigate('QuickReset');
-  };
-
-  const handleJournal = () => {
-    navigation.navigate('Journal');
-  };
-
-  const handleGrounding = () => {
-    navigation.navigate('Grounding');
-  };
-
-  const handleSos = () => {
+  const handleSos = async () => {
+    await impactMedium();
     navigation.navigate('Sos');
   };
 
-  const menuItems = [
-    {
-      title: 'Mood Check-in',
-      description: 'Name how you feel and get a path.',
-      icon: 'journal' as const,
-      meta: '2 min',
-      tone: 'calm' as const,
-      onPress: handleMoodCheckin,
-    },
-    {
-      title: 'Breathwork',
-      description: 'Soft patterns for calm and clarity.',
-      icon: 'breathe' as const,
-      meta: '3-6 min',
-      tone: 'primary' as const,
-      onPress: handleQuickReset,
-    },
-    {
-      title: 'Grounding',
-      description: 'Anchor your senses in the present.',
-      icon: 'ground' as const,
-      meta: '4 min',
-      tone: 'warm' as const,
-      onPress: handleGrounding,
-    },
-    {
-      title: 'Journal',
-      description: 'Gentle prompts and free writing.',
-      icon: 'journal' as const,
-      meta: '5 min',
-      tone: 'calm' as const,
-      onPress: handleJournal,
-    },
-    {
-      title: 'SOS',
-      description: 'Fast support when you need it.',
-      icon: 'sos' as const,
-      meta: '1 min',
-      tone: 'warm' as const,
-      onPress: handleSos,
-    },
-  ];
-
   return (
     <View style={styles.container}>
-      {/* Gradient background */}
-      <LinearGradient
-        colors={backgroundGradient}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-      />
-      <SpaBackdrop />
+      {/* Living ambient background */}
+      <AmbientBackground variant={getBackgroundVariant()} intensity="normal" />
+
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
+        <View
+          style={styles.scrollContent}
         >
           {/* Header */}
-          <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(600)}>
-            <ScreenHeader
-              eyebrow="RESTORAE"
-              title={getGreeting()}
-              subtitle="A quiet sanctuary to restore and reset."
-            />
+          <Animated.View
+            entering={reduceMotion ? undefined : FadeIn.duration(800)}
+            style={styles.header}
+          >
+            <View style={styles.greetingRow}>
+              <View>
+                <Text variant="labelSmall" color="inkFaint" style={styles.eyebrow}>
+                  RESTORAE
+                </Text>
+                <Text variant="displayMedium" color="ink">
+                  {getGreeting()}
+                  {userName ? `, ${userName}` : ''}
+                </Text>
+              </View>
+              
+              {/* SOS Button */}
+              <Pressable
+                onPress={handleSos}
+                style={({ pressed }) => [
+                  styles.sosButton,
+                  {
+                    backgroundColor: withAlpha(colors.accentWarm, pressed ? 0.2 : 0.12),
+                    transform: [{ scale: pressed ? 0.95 : 1 }],
+                  },
+                ]}
+              >
+                <LuxeIcon name="sos" size={20} color={colors.accentWarm} />
+              </Pressable>
+            </View>
+            
+            <Text variant="bodyLarge" color="inkMuted" style={styles.subtitle}>
+              How are you feeling right now?
+            </Text>
           </Animated.View>
 
-          <Card style={styles.ritualCard} elevation="hero">
-            <SpaMotif />
-            <SpaCardTexture />
-            <Text variant="labelSmall" color="inkFaint">
-              TODAY'S RITUAL
-            </Text>
-            <Text variant="headlineLarge" color="ink" style={styles.ritualTitle}>
-              {isMorning ? 'Morning Reset' : 'Evening Wind-Down'}
-            </Text>
-            <Text variant="bodyMedium" color="inkMuted" style={styles.ritualText}>
-              {isMorning
-                ? 'A gentle sequence to set your tone for the day.'
-                : 'Release the day with softness and ease.'}
-            </Text>
-            <View style={styles.ritualMetaRow}>
-              <View style={[styles.metaPill, { backgroundColor: withAlpha(colors.accentPrimary, 0.12) }]}>
-                <Text variant="labelSmall" color="accent">
-                  6 min
-                </Text>
-              </View>
-              <View style={[styles.metaPill, { backgroundColor: withAlpha(colors.accentWarm, 0.12) }]}>
-                <Text variant="labelSmall" color="inkMuted">
-                  Breath + Movement
-                </Text>
-              </View>
-            </View>
-            <Button
-              variant="primary"
-              size="lg"
-              fullWidth
-              tone={isMorning ? 'warm' : 'calm'}
-              haptic="medium"
-              onPress={handleStartRitual}
-              style={styles.ritualButton}
-            >
-              Begin Ritual
-            </Button>
-          </Card>
-
-          <View style={styles.section}>
-            <Text variant="labelSmall" color="inkFaint" style={styles.sectionLabel}>
-              WELLNESS MENU
-            </Text>
-            {menuItems.map((item, index) => (
-              <Card key={item.title} padding="none" style={styles.menuItemCard} elevation="soft">
-                <MenuRow
-                  title={item.title}
-                  description={item.description}
-                  icon={item.icon}
-                  meta={item.meta}
-                  onPress={item.onPress}
+          {/* Mood Selection - Direct on Home */}
+          <Animated.View
+            entering={
+              reduceMotion
+                ? undefined
+                : FadeInDown.delay(200).duration(600).easing(Easing.out(Easing.ease))
+            }
+            style={styles.moodSection}
+          >
+            <View style={styles.moodGrid}>
+              {MOODS.map((mood, index) => (
+                <MoodOrb
+                  key={mood.id}
+                  mood={mood.id}
+                  label={mood.label}
+                  size="md"
+                  selected={selectedMood === mood.id}
+                  onPress={() => handleMoodSelect(mood.id)}
                   delay={300 + index * 80}
                 />
-              </Card>
-            ))}
+              ))}
+            </View>
+          </Animated.View>
+
+          {/* Daily Ritual Card */}
+          <Animated.View
+            entering={
+              reduceMotion
+                ? undefined
+                : FadeInDown.delay(600).duration(500).easing(Easing.out(Easing.ease))
+            }
+          >
+            <GlassCard variant="hero" padding="lg" glow="warm">
+              <View style={styles.ritualHeader}>
+                <View>
+                  <Text variant="labelSmall" color="inkFaint">
+                    TODAY'S RITUAL
+                  </Text>
+                  <Text variant="headlineLarge" color="ink" style={styles.ritualTitle}>
+                    {new Date().getHours() < 17 ? 'Morning Reset' : 'Evening Wind-Down'}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.ritualBadge,
+                    { backgroundColor: withAlpha(colors.accentPrimary, 0.15) },
+                  ]}
+                >
+                  <Text variant="labelSmall" style={{ color: colors.accentPrimary }}>
+                    6 min
+                  </Text>
+                </View>
+              </View>
+              
+              <Text variant="bodyMedium" color="inkMuted" style={styles.ritualDescription}>
+                {new Date().getHours() < 17
+                  ? 'A gentle sequence to set your tone for the day ahead.'
+                  : 'Release the day with softness, ease, and intention.'}
+              </Text>
+
+              <PremiumButton
+                variant="glow"
+                size="lg"
+                tone={new Date().getHours() < 17 ? 'warm' : 'calm'}
+                fullWidth
+                onPress={handleStartRitual}
+                style={styles.ritualButton}
+              >
+                Begin Ritual
+              </PremiumButton>
+            </GlassCard>
+          </Animated.View>
+
+          {/* Quick Actions */}
+          <View style={styles.quickActionsSection}>
+            <Animated.View
+              entering={reduceMotion ? undefined : FadeIn.delay(700).duration(400)}
+            >
+              <Text variant="labelSmall" color="inkFaint" style={styles.sectionLabel}>
+                QUICK TOOLS
+              </Text>
+            </Animated.View>
+            
+            <View style={styles.quickActionsGrid}>
+              {QUICK_ACTIONS.map((action, index) => (
+                <QuickActionCard
+                  key={action.id}
+                  action={action}
+                  index={index}
+                  onPress={() => handleQuickAction(action.route)}
+                />
+              ))}
+            </View>
           </View>
 
           {/* Bottom spacing for tab bar */}
-          <View style={{ height: layout.tabBarHeight }} />
-        </ScrollView>
+          <View style={{ height: layout.tabBarHeight + spacing[4] }} />
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -295,58 +398,90 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    flex: 1,
     paddingHorizontal: layout.screenPaddingHorizontal,
   },
-  ritualCard: {
+  header: {
+    paddingTop: spacing[4],
+    paddingBottom: spacing[6],
+  },
+  greetingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  eyebrow: {
+    marginBottom: spacing[1],
+    letterSpacing: 2,
+  },
+  subtitle: {
     marginTop: spacing[3],
-    padding: spacing[6],
+  },
+  sosButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  moodSection: {
+    marginBottom: spacing[8],
+  },
+  moodGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: spacing[4],
+  },
+  ritualHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
   ritualTitle: {
-    marginTop: spacing[2],
+    marginTop: spacing[1],
   },
-  ritualText: {
-    marginTop: spacing[2],
-  },
-  ritualMetaRow: {
-    flexDirection: 'row',
-    gap: spacing[2],
-    marginTop: spacing[3],
-  },
-  ritualButton: {
-    marginTop: spacing[5],
-  },
-  metaPill: {
+  ritualBadge: {
     paddingHorizontal: spacing[3],
     paddingVertical: spacing[1],
     borderRadius: borderRadius.full,
   },
-  section: {
-    marginTop: spacing[6],
+  ritualDescription: {
+    marginTop: spacing[3],
+    marginBottom: spacing[5],
+  },
+  ritualButton: {
+    marginTop: spacing[2],
+  },
+  quickActionsSection: {
+    marginTop: spacing[8],
   },
   sectionLabel: {
-    marginBottom: spacing[3],
+    marginBottom: spacing[4],
+    letterSpacing: 2,
   },
-  menuItemCard: {
-    marginBottom: spacing[3],
-  },
-  menuRow: {
+  quickActionsGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing[4],
-    paddingHorizontal: spacing[4],
+    gap: spacing[3],
   },
-  menuIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing[4],
-  },
-  menuText: {
+  quickActionWrapper: {
     flex: 1,
   },
-  menuTitle: {
+  quickActionContent: {
+    alignItems: 'center',
+  },
+  quickActionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing[3],
+  },
+  quickActionLabel: {
     marginBottom: spacing[1],
+  },
+  quickActionMeta: {
+    marginTop: spacing[2],
   },
 });

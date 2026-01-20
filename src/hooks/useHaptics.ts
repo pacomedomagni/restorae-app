@@ -14,6 +14,11 @@ export function useHaptics() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
+  const selectionLight = async () => {
+    if (!hapticsEnabled) return;
+    await Haptics.selectionAsync();
+  };
+
   const notificationSuccess = async () => {
     if (!hapticsEnabled) return;
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -27,6 +32,7 @@ export function useHaptics() {
   return {
     impactLight,
     impactMedium,
+    selectionLight,
     notificationSuccess,
     notificationError,
   };

@@ -1,152 +1,96 @@
 /**
- * JournalPromptsScreen
- * Prompt choices
+ * JournalPromptsScreen - Consistent UI
  */
 import React from 'react';
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, {
-  FadeIn,
-  FadeInDown,
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from 'react-native-reanimated';
-import { useHaptics } from '../hooks/useHaptics';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 
 import { useTheme } from '../contexts/ThemeContext';
-import { Text, Card, SpaBackdrop, ScreenHeader } from '../components/ui';
-import { spacing, borderRadius, layout, withAlpha } from '../theme';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../types';
+import { Text, GlassCard, AmbientBackground, ScreenHeader } from '../components/ui';
+import { spacing, layout } from '../theme';
+import { useHaptics } from '../hooks/useHaptics';
+import type { RootStackParamList } from '../types';
 
-type Prompt = {
-  id: string;
-  text: string;
-  category: 'gratitude' | 'release' | 'growth';
-};
-
-const prompts: Prompt[] = [
-  { id: '1', text: 'What are you grateful for today?', category: 'gratitude' },
-  { id: '2', text: 'What would you like to release?', category: 'release' },
-  { id: '3', text: 'What small win can you celebrate?', category: 'growth' },
+const PROMPTS = [
+  {
+    id: '1',
+    category: 'Gratitude',
+    prompt: 'What are three things you\'re grateful for today?',
+    icon: '🙏',
+  },
+  {
+    id: '2',
+    category: 'Reflection',
+    prompt: 'What did you learn about yourself this week?',
+    icon: '🔮',
+  },
+  {
+    id: '3',
+    category: 'Growth',
+    prompt: 'What challenge helped you grow recently?',
+    icon: '🌱',
+  },
+  {
+    id: '4',
+    category: 'Dreams',
+    prompt: 'If you could achieve anything, what would it be?',
+    icon: '✨',
+  },
+  {
+    id: '5',
+    category: 'Self-Care',
+    prompt: 'How did you take care of yourself today?',
+    icon: '💝',
+  },
 ];
 
-interface PromptCardProps {
-  prompt: Prompt;
-  delay: number;
-  onPress: () => void;
-}
-
-function PromptCard({ prompt, delay, onPress }: PromptCardProps) {
-  const { colors, reduceMotion } = useTheme();
-  const scale = useSharedValue(1);
-  const { impactLight } = useHaptics();
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const handlePressIn = () => {
-    scale.value = withSpring(0.98, { damping: 15, stiffness: 400 });
-  };
-
-  const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 15, stiffness: 400 });
-  };
-
-  const handlePress = async () => {
-    await impactLight();
-    onPress();
-  };
-
-  const categoryColor = {
-    gratitude: colors.accentPrimary,
-    release: colors.accentWarm,
-    growth: colors.accentCalm,
-  }[prompt.category];
-
-  return (
-    <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(delay).duration(400)}>
-      <Pressable onPressIn={handlePressIn} onPressOut={handlePressOut} onPress={handlePress}>
-        <Animated.View
-          style={[styles.promptCard, animatedStyle]}
-        >
-          <Card style={[styles.promptSurface, { borderLeftColor: categoryColor }]} elevation="lift">
-            <Text variant="bodyLarge" color="ink" style={styles.promptText}>
-              {prompt.text}
-            </Text>
-            <View style={[styles.promptCategory, { backgroundColor: withAlpha(categoryColor, 0.12) }]}>
-              <Text variant="labelSmall" style={{ color: categoryColor }}>
-                {prompt.category}
-              </Text>
-            </View>
-          </Card>
-        </Animated.View>
-      </Pressable>
-    </Animated.View>
-  );
-}
-
 export function JournalPromptsScreen() {
-  const { gradients, reduceMotion } = useTheme();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const isLoading = false;
+  const { reduceMotion } = useTheme();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const { selectionLight } = useHaptics();
+
+  const handlePromptSelect = async (prompt: string) => {
+    await selectionLight();
+    // Navigate to entry with prompt pre-filled
+    navigation.navigate('JournalEntry');
+  };
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={gradients.morning}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-      />
-      <SpaBackdrop />
+      <AmbientBackground />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.scrollContent}>
           <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(600)}>
             <ScreenHeader
-              title="Prompts"
-              subtitle="Choose a gentle starting point"
+              title="Writing Prompts"
+              subtitle="Choose a prompt to inspire your writing"
               compact
             />
           </Animated.View>
 
-          {isLoading ? (
-            <View style={styles.emptyState}>
-              <Text variant="headlineSmall" color="ink">
-                Loading prompts...
-              </Text>
-              <Text variant="bodySmall" color="inkMuted" style={styles.emptyText}>
-                Gathering gentle starting points.
-              </Text>
-            </View>
-          ) : prompts.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text variant="headlineSmall" color="ink">
-                No prompts yet
-              </Text>
-              <Text variant="bodySmall" color="inkMuted" style={styles.emptyText}>
-                Check back soon for guided prompts.
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.promptList}>
-              {prompts.map((prompt, index) => (
-                <PromptCard
-                  key={prompt.id}
-                  prompt={prompt}
-                  delay={200 + index * 120}
-                  onPress={() => navigation.navigate('JournalEntry', { mode: 'prompt', prompt: prompt.text })}
-                />
-              ))}
-            </View>
-          )}
+          {PROMPTS.map((item, index) => (
+            <Animated.View 
+              key={item.id} 
+              entering={reduceMotion ? undefined : FadeInDown.delay(100 + index * 80).duration(400)}
+            >
+              <Pressable onPress={() => handlePromptSelect(item.prompt)}>
+                <GlassCard variant="interactive" padding="lg">
+                  <View style={styles.promptHeader}>
+                    <Text style={styles.icon}>{item.icon}</Text>
+                    <Text variant="labelMedium" color="inkMuted">{item.category}</Text>
+                  </View>
+                  <Text variant="bodyLarge" color="ink" style={styles.prompt}>
+                    {item.prompt}
+                  </Text>
+                </GlassCard>
+              </Pressable>
+            </Animated.View>
+          ))}
 
           <View style={{ height: layout.tabBarHeight }} />
-        </ScrollView>
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -160,33 +104,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    flex: 1,
     paddingHorizontal: layout.screenPaddingHorizontal,
   },
-  promptList: {
-    gap: spacing[4],
-    paddingBottom: spacing[6],
+  promptHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+    marginBottom: spacing[2],
   },
-  emptyState: {
-    padding: spacing[5],
+  icon: {
+    fontSize: 20,
   },
-  emptyText: {
-    marginTop: spacing[2],
-  },
-  promptCard: {
-    width: '100%',
-    borderRadius: borderRadius.xl,
-  },
-  promptSurface: {
-    borderLeftWidth: 3,
-  },
-  promptText: {
-    marginBottom: spacing[3],
+  prompt: {
     lineHeight: 26,
-  },
-  promptCategory: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.md,
   },
 });

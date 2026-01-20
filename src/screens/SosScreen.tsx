@@ -1,19 +1,18 @@
 /**
- * SosScreen
+ * SosScreen - Consistent UI
  */
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import { useTheme } from '../contexts/ThemeContext';
-import { Text, Button, Card, SpaBackdrop, ScreenHeader } from '../components/ui';
+import { Text, Button, GlassCard, AmbientBackground, ScreenHeader } from '../components/ui';
 import { spacing, layout } from '../theme';
 import { useHaptics } from '../hooks/useHaptics';
 
 export function SosScreen() {
-  const { gradients, reduceMotion } = useTheme();
+  const { reduceMotion } = useTheme();
   const { notificationSuccess } = useHaptics();
   const [isActive, setIsActive] = useState(false);
 
@@ -28,15 +27,9 @@ export function SosScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={gradients.calm}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-      />
-      <SpaBackdrop />
+      <AmbientBackground />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.scrollContent}>
           <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(600)}>
             <ScreenHeader
               title="SOS"
@@ -45,45 +38,49 @@ export function SosScreen() {
             />
           </Animated.View>
 
-          <Card style={styles.card} elevation="lift">
-            <Text variant="headlineSmall" color="ink">
-              {isActive ? 'You are safe' : 'Panic Reset'}
-            </Text>
-            <Text variant="bodyMedium" color="inkMuted" style={styles.cardText}>
-              {isActive
-                ? 'Slow your breath. Let the edges soften.'
-                : 'Start a 4-minute guided sequence to slow everything down.'}
-            </Text>
-          </Card>
+          <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(200).duration(400)}>
+            <GlassCard variant="elevated" padding="lg" glow="warm">
+              <Text variant="headlineSmall" color="ink">
+                {isActive ? 'You are safe' : 'Panic Reset'}
+              </Text>
+              <Text variant="bodyMedium" color="inkMuted" style={styles.cardText}>
+                {isActive
+                  ? 'Slow your breath. Let the edges soften.'
+                  : 'Start a 4-minute guided sequence to slow everything down.'}
+              </Text>
+            </GlassCard>
+          </Animated.View>
 
-          {isActive ? (
-            <Button
-              variant="primary"
-              size="lg"
-              fullWidth
-              tone="warm"
-              haptic="none"
-              onPress={handleFinish}
-              style={styles.primaryButton}
-            >
-              Finish SOS
-            </Button>
-          ) : (
-            <Button
-              variant="primary"
-              size="lg"
-              fullWidth
-              tone="warm"
-              haptic="medium"
-              onPress={handleStart}
-              style={styles.primaryButton}
-            >
-              Start SOS Sequence
-            </Button>
-          )}
+          <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(300).duration(400)}>
+            {isActive ? (
+              <Button
+                variant="primary"
+                size="lg"
+                fullWidth
+                tone="warm"
+                haptic="none"
+                onPress={handleFinish}
+                style={styles.primaryButton}
+              >
+                Finish SOS
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                size="lg"
+                fullWidth
+                tone="warm"
+                haptic="medium"
+                onPress={handleStart}
+                style={styles.primaryButton}
+              >
+                Start SOS Sequence
+              </Button>
+            )}
+          </Animated.View>
 
           <View style={{ height: layout.tabBarHeight }} />
-        </ScrollView>
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -97,16 +94,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    flex: 1,
     paddingHorizontal: layout.screenPaddingHorizontal,
-  },
-  card: {
-    padding: spacing[5],
-    marginBottom: spacing[6],
   },
   cardText: {
     marginTop: spacing[3],
   },
   primaryButton: {
+    marginTop: spacing[6],
     marginBottom: spacing[6],
   },
 });

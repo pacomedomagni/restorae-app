@@ -1,4 +1,4 @@
 export { Text } from './ui/Text';
 export { Button } from './ui/Button';
-export { Card } from './ui/Card';
+export { GlassCard } from './ui/GlassCard';
 export { Icon } from './Icon';

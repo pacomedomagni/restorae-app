@@ -1,140 +1,104 @@
 /**
- * ToolsMoreScreen
- * Secondary tools list (max 3 choices)
+ * ToolsMoreScreen - Consistent UI
  */
 import React from 'react';
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import Animated, {
-  FadeIn,
-  FadeInDown,
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from 'react-native-reanimated';
-import { useHaptics } from '../hooks/useHaptics';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 
 import { useTheme } from '../contexts/ThemeContext';
-import { Text, Card, SpaBackdrop, ScreenHeader } from '../components/ui';
-import { Icon } from '../components/Icon';
-import { spacing, borderRadius, layout, withAlpha } from '../theme';
-import { RootStackParamList } from '../types';
+import { Text, GlassCard, AmbientBackground, ScreenHeader } from '../components/ui';
+import { spacing, layout } from '../theme';
+import { useHaptics } from '../hooks/useHaptics';
+import type { RootStackParamList } from '../types';
 
-type MoreTool = {
-  id: 'ground' | 'reset' | 'focus';
-  title: string;
-  description: string;
-  icon: 'ground' | 'reset' | 'focus';
-};
-
-const tools: MoreTool[] = [
-  { id: 'ground', title: 'Ground', description: 'Anchor and steady your senses.', icon: 'ground' },
-  { id: 'reset', title: 'Reset', description: 'Gentle movement for release.', icon: 'reset' },
-  { id: 'focus', title: 'Focus', description: 'Timers and ambient soundscapes.', icon: 'focus' },
+const MORE_TOOLS = [
+  {
+    id: 'visualization',
+    title: 'Guided Visualization',
+    description: 'Mental imagery for calm and focus',
+    icon: '🌅',
+    duration: '10-15 min',
+  },
+  {
+    id: 'bodyscan',
+    title: 'Body Scan',
+    description: 'Progressive relaxation technique',
+    icon: '🧘',
+    duration: '15-20 min',
+  },
+  {
+    id: 'affirmations',
+    title: 'Affirmations',
+    description: 'Positive statements for self-compassion',
+    icon: '💫',
+    duration: '5 min',
+  },
+  {
+    id: 'gratitude',
+    title: 'Gratitude Practice',
+    description: 'Cultivate appreciation and joy',
+    icon: '🙏',
+    duration: '5-10 min',
+  },
+  {
+    id: 'sleep',
+    title: 'Sleep Stories',
+    description: 'Calming narratives for restful sleep',
+    icon: '🌙',
+    duration: '20-30 min',
+  },
 ];
 
-interface ToolCardProps {
-  tool: MoreTool;
-  delay: number;
-  onPress: () => void;
-}
-
-function ToolCard({ tool, delay, onPress }: ToolCardProps) {
-  const { colors, reduceMotion } = useTheme();
-  const scale = useSharedValue(1);
-  const { impactLight } = useHaptics();
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const handlePressIn = () => {
-    scale.value = withSpring(0.98, { damping: 15, stiffness: 400 });
-  };
-
-  const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 15, stiffness: 400 });
-  };
-
-  const handlePress = async () => {
-    await impactLight();
-    onPress();
-  };
-
-  return (
-    <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(delay).duration(400)}>
-      <Pressable onPressIn={handlePressIn} onPressOut={handlePressOut} onPress={handlePress}>
-        <Animated.View
-          style={[styles.toolCard, animatedStyle]}
-        >
-          <Card elevation="lift">
-            <View style={[styles.toolIcon, { backgroundColor: withAlpha(colors.accentPrimary, 0.12) }]}>
-              <Icon name={tool.icon} size={28} color={colors.accentPrimary} />
-            </View>
-            <Text variant="headlineSmall" color="ink" style={styles.toolTitle}>
-              {tool.title}
-            </Text>
-            <Text variant="bodySmall" color="inkMuted">
-              {tool.description}
-            </Text>
-          </Card>
-        </Animated.View>
-      </Pressable>
-    </Animated.View>
-  );
-}
-
 export function ToolsMoreScreen() {
-  const { gradients, reduceMotion } = useTheme();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { reduceMotion } = useTheme();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const { selectionLight } = useHaptics();
 
-  const handlePress = (toolId: MoreTool['id']) => {
-    if (toolId === 'ground') {
-      navigation.navigate('Grounding');
-    }
-    if (toolId === 'reset') {
-      navigation.navigate('Reset');
-    }
-    if (toolId === 'focus') {
-      navigation.navigate('Focus');
-    }
+  const handleToolSelect = async (toolId: string) => {
+    await selectionLight();
+    // Navigate to specific tool screen
   };
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={gradients.morning}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-      />
-      <SpaBackdrop />
+      <AmbientBackground />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.scrollContent}>
           <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(600)}>
             <ScreenHeader
               title="More Tools"
-              subtitle="Ground, reset, and focus"
+              subtitle="Expand your wellness toolkit"
               compact
             />
           </Animated.View>
 
-          <View style={styles.cardList}>
-            {tools.map((tool, index) => (
-              <ToolCard
-                key={tool.id}
-                tool={tool}
-                delay={200 + index * 120}
-                onPress={() => handlePress(tool.id)}
-              />
-            ))}
-          </View>
+          {MORE_TOOLS.map((tool, index) => (
+            <Animated.View 
+              key={tool.id} 
+              entering={reduceMotion ? undefined : FadeInDown.delay(100 + index * 80).duration(400)}
+            >
+              <Pressable onPress={() => handleToolSelect(tool.id)}>
+                <GlassCard variant="interactive" padding="lg">
+                  <View style={styles.toolRow}>
+                    <Text style={styles.icon}>{tool.icon}</Text>
+                    <View style={styles.toolInfo}>
+                      <Text variant="headlineSmall" color="ink">{tool.title}</Text>
+                      <Text variant="bodySmall" color="inkMuted">{tool.description}</Text>
+                      <Text variant="labelSmall" color="accent" style={styles.duration}>
+                        {tool.duration}
+                      </Text>
+                    </View>
+                    <Text variant="bodyLarge" color="inkMuted">→</Text>
+                  </View>
+                </GlassCard>
+              </Pressable>
+            </Animated.View>
+          ))}
 
           <View style={{ height: layout.tabBarHeight }} />
-        </ScrollView>
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -148,24 +112,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    flex: 1,
     paddingHorizontal: layout.screenPaddingHorizontal,
   },
-  cardList: {
-    gap: spacing[4],
-    paddingBottom: spacing[6],
-  },
-  toolCard: {
-    borderRadius: borderRadius.xl,
-  },
-  toolIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: borderRadius.lg,
+  toolRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing[3],
+    gap: spacing[4],
   },
-  toolTitle: {
-    marginBottom: spacing[1],
+  icon: {
+    fontSize: 32,
+  },
+  toolInfo: {
+    flex: 1,
+  },
+  duration: {
+    marginTop: spacing[1],
   },
 });

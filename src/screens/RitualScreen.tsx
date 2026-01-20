@@ -1,72 +1,119 @@
 /**
- * RitualScreen
+ * RitualScreen - Consistent UI
  */
-import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import { useTheme } from '../contexts/ThemeContext';
-import { Text, Button, Card, SpaBackdrop, ScreenHeader } from '../components/ui';
+import { Text, Button, GlassCard, AmbientBackground, ScreenHeader } from '../components/ui';
 import { spacing, layout } from '../theme';
-import { RootStackParamList } from '../types';
+import { useHaptics } from '../hooks/useHaptics';
+
+const RITUALS = [
+  { 
+    id: 'morning', 
+    title: 'Morning Ritual', 
+    time: '7:00 AM',
+    steps: ['Gratitude', 'Breathing', 'Intention'],
+    completed: false
+  },
+  { 
+    id: 'midday', 
+    title: 'Midday Check-in', 
+    time: '12:00 PM',
+    steps: ['Pause', 'Reflect', 'Adjust'],
+    completed: false
+  },
+  { 
+    id: 'evening', 
+    title: 'Evening Wind Down', 
+    time: '9:00 PM',
+    steps: ['Review', 'Release', 'Rest'],
+    completed: false
+  },
+];
 
 export function RitualScreen() {
-  const { gradients, reduceMotion } = useTheme();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const route = useRoute<RouteProp<RootStackParamList, 'Ritual'>>();
+  const { reduceMotion } = useTheme();
+  const { selectionLight, notificationSuccess } = useHaptics();
+  const [rituals, setRituals] = useState(RITUALS);
 
-  const isMorning = route.params.type === 'morning';
-  const title = isMorning ? 'Morning Ritual' : 'Evening Wind-Down';
-  const description = isMorning
-    ? 'A 5-minute sequence to set your day with intention.'
-    : 'Release the day and prepare for restful sleep.';
-
-  const handleStart = () => {
-    navigation.navigate('Breathing', { patternId: 'calm-breath' });
+  const toggleRitual = async (id: string) => {
+    await selectionLight();
+    setRituals(prev => prev.map(r => 
+      r.id === id ? { ...r, completed: !r.completed } : r
+    ));
   };
+
+  const completedCount = rituals.filter(r => r.completed).length;
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={isMorning ? gradients.morning : gradients.evening}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-      />
-      <SpaBackdrop />
+      <AmbientBackground />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.scrollContent}>
           <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(600)}>
-            <ScreenHeader title={title} subtitle={description} compact />
+            <ScreenHeader
+              title="Daily Rituals"
+              subtitle={`${completedCount} of ${rituals.length} completed today`}
+              compact
+            />
           </Animated.View>
 
-          <Card style={styles.card} elevation="lift">
-            <Text variant="headlineSmall" color="ink">
-              What to expect
-            </Text>
-            <Text variant="bodyMedium" color="inkMuted" style={styles.cardText}>
-              Breath, ground, and a short reflection to anchor you.
-            </Text>
-          </Card>
+          {rituals.map((ritual, index) => (
+            <Animated.View 
+              key={ritual.id} 
+              entering={reduceMotion ? undefined : FadeInDown.delay(100 + index * 100).duration(400)}
+            >
+              <Pressable onPress={() => toggleRitual(ritual.id)}>
+                <GlassCard 
+                  variant={ritual.completed ? 'elevated' : 'default'} 
+                  padding="lg"
+                  glow={ritual.completed ? 'cool' : undefined}
+                >
+                  <View style={styles.ritualHeader}>
+                    <View>
+                      <Text 
+                        variant="headlineSmall" 
+                        color={ritual.completed ? 'inkMuted' : 'ink'}
+                        style={ritual.completed ? styles.completed : undefined}
+                      >
+                        {ritual.title}
+                      </Text>
+                      <Text variant="labelMedium" color="inkMuted">{ritual.time}</Text>
+                    </View>
+                    <View style={[styles.checkbox, ritual.completed && styles.checkboxChecked]}>
+                      {ritual.completed && <Text style={styles.checkmark}>✓</Text>}
+                    </View>
+                  </View>
+                  <View style={styles.stepsRow}>
+                    {ritual.steps.map((step, i) => (
+                      <Text key={i} variant="labelSmall" color="inkMuted">
+                        {step}{i < ritual.steps.length - 1 ? ' → ' : ''}
+                      </Text>
+                    ))}
+                  </View>
+                </GlassCard>
+              </Pressable>
+            </Animated.View>
+          ))}
 
-          <Button
-            variant="primary"
-            size="lg"
-            fullWidth
-            tone={isMorning ? 'warm' : 'calm'}
-            haptic="medium"
-            onPress={handleStart}
-            style={styles.primaryButton}
-          >
-            Begin Ritual
-          </Button>
+          <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(400).duration(400)}>
+            <Button
+              variant="secondary"
+              size="md"
+              fullWidth
+              onPress={() => {}}
+              style={styles.addButton}
+            >
+              + Create Custom Ritual
+            </Button>
+          </Animated.View>
 
           <View style={{ height: layout.tabBarHeight }} />
-        </ScrollView>
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -80,16 +127,42 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    flex: 1,
     paddingHorizontal: layout.screenPaddingHorizontal,
   },
-  card: {
-    padding: spacing[5],
-    marginBottom: spacing[6],
+  ritualHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  cardText: {
+  completed: {
+    textDecorationLine: 'line-through',
+    opacity: 0.7,
+  },
+  checkbox: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: 'rgba(125, 211, 192, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: 'rgba(125, 211, 192, 0.3)',
+    borderColor: '#7DD3C0',
+  },
+  checkmark: {
+    color: '#7DD3C0',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  stepsRow: {
+    flexDirection: 'row',
     marginTop: spacing[3],
   },
-  primaryButton: {
+  addButton: {
+    marginTop: spacing[6],
     marginBottom: spacing[6],
   },
 });

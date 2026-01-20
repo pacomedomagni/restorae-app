@@ -1,119 +1,111 @@
 /**
- * SupportScreen
- * Support actions
+ * SupportScreen - Consistent UI
  */
 import React from 'react';
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, StyleSheet, Pressable, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, {
-  FadeIn,
-  FadeInDown,
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from 'react-native-reanimated';
-import { useHaptics } from '../hooks/useHaptics';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import { useTheme } from '../contexts/ThemeContext';
-import { Text, Card, SpaBackdrop, ScreenHeader } from '../components/ui';
-import { spacing, borderRadius, layout } from '../theme';
+import { Text, GlassCard, AmbientBackground, ScreenHeader } from '../components/ui';
+import { spacing, layout } from '../theme';
+import { useHaptics } from '../hooks/useHaptics';
 
-type SupportAction = {
-  id: 'help' | 'feedback' | 'about';
-  title: string;
-  description: string;
-};
-
-const actions: SupportAction[] = [
-  { id: 'help', title: 'Help Center', description: 'Find answers fast.' },
-  { id: 'feedback', title: 'Send Feedback', description: 'Share ideas or report issues.' },
-  { id: 'about', title: 'About Restorae', description: 'Version and credits.' },
+const SUPPORT_OPTIONS = [
+  {
+    id: 'faq',
+    title: 'Frequently Asked Questions',
+    description: 'Find answers to common questions',
+    icon: '❓',
+    action: 'faq',
+  },
+  {
+    id: 'email',
+    title: 'Email Support',
+    description: 'Get help from our support team',
+    icon: '✉️',
+    action: 'email',
+  },
+  {
+    id: 'feedback',
+    title: 'Send Feedback',
+    description: 'Help us improve Restorae',
+    icon: '💬',
+    action: 'feedback',
+  },
+  {
+    id: 'rate',
+    title: 'Rate the App',
+    description: 'Share your experience',
+    icon: '⭐',
+    action: 'rate',
+  },
 ];
 
-interface ActionRowProps {
-  action: SupportAction;
-  delay: number;
-  onPress: () => void;
-}
-
-function ActionRow({ action, delay, onPress }: ActionRowProps) {
-  const { colors, reduceMotion } = useTheme();
-  const scale = useSharedValue(1);
-  const { impactLight } = useHaptics();
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const handlePressIn = () => {
-    scale.value = withSpring(0.99, { damping: 15, stiffness: 400 });
-  };
-
-  const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 15, stiffness: 400 });
-  };
-
-  const handlePress = async () => {
-    await impactLight();
-    onPress();
-  };
-
-  return (
-    <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(delay).duration(400)}>
-      <Pressable onPressIn={handlePressIn} onPressOut={handlePressOut} onPress={handlePress}>
-        <Animated.View
-          style={[styles.row, animatedStyle]}
-        >
-          <Card elevation="lift">
-            <Text variant="headlineSmall" color="ink">
-              {action.title}
-            </Text>
-            <Text variant="bodySmall" color="inkMuted" style={styles.rowDescription}>
-              {action.description}
-            </Text>
-          </Card>
-        </Animated.View>
-      </Pressable>
-    </Animated.View>
-  );
-}
-
 export function SupportScreen() {
-  const { gradients, reduceMotion } = useTheme();
+  const { reduceMotion } = useTheme();
+  const { selectionLight } = useHaptics();
+
+  const handleOption = async (action: string) => {
+    await selectionLight();
+    switch (action) {
+      case 'email':
+        Linking.openURL('mailto:support@restorae.app');
+        break;
+      case 'feedback':
+        Linking.openURL('mailto:feedback@restorae.app?subject=App Feedback');
+        break;
+      default:
+        break;
+    }
+  };
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={gradients.morning}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-      />
-      <SpaBackdrop />
+      <AmbientBackground />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.scrollContent}>
           <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(600)}>
             <ScreenHeader
               title="Support"
-              subtitle="We are here to help"
+              subtitle="We're here to help"
               compact
             />
           </Animated.View>
 
-          <View style={styles.list}>
-            {actions.map((action, index) => (
-              <ActionRow
-                key={action.id}
-                action={action}
-                delay={200 + index * 120}
-                onPress={() => {}}
-              />
-            ))}
-          </View>
+          {SUPPORT_OPTIONS.map((option, index) => (
+            <Animated.View 
+              key={option.id} 
+              entering={reduceMotion ? undefined : FadeInDown.delay(100 + index * 80).duration(400)}
+            >
+              <Pressable onPress={() => handleOption(option.action)}>
+                <GlassCard variant="interactive" padding="lg">
+                  <View style={styles.optionRow}>
+                    <Text style={styles.icon}>{option.icon}</Text>
+                    <View style={styles.optionText}>
+                      <Text variant="headlineSmall" color="ink">{option.title}</Text>
+                      <Text variant="bodySmall" color="inkMuted">{option.description}</Text>
+                    </View>
+                    <Text variant="bodyLarge" color="inkMuted">→</Text>
+                  </View>
+                </GlassCard>
+              </Pressable>
+            </Animated.View>
+          ))}
+
+          <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(400).duration(400)}>
+            <GlassCard variant="subtle" padding="lg" style={styles.versionCard}>
+              <Text variant="labelMedium" color="inkMuted" align="center">
+                Restorae v1.0.0
+              </Text>
+              <Text variant="labelSmall" color="inkMuted" align="center" style={styles.versionSub}>
+                Made with 💚 for your wellbeing
+              </Text>
+            </GlassCard>
+          </Animated.View>
 
           <View style={{ height: layout.tabBarHeight }} />
-        </ScrollView>
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -127,16 +119,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    flex: 1,
     paddingHorizontal: layout.screenPaddingHorizontal,
   },
-  list: {
+  optionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing[4],
-    paddingBottom: spacing[6],
   },
-  row: {
-    borderRadius: borderRadius.xl,
+  icon: {
+    fontSize: 28,
   },
-  rowDescription: {
+  optionText: {
+    flex: 1,
+  },
+  versionCard: {
+    marginTop: spacing[6],
+    marginBottom: spacing[6],
+  },
+  versionSub: {
     marginTop: spacing[1],
   },
 });

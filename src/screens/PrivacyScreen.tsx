@@ -1,120 +1,76 @@
 /**
- * PrivacyScreen
- * Privacy actions
+ * PrivacyScreen - Consistent UI
  */
 import React from 'react';
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, {
-  FadeIn,
-  FadeInDown,
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from 'react-native-reanimated';
-import { useHaptics } from '../hooks/useHaptics';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import { useTheme } from '../contexts/ThemeContext';
-import { Text, Card, SpaBackdrop, ScreenHeader } from '../components/ui';
-import { spacing, borderRadius, layout } from '../theme';
+import { Text, GlassCard, AmbientBackground, ScreenHeader } from '../components/ui';
+import { spacing, layout } from '../theme';
 
-type PrivacyAction = {
-  id: 'lock' | 'export' | 'delete';
-  title: string;
-  description: string;
-  destructive?: boolean;
-};
-
-const actions: PrivacyAction[] = [
-  { id: 'lock', title: 'App Lock', description: 'Secure the journal with biometrics.' },
-  { id: 'export', title: 'Export Data', description: 'Download an encrypted backup.' },
-  { id: 'delete', title: 'Delete All Data', description: 'Permanently remove local data.', destructive: true },
+const PRIVACY_SECTIONS = [
+  {
+    title: 'Data Collection',
+    content: 'Restorae collects minimal data necessary to provide you with a personalized wellness experience. Your journal entries, mood data, and preferences are stored securely on your device.',
+  },
+  {
+    title: 'Data Storage',
+    content: 'All your personal data is stored locally on your device. We do not upload your journal entries or mood data to external servers unless you explicitly enable cloud sync.',
+  },
+  {
+    title: 'Analytics',
+    content: 'We collect anonymous usage analytics to improve the app experience. This data cannot be used to identify you personally.',
+  },
+  {
+    title: 'Third Parties',
+    content: 'We do not sell or share your personal information with third parties. Any integrations with external services are opt-in only.',
+  },
+  {
+    title: 'Your Rights',
+    content: 'You can export or delete all your data at any time from the app settings. We respect your right to privacy and data ownership.',
+  },
 ];
 
-interface ActionRowProps {
-  action: PrivacyAction;
-  delay: number;
-  onPress: () => void;
-}
-
-function ActionRow({ action, delay, onPress }: ActionRowProps) {
-  const { colors, reduceMotion } = useTheme();
-  const scale = useSharedValue(1);
-  const { impactLight } = useHaptics();
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const handlePressIn = () => {
-    scale.value = withSpring(0.99, { damping: 15, stiffness: 400 });
-  };
-
-  const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 15, stiffness: 400 });
-  };
-
-  const handlePress = async () => {
-    await impactLight();
-    onPress();
-  };
-
-  return (
-    <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(delay).duration(400)}>
-      <Pressable onPressIn={handlePressIn} onPressOut={handlePressOut} onPress={handlePress}>
-        <Animated.View
-          style={[styles.row, animatedStyle]}
-        >
-          <Card elevation="lift">
-            <Text variant="headlineSmall" style={{ color: action.destructive ? colors.statusError : colors.ink }}>
-              {action.title}
-            </Text>
-            <Text variant="bodySmall" color="inkMuted" style={styles.rowDescription}>
-              {action.description}
-            </Text>
-          </Card>
-        </Animated.View>
-      </Pressable>
-    </Animated.View>
-  );
-}
-
 export function PrivacyScreen() {
-  const { gradients, reduceMotion } = useTheme();
+  const { reduceMotion } = useTheme();
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={gradients.morning}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-      />
-      <SpaBackdrop />
+      <AmbientBackground />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.scrollContent}>
           <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(600)}>
             <ScreenHeader
-              title="Privacy"
-              subtitle="Your data stays on device"
+              title="Privacy Policy"
+              subtitle="How we protect your data"
               compact
             />
           </Animated.View>
 
-          <View style={styles.list}>
-            {actions.map((action, index) => (
-              <ActionRow
-                key={action.id}
-                action={action}
-                delay={200 + index * 120}
-                onPress={() => {}}
-              />
-            ))}
-          </View>
+          {PRIVACY_SECTIONS.map((section, index) => (
+            <Animated.View 
+              key={index} 
+              entering={reduceMotion ? undefined : FadeInDown.delay(100 + index * 80).duration(400)}
+            >
+              <GlassCard variant="default" padding="lg">
+                <Text variant="headlineSmall" color="ink">{section.title}</Text>
+                <Text variant="bodyMedium" color="inkMuted" style={styles.content}>
+                  {section.content}
+                </Text>
+              </GlassCard>
+            </Animated.View>
+          ))}
+
+          <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(500).duration(400)}>
+            <Text variant="labelSmall" color="inkMuted" align="center" style={styles.footer}>
+              Last updated: December 2024
+            </Text>
+          </Animated.View>
 
           <View style={{ height: layout.tabBarHeight }} />
-        </ScrollView>
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -128,16 +84,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    flex: 1,
     paddingHorizontal: layout.screenPaddingHorizontal,
   },
-  list: {
-    gap: spacing[4],
-    paddingBottom: spacing[6],
+  content: {
+    marginTop: spacing[2],
+    lineHeight: 24,
   },
-  row: {
-    borderRadius: borderRadius.xl,
-  },
-  rowDescription: {
-    marginTop: spacing[1],
+  footer: {
+    marginTop: spacing[6],
+    marginBottom: spacing[6],
   },
 });

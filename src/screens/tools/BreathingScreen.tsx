@@ -1,43 +1,40 @@
 /**
  * BreathingScreen
- * Premium breathing exercise following RESTORAE_SPEC.md
  * 
- * Features:
- * - Calm gradient background
- * - Animated breathing orb with reanimated
- * - Haptic feedback at phase transitions
- * - Cycle progress indicator
+ * Guided breathing exercises with animated orb,
+ * multiple patterns, and completion tracking.
  */
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { 
   View, 
   StyleSheet, 
   Pressable,
-  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import Animated, {
+  FadeIn,
+  FadeInDown,
+  FadeOut,
   useSharedValue,
   useAnimatedStyle,
-  withTiming,
   withSequence,
-  withRepeat,
+  withTiming,
   Easing,
-  FadeIn,
-  FadeInUp,
 } from 'react-native-reanimated';
 
 import { useTheme } from '../../contexts/ThemeContext';
-import { Text, Button, SpaBackdrop } from '../../components/ui';
+import { 
+  Text, 
+  AmbientBackground,
+  BreathingOrb,
+  GlassCard,
+  PremiumButton,
+} from '../../components/ui';
 import { Icon } from '../../components/Icon';
 import { spacing, borderRadius, layout, withAlpha } from '../../theme';
 import { RootStackParamList, BreathingPattern } from '../../types';
 import { useHaptics } from '../../hooks/useHaptics';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const ORB_SIZE = SCREEN_WIDTH * 0.55;
 
 // =============================================================================
 // BREATHING PATTERNS
@@ -78,89 +75,55 @@ const breathingPatterns: Record<string, BreathingPattern> = {
   },
 };
 
-type Phase = 'idle' | 'inhale' | 'hold1' | 'exhale' | 'hold2' | 'complete';
+type Phase = 'idle' | 'inhale' | 'hold' | 'exhale' | 'complete';
 
 const phaseLabels: Record<Phase, string> = {
-  idle: 'Tap to begin',
-  inhale: 'Breathe in',
-  hold1: 'Hold',
-  exhale: 'Breathe out',
-  hold2: 'Hold',
-  complete: 'Well done',
+  idle: 'Tap orb to begin',
+  inhale: 'Breathe in...',
+  hold: 'Hold gently...',
+  exhale: 'Let it go...',
+  complete: 'Beautifully done',
 };
 
 // =============================================================================
 // BREATHING SCREEN
 // =============================================================================
 export function BreathingScreen() {
-  const { colors, gradients, reduceMotion } = useTheme();
+  const { colors, reduceMotion } = useTheme();
   const { impactLight, impactMedium, notificationSuccess } = useHaptics();
   const navigation = useNavigation();
   const route = useRoute<RouteProp<RootStackParamList, 'Breathing'>>();
 
-  const pattern = breathingPatterns[route.params.patternId] || breathingPatterns['calm-breath'];
+  const pattern = breathingPatterns[route.params?.patternId ?? 'calm-breath'] || breathingPatterns['calm-breath'];
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [currentCycle, setCurrentCycle] = useState(0);
   const [countdown, setCountdown] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Animation values
-  const orbScale = useSharedValue(0.6);
-  const orbOpacity = useSharedValue(0.4);
-  const idlePulse = useSharedValue(0.6);
-  const successPulse = useSharedValue(0);
-
-  const animatedOrbStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: orbScale.value }],
-    opacity: orbOpacity.value,
-  }));
-
-  const animatedInnerStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: orbScale.value }],
-  }));
-
-  const idlePulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: idlePulse.value }],
-    opacity: idlePulse.value,
-  }));
-
-  const successPulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: successPulse.value }],
-    opacity: 1 - successPulse.value,
-  }));
-
-  React.useEffect(() => {
-    if (reduceMotion) return;
-    if (phase !== 'idle') {
-      idlePulse.value = 0;
-      return;
-    }
-    idlePulse.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0.6, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
-      ),
-      -1,
-      false,
-    );
-  }, [phase, reduceMotion, idlePulse]);
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
 
   // Timer for countdown
-  const startCountdown = useCallback((seconds: number, onComplete: () => void) => {
-    setCountdown(seconds);
-    let remaining = seconds;
+  const startCountdown = useCallback((seconds: number): Promise<void> => {
+    return new Promise((resolve) => {
+      setCountdown(seconds);
+      let remaining = seconds;
 
-    const interval = setInterval(() => {
-      remaining -= 1;
-      setCountdown(remaining);
-      if (remaining <= 0) {
-        clearInterval(interval);
-        onComplete();
-      }
-    }, 1000);
-
-    return interval;
+      timerRef.current = setInterval(() => {
+        remaining -= 1;
+        setCountdown(remaining);
+        if (remaining <= 0) {
+          if (timerRef.current) clearInterval(timerRef.current);
+          resolve();
+        }
+      }, 1000);
+    });
   }, []);
 
   // Run a single breath cycle
@@ -169,68 +132,36 @@ export function BreathingScreen() {
       setPhase('complete');
       setIsRunning(false);
       notificationSuccess();
-      if (!reduceMotion) {
-        successPulse.value = 0;
-        successPulse.value = withSequence(
-          withTiming(1, { duration: 400, easing: Easing.out(Easing.ease) }),
-          withTiming(0, { duration: 600, easing: Easing.out(Easing.ease) }),
-        );
-      }
       return;
     }
 
+    setCurrentCycle(cycleNum);
+
     // INHALE
     setPhase('inhale');
-    setCurrentCycle(cycleNum);
     impactLight();
-
-    orbScale.value = withTiming(1, {
-      duration: pattern.inhale * 1000,
-      easing: Easing.inOut(Easing.ease),
-    });
-    orbOpacity.value = withTiming(0.7, {
-      duration: pattern.inhale * 1000,
-    });
-
-    await new Promise<void>((resolve) => {
-      startCountdown(pattern.inhale, resolve);
-    });
+    await startCountdown(pattern.inhale);
 
     // HOLD 1
     if (pattern.hold1 && pattern.hold1 > 0) {
-      setPhase('hold1');
-      await new Promise<void>((resolve) => {
-        startCountdown(pattern.hold1!, resolve);
-      });
+      setPhase('hold');
+      await startCountdown(pattern.hold1);
     }
 
     // EXHALE
     setPhase('exhale');
     impactLight();
-
-    orbScale.value = withTiming(0.6, {
-      duration: pattern.exhale * 1000,
-      easing: Easing.inOut(Easing.ease),
-    });
-    orbOpacity.value = withTiming(0.4, {
-      duration: pattern.exhale * 1000,
-    });
-
-    await new Promise<void>((resolve) => {
-      startCountdown(pattern.exhale, resolve);
-    });
+    await startCountdown(pattern.exhale);
 
     // HOLD 2
     if (pattern.hold2 && pattern.hold2 > 0) {
-      setPhase('hold2');
-      await new Promise<void>((resolve) => {
-        startCountdown(pattern.hold2!, resolve);
-      });
+      setPhase('hold');
+      await startCountdown(pattern.hold2);
     }
 
     // Next cycle
     runBreathCycle(cycleNum + 1);
-  }, [pattern, orbScale, orbOpacity, startCountdown, impactLight, notificationSuccess, reduceMotion, successPulse]);
+  }, [pattern, startCountdown, impactLight, notificationSuccess]);
 
   const handleStart = async () => {
     if (isRunning) return;
@@ -240,112 +171,83 @@ export function BreathingScreen() {
   };
 
   const handleClose = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
     navigation.goBack();
   };
 
   const handleRestart = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
     setPhase('idle');
     setCurrentCycle(0);
     setCountdown(0);
-    orbScale.value = 0.6;
-    orbOpacity.value = 0.4;
+    setIsRunning(false);
   };
+
+  // Map our phase to BreathingOrb's expected phase
+  const orbPhase = phase === 'hold' ? 'hold' : phase;
 
   return (
     <View style={styles.container}>
-      {/* Calm gradient background */}
-      <LinearGradient
-        colors={gradients.calm}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      />
-      <SpaBackdrop />
+      <AmbientBackground variant="focus" intensity="normal" />
 
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         {/* Header */}
-        <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(400)} style={styles.header}>
-          <Pressable onPress={handleClose} style={styles.closeButton}>
-            <Text variant="bodyMedium" style={{ color: withAlpha(colors.ink, 0.8) }}>
-              Close
-            </Text>
+        <Animated.View 
+          entering={reduceMotion ? undefined : FadeIn.duration(400)} 
+          style={styles.header}
+        >
+          <Pressable onPress={handleClose} style={styles.closeButton} hitSlop={12}>
+            <Text variant="bodyMedium" color="ink">Close</Text>
           </Pressable>
+          
           <View style={styles.titleContainer}>
-            <Text variant="headlineSmall" style={{ color: colors.ink }}>
+            <Text variant="headlineSmall" color="ink">
               {pattern.name}
             </Text>
-            {phase !== 'idle' && phase !== 'complete' && (
-              <Text variant="labelSmall" style={{ color: withAlpha(colors.ink, 0.6) }}>
-                {currentCycle} of {pattern.cycles}
-              </Text>
-            )}
           </View>
+          
           <View style={styles.closeButton} />
         </Animated.View>
 
         {/* Main Content */}
         <View style={styles.content}>
+          {/* Progress indicator */}
+          {phase !== 'idle' && phase !== 'complete' && (
+            <Animated.View 
+              entering={reduceMotion ? undefined : FadeIn.duration(300)}
+              style={styles.progressContainer}
+            >
+              <GlassCard variant="subtle" padding="sm">
+                <View style={styles.progressContent}>
+                  <Text variant="labelSmall" color="inkFaint" style={styles.progressLabel}>
+                    BREATH
+                  </Text>
+                  <Text variant="headlineSmall" style={{ color: colors.accentPrimary }}>
+                    {currentCycle} / {pattern.cycles}
+                  </Text>
+                </View>
+              </GlassCard>
+            </Animated.View>
+          )}
+
           {/* Breathing Orb */}
           <Pressable
             onPress={phase === 'idle' ? handleStart : undefined}
-            style={styles.orbContainer}
+            style={styles.orbWrapper}
           >
-            {/* Outer glow */}
-            <Animated.View
-              style={[
-                styles.orbOuter,
-                { backgroundColor: withAlpha(colors.accentPrimary, 0.2) },
-                animatedOrbStyle,
-              ]}
+            <BreathingOrb
+              phase={orbPhase}
+              phaseLabel={phaseLabels[phase]}
+              countdown={countdown}
             />
-            {/* Idle pulse */}
-            {phase === 'idle' && !reduceMotion && (
-              <Animated.View
-                style={[
-                  styles.orbOuter,
-                  { backgroundColor: withAlpha(colors.accentPrimary, 0.12) },
-                  idlePulseStyle,
-                ]}
-              />
-            )}
-            {/* Success pulse */}
-            {phase === 'complete' && !reduceMotion && (
-              <Animated.View
-                style={[
-                  styles.orbOuter,
-                  { backgroundColor: withAlpha(colors.accentPrimary, 0.18) },
-                  successPulseStyle,
-                ]}
-              />
-            )}
-            {/* Inner orb */}
-            <Animated.View
-              style={[
-                styles.orbInner,
-                {
-                  backgroundColor: withAlpha(colors.accentPrimary, 0.7),
-                  shadowColor: colors.shadow,
-                },
-                animatedInnerStyle,
-              ]}
-            />
-            {/* Content */}
-            <View style={styles.orbContent}>
-              {phase !== 'idle' && phase !== 'complete' ? (
-                <Text
-                  variant="displayLarge"
-                  style={{ color: colors.accentPrimary, fontSize: 64 }}
-                >
-                  {countdown}
-                </Text>
-              ) : (
-                <Icon name="breathe" size={56} color={colors.accentPrimary} />
-              )}
-            </View>
           </Pressable>
 
           {/* Phase Label */}
-          <Animated.View entering={reduceMotion ? undefined : FadeInUp.delay(200).duration(400)}>
+          <Animated.View 
+            key={phase}
+            entering={reduceMotion ? undefined : FadeInDown.duration(400)}
+            style={styles.labelContainer}
+          >
             <Text variant="headlineLarge" color="ink" style={styles.phaseLabel}>
               {phaseLabels[phase]}
             </Text>
@@ -355,29 +257,39 @@ export function BreathingScreen() {
                 {pattern.description}
               </Text>
             )}
+
+            {phase === 'complete' && (
+              <Text variant="bodyLarge" color="inkMuted" style={styles.description}>
+                You've completed {pattern.cycles} breathing cycles
+              </Text>
+            )}
           </Animated.View>
         </View>
 
         {/* Footer */}
         {phase === 'complete' && (
           <Animated.View
-            entering={reduceMotion ? undefined : FadeInUp.duration(400)}
+            entering={reduceMotion ? undefined : FadeInDown.delay(200).duration(400)}
             style={styles.footer}
           >
-            <Button variant="primary" size="lg" fullWidth onPress={handleClose}>
+            <PremiumButton 
+              variant="glow" 
+              size="lg" 
+              fullWidth 
+              onPress={handleClose}
+            >
               Done
-            </Button>
-              <Button
-                variant="ghost"
-                size="md"
-                fullWidth
-                onPress={handleRestart}
-                style={styles.againButton}
-              >
-                <Text variant="labelLarge" style={{ color: withAlpha(colors.ink, 0.8) }}>
-                  Do it again
-                </Text>
-              </Button>
+            </PremiumButton>
+            
+            <Pressable
+              onPress={handleRestart}
+              style={styles.againButton}
+              hitSlop={8}
+            >
+              <Text variant="labelLarge" color="inkMuted">
+                Breathe again
+              </Text>
+            </Pressable>
           </Animated.View>
         )}
       </SafeAreaView>
@@ -400,61 +312,60 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: layout.screenPaddingHorizontal,
-    paddingVertical: spacing[4],
+    paddingVertical: spacing[3],
   },
   closeButton: {
-    width: 60,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   titleContainer: {
     alignItems: 'center',
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: layout.screenPaddingHorizontal,
-  },
-  orbContainer: {
-    width: ORB_SIZE,
-    height: ORB_SIZE,
     justifyContent: 'center',
+  },
+  progressContainer: {
+    position: 'absolute',
+    top: spacing[4],
+  },
+  progressContent: {
     alignItems: 'center',
-    marginBottom: spacing[12],
+    paddingHorizontal: spacing[4],
   },
-  orbOuter: {
-    position: 'absolute',
-    width: ORB_SIZE,
-    height: ORB_SIZE,
-    borderRadius: ORB_SIZE / 2,
+  progressLabel: {
+    letterSpacing: 2,
+    marginBottom: spacing[1],
   },
-  orbInner: {
-    position: 'absolute',
-    width: ORB_SIZE * 0.7,
-    height: ORB_SIZE * 0.7,
-    borderRadius: (ORB_SIZE * 0.7) / 2,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 8,
-  },
-  orbContent: {
-    position: 'absolute',
+  orbWrapper: {
+    alignItems: 'center',
     justifyContent: 'center',
+  },
+  labelContainer: {
     alignItems: 'center',
+    paddingHorizontal: spacing[8],
+    marginTop: spacing[8],
   },
   phaseLabel: {
     textAlign: 'center',
-    marginBottom: spacing[3],
   },
   description: {
     textAlign: 'center',
-    maxWidth: 280,
+    marginTop: spacing[3],
+    lineHeight: 24,
   },
   footer: {
     paddingHorizontal: layout.screenPaddingHorizontal,
-    paddingBottom: spacing[6],
+    paddingBottom: spacing[4],
   },
   againButton: {
-    marginTop: spacing[3],
+    alignItems: 'center',
+    paddingVertical: spacing[4],
+    marginTop: spacing[2],
   },
 });
+
+export default BreathingScreen;

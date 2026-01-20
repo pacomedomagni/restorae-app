@@ -1,81 +1,104 @@
 /**
- * MoodResultScreen
+ * MoodResultScreen - Consistent UI
  */
 import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { useNavigation, useRoute, NavigationProp, RouteProp } from '@react-navigation/native';
 
 import { useTheme } from '../contexts/ThemeContext';
-import { Text, Button, Card, SpaBackdrop, ScreenHeader } from '../components/ui';
+import { Text, Button, GlassCard, AmbientBackground } from '../components/ui';
 import { spacing, layout } from '../theme';
-import { MoodType, RootStackParamList } from '../types';
+import type { RootStackParamList } from '../types';
 
-const moodCopy: Record<MoodType, { title: string; body: string }> = {
-  energized: { title: 'Bright energy', body: 'Channel that spark with a focused ritual.' },
-  calm: { title: 'Steady and calm', body: 'Hold this balance with a short breath.' },
-  good: { title: 'Grounded and good', body: 'Keep it steady with a gentle reset.' },
-  anxious: { title: 'A bit on edge', body: 'Slow down with a calming breath.' },
-  low: { title: 'Feeling low', body: 'Let us lift you with a light reset.' },
-  tough: { title: 'Carrying weight', body: 'We will soften it, one breath at a time.' },
+const MOOD_DATA: Record<string, { emoji: string; message: string; suggestion: string }> = {
+  calm: { 
+    emoji: '😌', 
+    message: 'You\'re feeling calm', 
+    suggestion: 'Great time to journal or set intentions' 
+  },
+  happy: { 
+    emoji: '😊', 
+    message: 'You\'re feeling happy', 
+    suggestion: 'Capture this moment in your journal' 
+  },
+  anxious: { 
+    emoji: '😰', 
+    message: 'You\'re feeling anxious', 
+    suggestion: 'Try a breathing exercise to center yourself' 
+  },
+  sad: { 
+    emoji: '😢', 
+    message: 'You\'re feeling sad', 
+    suggestion: 'Be gentle with yourself. A grounding exercise may help' 
+  },
+  angry: { 
+    emoji: '😠', 
+    message: 'You\'re feeling angry', 
+    suggestion: 'A quick reset can help release some tension' 
+  },
+  tired: { 
+    emoji: '😴', 
+    message: 'You\'re feeling tired', 
+    suggestion: 'Rest is important. Maybe a gentle focus session?' 
+  },
 };
 
 export function MoodResultScreen() {
-  const { gradients, reduceMotion } = useTheme();
+  const { reduceMotion } = useTheme();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'MoodResult'>>();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
-  const mood = route.params.mood;
-  const copy = moodCopy[mood];
-
-  const handleStart = () => {
-    navigation.navigate('QuickReset');
-  };
+  const mood = route.params?.mood || 'calm';
+  const moodInfo = MOOD_DATA[mood] || MOOD_DATA.calm;
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={gradients.morning}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-      />
-      <SpaBackdrop />
+      <AmbientBackground />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(600)}>
-            <ScreenHeader title={copy.title} subtitle={copy.body} compact />
+        <View style={styles.scrollContent}>
+          <Animated.View 
+            entering={reduceMotion ? undefined : FadeIn.duration(600)}
+            style={styles.emojiContainer}
+          >
+            <Text style={styles.emoji}>{moodInfo.emoji}</Text>
           </Animated.View>
 
-          <Card style={styles.card} elevation="lift">
-            <Text variant="headlineSmall" color="ink">
-              Suggested next step
-            </Text>
-            <Text variant="bodyMedium" color="inkMuted" style={styles.cardText}>
-              A quick reset sequence tailored to your mood.
-            </Text>
-          </Card>
+          <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(200).duration(400)}>
+            <GlassCard variant="elevated" padding="lg">
+              <Text variant="headlineMedium" color="ink" align="center">
+                {moodInfo.message}
+              </Text>
+              <Text variant="bodyLarge" color="inkMuted" align="center" style={styles.suggestion}>
+                {moodInfo.suggestion}
+              </Text>
+            </GlassCard>
+          </Animated.View>
 
-          <Button
-            variant="primary"
-            size="lg"
-            fullWidth
-            tone="calm"
-            haptic="medium"
-            onPress={handleStart}
-            style={styles.primaryButton}
-          >
-            Start Quick Reset
-          </Button>
-          <Button variant="ghost" size="md" fullWidth onPress={() => navigation.navigate('Main')}>
-            Back Home
-          </Button>
+          <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(300).duration(400)}>
+            <Button
+              variant="primary"
+              size="lg"
+              fullWidth
+              onPress={() => navigation.navigate('Tools')}
+              style={styles.primaryButton}
+            >
+              Explore Tools
+            </Button>
+
+            <Button
+              variant="secondary"
+              size="md"
+              fullWidth
+              onPress={() => navigation.navigate('Home')}
+            >
+              Back to Home
+            </Button>
+          </Animated.View>
 
           <View style={{ height: layout.tabBarHeight }} />
-        </ScrollView>
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -89,16 +112,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    flex: 1,
     paddingHorizontal: layout.screenPaddingHorizontal,
+    paddingTop: spacing[8],
   },
-  card: {
-    padding: spacing[5],
+  emojiContainer: {
+    alignItems: 'center',
     marginBottom: spacing[6],
   },
-  cardText: {
+  emoji: {
+    fontSize: 80,
+  },
+  suggestion: {
     marginTop: spacing[3],
   },
   primaryButton: {
+    marginTop: spacing[6],
     marginBottom: spacing[3],
   },
 });

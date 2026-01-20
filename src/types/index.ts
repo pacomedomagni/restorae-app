@@ -122,9 +122,29 @@ export type RootStackParamList = {
   Movement: { exerciseId: string };
   Focus: { sessionId: string };
   Journal: { promptId?: string; entryId?: string };
+  JournalEntry: { 
+    mode: 'view' | 'prompt' | 'new'; 
+    prompt?: string;
+    entry?: { title?: string; content: string; };
+  };
+  JournalEntries: undefined;
+  JournalPrompts: undefined;
   SOS: { protocolId?: string };
   Settings: undefined;
   Subscription: undefined;
+  Preferences: undefined;
+  Appearance: undefined;
+  SoundHaptics: undefined;
+  Reminders: undefined;
+  Privacy: undefined;
+  Support: undefined;
+  MoodCheckin: undefined;
+  MoodSelect: undefined;
+  MoodResult: { mood: MoodType; note?: string };
+  ToolsMore: undefined;
+  QuickReset: undefined;
+  Ritual: undefined;
+  Reset: { exerciseId: string };
 };
 
 export type MainTabParamList = {

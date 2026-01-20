@@ -1,99 +1,126 @@
 /**
  * JournalScreen
- * Premium journal experience following RESTORAE_SPEC.md
  * 
- * Features:
- * - Warm gradient header
- * - New entry CTA with proper elevation
- * - Horizontal scrolling prompts (3 visible)
- * - Recent entries with mood indicators
- * - Press animations throughout
+ * Journaling hub with writing prompts, recent entries,
+ * and mood tracking integration.
  */
-import React from 'react';
-import { 
-  View, 
-  StyleSheet, 
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  StyleSheet,
   ScrollView,
   Pressable,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
+  useAnimatedScrollHandler,
   withSpring,
+  interpolate,
+  Extrapolation,
   FadeIn,
   FadeInDown,
+  Easing,
 } from 'react-native-reanimated';
 import { useHaptics } from '../hooks/useHaptics';
-
 import { useTheme } from '../contexts/ThemeContext';
-import { Text, Card, Button, SpaBackdrop, SpaMotif, SpaCardTexture, ScreenHeader } from '../components/ui';
+import {
+  Text,
+  GlassCard,
+  AmbientBackground,
+  PremiumButton,
+  ScreenHeader,
+} from '../components/ui';
 import { LuxeIcon } from '../components/LuxeIcon';
 import { spacing, borderRadius, layout, withAlpha } from '../theme';
-import { RootStackParamList } from '../types';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useNavigation } from '@react-navigation/native';
+import { RootStackParamList, MoodType } from '../types';
 
-type JournalAction = {
-  id: 'new' | 'prompt' | 'entries';
-  title: string;
-  description: string;
-  icon: 'journal' | 'focus' | 'journal-tab';
-  meta: string;
-  tone?: 'primary' | 'warm' | 'calm';
-};
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const PROMPT_CARD_WIDTH = SCREEN_WIDTH - layout.screenPaddingHorizontal * 2 - spacing[8];
 
-const actions: JournalAction[] = [
+// =============================================================================
+// TYPES & DATA
+// =============================================================================
+interface JournalEntry {
+  id: string;
+  date: string;
+  preview: string;
+  mood?: MoodType;
+  wordCount: number;
+}
+
+interface JournalPrompt {
+  id: string;
+  text: string;
+  category: 'gratitude' | 'reflection' | 'growth' | 'release';
+}
+
+const PROMPTS: JournalPrompt[] = [
+  { id: '1', text: 'What small moment brought you joy today?', category: 'gratitude' },
+  { id: '2', text: 'What would you tell your younger self?', category: 'reflection' },
+  { id: '3', text: 'What are you ready to let go of?', category: 'release' },
+  { id: '4', text: 'What is one thing you\'re proud of this week?', category: 'growth' },
+  { id: '5', text: 'Describe your ideal peaceful moment.', category: 'reflection' },
+];
+
+const MOCK_ENTRIES: JournalEntry[] = [
   {
-    id: 'new',
-    title: 'New Entry',
-    description: 'Begin with a clean page.',
-    icon: 'journal',
-    meta: '5 min',
-    tone: 'primary',
+    id: '1',
+    date: 'Today, 2:30 PM',
+    preview: 'I noticed how the afternoon light filtered through the window...',
+    mood: 'calm',
+    wordCount: 156,
   },
   {
-    id: 'prompt',
-    title: 'Prompted Entry',
-    description: 'Gentle questions to guide you.',
-    icon: 'focus',
-    meta: '7 min',
-    tone: 'calm',
+    id: '2',
+    date: 'Yesterday',
+    preview: 'Had a challenging conversation but it felt like progress...',
+    mood: 'good',
+    wordCount: 243,
   },
   {
-    id: 'entries',
-    title: 'Recent Entries',
-    description: 'Return to your latest reflections.',
-    icon: 'journal-tab',
-    meta: 'View',
-    tone: 'warm',
+    id: '3',
+    date: 'Jan 18',
+    preview: 'Starting to notice patterns in how I react to stress...',
+    mood: 'anxious',
+    wordCount: 189,
   },
 ];
 
-interface ActionRowProps {
-  action: JournalAction;
-  delay: number;
+// =============================================================================
+// PROMPT CARD (Horizontal Scroll)
+// =============================================================================
+interface PromptCardProps {
+  prompt: JournalPrompt;
+  index: number;
   onPress: () => void;
 }
 
-function ActionRow({ action, delay, onPress }: ActionRowProps) {
+function PromptCard({ prompt, index, onPress }: PromptCardProps) {
   const { colors, reduceMotion } = useTheme();
-  const scale = useSharedValue(1);
   const { impactLight } = useHaptics();
-  const toneColor =
-    action.tone === 'warm' ? colors.accentWarm : action.tone === 'calm' ? colors.accentCalm : colors.accentPrimary;
+  const scale = useSharedValue(1);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
+  const categoryColors = {
+    gratitude: colors.accentWarm,
+    reflection: colors.accentPrimary,
+    growth: colors.accentCalm,
+    release: colors.accentCalm,
+  };
+
+  const color = categoryColors[prompt.category];
 
   const handlePressIn = () => {
-    scale.value = withSpring(0.98, { damping: 15, stiffness: 400 });
+    scale.value = withSpring(0.96, { damping: 15, stiffness: 400 });
   };
 
   const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 15, stiffness: 400 });
+    scale.value = withSpring(1, { damping: 12, stiffness: 300 });
   };
 
   const handlePress = async () => {
@@ -101,24 +128,138 @@ function ActionRow({ action, delay, onPress }: ActionRowProps) {
     onPress();
   };
 
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
   return (
-    <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(delay).duration(400)}>
-      <Pressable onPressIn={handlePressIn} onPressOut={handlePressOut} onPress={handlePress}>
-        <Animated.View style={[styles.actionRow, animatedStyle]}>
-          <View style={[styles.actionIcon, { backgroundColor: withAlpha(toneColor, 0.12) }]}>
-            <LuxeIcon name={action.icon} size={22} color={toneColor} />
-          </View>
-          <View style={styles.actionText}>
-            <Text variant="headlineSmall" color="ink" style={styles.actionTitle}>
-              {action.title}
+    <Animated.View
+      entering={
+        reduceMotion
+          ? undefined
+          : FadeInDown.delay(300 + index * 100)
+              .duration(400)
+              .easing(Easing.out(Easing.ease))
+      }
+    >
+      <Pressable
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        onPress={handlePress}
+      >
+        <Animated.View style={[styles.promptCard, animatedStyle]}>
+          <GlassCard variant="elevated" padding="lg" glow={prompt.category === 'gratitude' ? 'warm' : 'primary'}>
+            <View
+              style={[
+                styles.promptCategoryBadge,
+                { backgroundColor: withAlpha(color, 0.15) },
+              ]}
+            >
+              <Text variant="labelSmall" style={{ color, textTransform: 'capitalize' }}>
+                {prompt.category}
+              </Text>
+            </View>
+            <Text variant="headlineMedium" color="ink" style={styles.promptText}>
+              {prompt.text}
             </Text>
-            <Text variant="bodySmall" color="inkMuted">
-              {action.description}
+            <View style={styles.promptFooter}>
+              <Text variant="labelSmall" style={{ color }}>
+                Tap to write →
+              </Text>
+            </View>
+          </GlassCard>
+        </Animated.View>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+// =============================================================================
+// ENTRY CARD
+// =============================================================================
+interface EntryCardProps {
+  entry: JournalEntry;
+  index: number;
+  onPress: () => void;
+}
+
+function EntryCard({ entry, index, onPress }: EntryCardProps) {
+  const { colors, reduceMotion } = useTheme();
+  const { impactLight } = useHaptics();
+  const scale = useSharedValue(1);
+
+  const moodColors: Record<MoodType, string> = {
+    energized: colors.moodEnergized,
+    calm: colors.moodCalm,
+    good: colors.moodGood,
+    anxious: colors.moodAnxious,
+    low: colors.moodLow,
+    tough: colors.moodTough,
+  };
+
+  const moodColor = entry.mood ? moodColors[entry.mood] : colors.inkFaint;
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.98, { damping: 15, stiffness: 400 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 12, stiffness: 300 });
+  };
+
+  const handlePress = async () => {
+    await impactLight();
+    onPress();
+  };
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Animated.View
+      entering={
+        reduceMotion
+          ? undefined
+          : FadeInDown.delay(500 + index * 80)
+              .duration(400)
+              .easing(Easing.out(Easing.ease))
+      }
+    >
+      <Pressable
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        onPress={handlePress}
+      >
+        <Animated.View style={animatedStyle}>
+          <GlassCard variant="subtle" padding="md">
+            <View style={styles.entryHeader}>
+              <View style={styles.entryMeta}>
+                {entry.mood && (
+                  <View
+                    style={[
+                      styles.moodDot,
+                      { backgroundColor: moodColor },
+                    ]}
+                  />
+                )}
+                <Text variant="labelSmall" color="inkMuted">
+                  {entry.date}
+                </Text>
+              </View>
+              <Text variant="labelSmall" color="inkFaint">
+                {entry.wordCount} words
+              </Text>
+            </View>
+            <Text
+              variant="bodyMedium"
+              color="ink"
+              numberOfLines={2}
+              style={styles.entryPreview}
+            >
+              {entry.preview}
             </Text>
-          </View>
-          <Text variant="labelSmall" style={{ color: withAlpha(toneColor, 0.85) }}>
-            {action.meta}
-          </Text>
+          </GlassCard>
         </Animated.View>
       </Pressable>
     </Animated.View>
@@ -129,92 +270,181 @@ function ActionRow({ action, delay, onPress }: ActionRowProps) {
 // JOURNAL SCREEN
 // =============================================================================
 export function JournalScreen() {
-  const { colors, gradients, reduceMotion } = useTheme();
+  const { colors, reduceMotion } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const handleNewEntry = () => {
+  const { impactMedium } = useHaptics();
+
+  const [entries, setEntries] = useState<JournalEntry[]>(MOCK_ENTRIES);
+
+  const handleNewEntry = async () => {
+    await impactMedium();
     navigation.navigate('JournalEntry', { mode: 'new' });
   };
 
-  const handleNavigate = (action: JournalAction['id']) => {
-    if (action === 'prompt') {
-      navigation.navigate('JournalPrompts');
-    }
-    if (action === 'entries') {
-      navigation.navigate('JournalEntries');
-    }
-    if (action === 'new') {
-      handleNewEntry();
-    }
+  const handlePromptPress = async (prompt: JournalPrompt) => {
+    navigation.navigate('JournalEntry', { mode: 'prompt', prompt: prompt.text });
+  };
+
+  const handleEntryPress = (entry: JournalEntry) => {
+    navigation.navigate('JournalEntry', { 
+      mode: 'view', 
+      entry: { content: entry.preview } 
+    });
+  };
+
+  const handleViewAll = () => {
+    navigation.navigate('JournalEntries');
   };
 
   return (
     <View style={styles.container}>
-      {/* Subtle gradient background */}
-      <LinearGradient
-        colors={gradients.morning}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-      />
-      <SpaBackdrop />
+      <AmbientBackground variant="morning" intensity="subtle" />
 
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
+        <View
+          style={styles.scrollContent}
         >
           {/* Header */}
-          <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(600)}>
-            <ScreenHeader
-              eyebrow="REFLECTION"
-              title="Journal"
-              subtitle="A private space to unwind and reflect"
-            />
+          <Animated.View
+            entering={reduceMotion ? undefined : FadeIn.duration(600)}
+            style={styles.header}
+          >
+            <Text variant="labelSmall" color="inkFaint" style={styles.eyebrow}>
+              PRIVATE REFLECTION
+            </Text>
+            <Text variant="displayMedium" color="ink">
+              Journal
+            </Text>
+            <Text variant="bodyLarge" color="inkMuted" style={styles.subtitle}>
+              Your thoughts, unjudged
+            </Text>
           </Animated.View>
 
-          <Card style={styles.heroCard} elevation="hero">
-            <SpaMotif />
-            <SpaCardTexture />
-            <Text variant="labelSmall" color="inkFaint">
-              OPEN A NEW PAGE
-            </Text>
-            <Text variant="headlineLarge" color="ink" style={styles.heroTitle}>
-              Start a new entry
-            </Text>
-            <Text variant="bodyMedium" color="inkMuted" style={styles.heroText}>
-              Let your thoughts land without pressure. Free write or follow a prompt.
-            </Text>
-            <Button
-              variant="primary"
-              size="lg"
-              fullWidth
-              tone="warm"
-              haptic="medium"
-              onPress={handleNewEntry}
-              style={styles.heroButton}
-            >
-              Begin Writing
-            </Button>
-          </Card>
+          {/* New Entry CTA */}
+          <Animated.View
+            entering={
+              reduceMotion
+                ? undefined
+                : FadeInDown.delay(100).duration(500).easing(Easing.out(Easing.ease))
+            }
+          >
+            <GlassCard variant="hero" padding="lg" glow="warm">
+              <View style={styles.newEntryContent}>
+                <View style={styles.newEntryHeader}>
+                  <View
+                    style={[
+                      styles.newEntryIcon,
+                      { backgroundColor: withAlpha(colors.accentWarm, 0.15) },
+                    ]}
+                  >
+                    <LuxeIcon name="journal" size={28} color={colors.accentWarm} />
+                  </View>
+                  <View style={styles.newEntryText}>
+                    <Text variant="headlineLarge" color="ink">
+                      Start writing
+                    </Text>
+                    <Text variant="bodyMedium" color="inkMuted">
+                      Let your thoughts flow freely
+                    </Text>
+                  </View>
+                </View>
+                <PremiumButton
+                  variant="glow"
+                  size="lg"
+                  tone="warm"
+                  fullWidth
+                  onPress={handleNewEntry}
+                  style={styles.newEntryButton}
+                >
+                  New Entry
+                </PremiumButton>
+              </View>
+            </GlassCard>
+          </Animated.View>
 
+          {/* Prompts Section */}
           <View style={styles.section}>
-            <Text variant="labelSmall" color="inkFaint" style={styles.sectionLabel}>
-              JOURNAL FLOW
-            </Text>
-            {actions.map((action, index) => (
-              <Card key={action.id} padding="none" style={styles.listItemCard} elevation="soft">
-                <ActionRow
-                  action={action}
-                  delay={260 + index * 80}
-                  onPress={() => handleNavigate(action.id)}
+            <Animated.View
+              entering={reduceMotion ? undefined : FadeIn.delay(200).duration(400)}
+            >
+              <Text variant="labelSmall" color="inkFaint" style={styles.sectionLabel}>
+                WRITING PROMPTS
+              </Text>
+            </Animated.View>
+            
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.promptsContainer}
+              decelerationRate="fast"
+              snapToInterval={PROMPT_CARD_WIDTH + spacing[4]}
+            >
+              {PROMPTS.map((prompt, index) => (
+                <PromptCard
+                  key={prompt.id}
+                  prompt={prompt}
+                  index={index}
+                  onPress={() => handlePromptPress(prompt)}
                 />
-              </Card>
-            ))}
+              ))}
+            </ScrollView>
           </View>
 
-          {/* Bottom spacing for tab bar */}
-          <View style={{ height: layout.tabBarHeight }} />
-        </ScrollView>
+          {/* Recent Entries */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Animated.View
+                entering={reduceMotion ? undefined : FadeIn.delay(400).duration(400)}
+              >
+                <Text variant="labelSmall" color="inkFaint" style={styles.sectionLabel}>
+                  RECENT ENTRIES
+                </Text>
+              </Animated.View>
+              
+              <Pressable onPress={handleViewAll}>
+                <Text variant="labelMedium" style={{ color: colors.accentPrimary }}>
+                  View All
+                </Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.entriesList}>
+              {entries.length > 0 ? (
+                entries.map((entry, index) => (
+                  <EntryCard
+                    key={entry.id}
+                    entry={entry}
+                    index={index}
+                    onPress={() => handleEntryPress(entry)}
+                  />
+                ))
+              ) : (
+                <Animated.View
+                  entering={reduceMotion ? undefined : FadeIn.delay(500).duration(400)}
+                >
+                  <GlassCard variant="subtle" padding="lg">
+                    <View style={styles.emptyState}>
+                      <Text variant="headlineSmall" color="inkMuted" align="center">
+                        No entries yet
+                      </Text>
+                      <Text
+                        variant="bodyMedium"
+                        color="inkFaint"
+                        align="center"
+                        style={styles.emptyStateText}
+                      >
+                        Start your first journal entry to begin your reflection journey
+                      </Text>
+                    </View>
+                  </GlassCard>
+                </Animated.View>
+              )}
+            </View>
+          </View>
+
+          {/* Bottom spacing */}
+          <View style={{ height: layout.tabBarHeight + spacing[4] }} />
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -231,48 +461,98 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    flex: 1,
     paddingHorizontal: layout.screenPaddingHorizontal,
   },
-  heroCard: {
-    marginTop: spacing[3],
-    padding: spacing[6],
+  header: {
+    paddingTop: spacing[4],
+    paddingBottom: spacing[4],
   },
-  heroTitle: {
+  eyebrow: {
+    marginBottom: spacing[1],
+    letterSpacing: 2,
+  },
+  subtitle: {
     marginTop: spacing[2],
   },
-  heroText: {
-    marginTop: spacing[2],
-  },
-  heroButton: {
-    marginTop: spacing[5],
-  },
-  section: {
-    marginTop: spacing[6],
-  },
-  sectionLabel: {
-    marginBottom: spacing[3],
-  },
-  listItemCard: {
-    marginBottom: spacing[3],
-  },
-  actionRow: {
+  newEntryContent: {},
+  newEntryHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing[4],
-    paddingHorizontal: spacing[4],
+    marginBottom: spacing[5],
   },
-  actionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: borderRadius.lg,
+  newEntryIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing[4],
   },
-  actionText: {
-    flex: 1,
+  newEntryText: {},
+  newEntryButton: {
+    marginTop: spacing[2],
   },
-  actionTitle: {
-    marginBottom: spacing[1],
+  section: {
+    marginTop: spacing[8],
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sectionLabel: {
+    letterSpacing: 2,
+    marginBottom: spacing[4],
+  },
+  promptsContainer: {
+    paddingRight: layout.screenPaddingHorizontal,
+  },
+  promptCard: {
+    width: PROMPT_CARD_WIDTH,
+    marginRight: spacing[4],
+  },
+  promptCategoryBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.full,
+    marginBottom: spacing[3],
+  },
+  promptText: {
+    marginBottom: spacing[4],
+  },
+  promptFooter: {},
+  entriesList: {
+    gap: spacing[3],
+  },
+  entryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing[2],
+  },
+  entryMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+  },
+  moodDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  entryPreview: {
+    lineHeight: 22,
+  },
+  emptyState: {
+    paddingVertical: spacing[6],
+    alignItems: 'center',
+  },
+  emptyStateText: {
+    marginTop: spacing[2],
+    maxWidth: 260,
   },
 });
+
+export default JournalScreen;
