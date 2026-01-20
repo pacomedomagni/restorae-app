@@ -1,0 +1,33 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Restorae App Icon - Simplified for app stores -->
+  
+  <!-- Background -->
+  <rect width="64" height="64" rx="14" fill="url(#appIconBg)"/>
+  
+  <!-- Main symbol - stylized R with breath curve -->
+  <path 
+    d="M22 48 
+       Q22 28 32 18 
+       Q42 28 42 38 
+       Q42 46 34 48 
+       Q28 49 26 44 
+       Q24 39 28 34 
+       Q32 29 36 32"
+    stroke="white" 
+    stroke-width="3.5" 
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+  
+  <!-- Accent dot at top -->
+  <circle cx="32" cy="18" r="3" fill="white"/>
+  
+  <defs>
+    <linearGradient id="appIconBg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#34D399"/>
+      <stop offset="50%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+  </defs>
+</svg>

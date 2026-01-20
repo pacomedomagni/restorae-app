@@ -1,0 +1,19 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Tab Icon: Home -->
+  <path 
+    d="M3 12 L12 4 L21 12"
+    stroke="currentColor" 
+    stroke-width="2" 
+    stroke-linecap="round" 
+    stroke-linejoin="round"
+    fill="none"
+  />
+  <path 
+    d="M5 10 L5 19 Q5 20 6 20 L10 20 L10 15 Q10 14 11 14 L13 14 Q14 14 14 15 L14 20 L18 20 Q19 20 19 19 L19 10"
+    stroke="currentColor" 
+    stroke-width="2" 
+    stroke-linecap="round" 
+    stroke-linejoin="round"
+    fill="none"
+  />
+</svg>

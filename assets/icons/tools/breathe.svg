@@ -1,0 +1,31 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Tool Icon: Breathe - Flowing air/wind -->
+  <path 
+    d="M6 12 Q10 12 12 10 Q14 8 18 8"
+    stroke="currentColor" 
+    stroke-width="2" 
+    stroke-linecap="round"
+    fill="none"
+  />
+  <path 
+    d="M4 16 Q10 16 14 14 Q18 12 24 12"
+    stroke="currentColor" 
+    stroke-width="2" 
+    stroke-linecap="round"
+    fill="none"
+  />
+  <path 
+    d="M6 20 Q12 20 16 18 Q20 16 26 16"
+    stroke="currentColor" 
+    stroke-width="2" 
+    stroke-linecap="round"
+    fill="none"
+  />
+  <path 
+    d="M8 24 Q14 24 18 22 Q22 20 28 20"
+    stroke="currentColor" 
+    stroke-width="2" 
+    stroke-linecap="round"
+    fill="none"
+  />
+</svg>

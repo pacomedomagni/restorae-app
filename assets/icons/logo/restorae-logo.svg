@@ -1,0 +1,42 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Restorae Logo: Abstract leaf/breath forming an 'R' shape -->
+  
+  <!-- Outer circle - subtle -->
+  <circle cx="60" cy="60" r="56" stroke="url(#logoGradient)" stroke-width="2" fill="none" opacity="0.3"/>
+  
+  <!-- Main leaf/breath shape -->
+  <path 
+    d="M40 85 
+       Q40 45 60 30 
+       Q80 45 80 65 
+       Q80 80 65 85 
+       Q55 87 50 80 
+       Q45 73 50 65 
+       Q55 57 60 55
+       Q65 57 68 62"
+    stroke="url(#logoGradient)" 
+    stroke-width="4" 
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+  
+  <!-- Inner curl - represents breath/restoration -->
+  <path 
+    d="M60 55 Q65 50 70 52 Q75 55 73 62"
+    stroke="url(#logoGradient)" 
+    stroke-width="3" 
+    stroke-linecap="round"
+    fill="none"
+  />
+  
+  <!-- Accent dot -->
+  <circle cx="60" cy="30" r="4" fill="url(#logoGradient)"/>
+  
+  <defs>
+    <linearGradient id="logoGradient" x1="40" y1="30" x2="80" y2="85" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#34D399"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+  </defs>
+</svg>

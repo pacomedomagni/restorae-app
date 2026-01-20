@@ -1,0 +1,11 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Mood Icon: Good - Gentle smile face -->
+  <circle cx="16" cy="16" r="12" stroke="currentColor" stroke-width="2" fill="none"/>
+  
+  <!-- Eyes - soft curves -->
+  <path d="M11 13 Q12 11 13 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <path d="M19 13 Q20 11 21 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+  
+  <!-- Gentle smile -->
+  <path d="M11 19 Q16 23 21 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+</svg>

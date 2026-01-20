@@ -1,0 +1,24 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Mood Icon: Calm - Gentle wave -->
+  <path 
+    d="M3 16 
+       Q7 12 11 16 
+       Q15 20 19 16 
+       Q23 12 27 16"
+    stroke="currentColor" 
+    stroke-width="2" 
+    stroke-linecap="round"
+    fill="none"
+  />
+  <path 
+    d="M3 22 
+       Q7 18 11 22 
+       Q15 26 19 22 
+       Q23 18 27 22"
+    stroke="currentColor" 
+    stroke-width="2" 
+    stroke-linecap="round"
+    fill="none"
+    opacity="0.5"
+  />
+</svg>

@@ -1,0 +1,14 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Mood Icon: Tough - Weight/pressure -->
+  <circle cx="16" cy="18" r="10" stroke="currentColor" stroke-width="2" fill="none"/>
+  
+  <!-- Downward arrows representing pressure -->
+  <line x1="10" y1="4" x2="10" y2="8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <line x1="22" y1="4" x2="22" y2="8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- Neutral/strained expression -->
+  <line x1="12" y1="16" x2="14" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <line x1="18" y1="16" x2="20" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <line x1="13" y1="21" x2="19" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+</svg>

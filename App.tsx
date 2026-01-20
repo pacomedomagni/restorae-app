@@ -1,20 +1,78 @@
+import React, { useEffect, useRef } from 'react';
+import { Animated } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useFonts } from 'expo-font';
+import {
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+} from '@expo-google-fonts/plus-jakarta-sans';
+import {
+  Lora_400Regular,
+  Lora_500Medium,
+  Lora_600SemiBold,
+  Lora_700Bold,
+} from '@expo-google-fonts/lora';
 
-export default function App() {
+import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
+import { PreferencesProvider } from './src/contexts/PreferencesContext';
+import { RootNavigator } from './src/navigation/RootNavigator';
+
+function AppContent() {
+  const { isDark, reduceMotion } = useTheme();
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (reduceMotion) {
+      fadeAnim.setValue(1);
+      return;
+    }
+    fadeAnim.setValue(0);
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [fadeAnim, isDark, reduceMotion]);
+  
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+        <RootNavigator />
+      </Animated.View>
+    </>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+export default function App() {
+  const [fontsLoaded] = useFonts({
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    Lora_400Regular,
+    Lora_500Medium,
+    Lora_600SemiBold,
+    Lora_700Bold,
+  });
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <PreferencesProvider>
+            <AppContent />
+          </PreferencesProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
+}
