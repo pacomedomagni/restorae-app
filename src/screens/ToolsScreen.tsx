@@ -237,8 +237,8 @@ function ToolCard({ tool, index, onPress, compact = false }: ToolCardProps) {
       entering={
         reduceMotion
           ? undefined
-          : FadeInDown.delay(200 + index * 80)
-              .duration(400)
+          : FadeInDown.delay(100 + index * 40)
+              .duration(300)
               .easing(Easing.out(Easing.ease))
       }
       layout={Layout.springify().damping(18).stiffness(200)}

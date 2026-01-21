@@ -3,7 +3,8 @@ import { View, StyleSheet, ViewStyle, Pressable } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
 import { Text } from './Text';
-import { spacing, withAlpha } from '../../theme';
+import { Icon } from '../Icon';
+import { spacing, layout, withAlpha } from '../../theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useHaptics } from '../../hooks/useHaptics';
 
@@ -45,6 +46,9 @@ export function ScreenHeader({
           {showBack ? (
             <Pressable
               onPress={handleBack}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
               style={({ pressed }) => [
                 styles.backButton,
                 {
@@ -53,9 +57,7 @@ export function ScreenHeader({
                 },
               ]}
             >
-              <Text variant="labelLarge" color="ink">
-                ←
-              </Text>
+              <Icon name="home" size={20} color={colors.ink} />
             </Pressable>
           ) : (
             <View />
@@ -67,7 +69,7 @@ export function ScreenHeader({
       {/* Eyebrow */}
       {eyebrow && (
         <Animated.View
-          entering={reduceMotion ? undefined : FadeIn.delay(100).duration(400)}
+          entering={reduceMotion ? undefined : FadeIn.delay(50).duration(300)}
         >
           <Text
             variant="labelSmall"
@@ -82,7 +84,7 @@ export function ScreenHeader({
 
       {/* Title */}
       <Animated.View
-        entering={reduceMotion ? undefined : FadeInDown.delay(150).duration(400)}
+        entering={reduceMotion ? undefined : FadeInDown.delay(75).duration(300)}
       >
         <Text variant="displayMedium" color="ink" align={align}>
           {title}
@@ -92,7 +94,7 @@ export function ScreenHeader({
       {/* Subtitle */}
       {subtitle && (
         <Animated.View
-          entering={reduceMotion ? undefined : FadeInDown.delay(200).duration(400)}
+          entering={reduceMotion ? undefined : FadeInDown.delay(100).duration(300)}
         >
           <Text
             variant="bodyLarge"
@@ -124,9 +126,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing[4],
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: layout.minTouchTarget,
+    height: layout.minTouchTarget,
+    borderRadius: layout.minTouchTarget / 2,
     alignItems: 'center',
     justifyContent: 'center',
   },

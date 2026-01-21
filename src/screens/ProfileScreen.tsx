@@ -414,7 +414,7 @@ export function ProfileScreen() {
           {/* Settings Section */}
           <View style={styles.settingsSection}>
             <Animated.View
-              entering={reduceMotion ? undefined : FadeIn.delay(500).duration(400)}
+              entering={reduceMotion ? undefined : FadeIn.delay(250).duration(300)}
             >
               <Text variant="labelSmall" color="inkFaint" style={styles.sectionLabel}>
                 SETTINGS
@@ -435,7 +435,7 @@ export function ProfileScreen() {
 
           {/* App Info */}
           <Animated.View
-            entering={reduceMotion ? undefined : FadeIn.delay(800).duration(400)}
+            entering={reduceMotion ? undefined : FadeIn.delay(400).duration(300)}
             style={styles.appInfo}
           >
             <View style={styles.logoMini}>

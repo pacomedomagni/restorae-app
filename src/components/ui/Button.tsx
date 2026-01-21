@@ -7,6 +7,8 @@
  * - Haptic feedback
  * - Proper shadows
  * - Rounded corners (12px)
+ * - Accessibility support with proper roles and labels
+ * - 44px minimum touch target (WCAG 2.5.5)
  */
 import React, { useCallback, useState } from 'react';
 import {
@@ -15,6 +17,7 @@ import {
   ActivityIndicator,
   View,
   ViewStyle,
+  AccessibilityRole,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -41,6 +44,12 @@ interface ButtonProps {
   onPress?: () => void;
   children: React.ReactNode;
   style?: ViewStyle;
+  /** Accessibility label for screen readers */
+  accessibilityLabel?: string;
+  /** Accessibility hint for screen readers */
+  accessibilityHint?: string;
+  /** Test ID for testing */
+  testID?: string;
 }
 
 export function Button({
@@ -56,6 +65,9 @@ export function Button({
   onPress,
   children,
   style,
+  accessibilityLabel,
+  accessibilityHint,
+  testID,
 }: ButtonProps) {
   const { colors, shadows } = useTheme();
   const scale = useSharedValue(1);
@@ -69,12 +81,12 @@ export function Button({
   const handlePressIn = useCallback(() => {
     setIsPressed(true);
     scale.value = withSpring(0.97, { damping: 15, stiffness: 400 });
-  }, []);
+  }, [scale]);
 
   const handlePressOut = useCallback(() => {
     setIsPressed(false);
     scale.value = withSpring(1, { damping: 15, stiffness: 400 });
-  }, []);
+  }, [scale]);
 
   const handlePress = useCallback(async () => {
     if (disabled || loading) return;
@@ -152,6 +164,10 @@ export function Button({
     ...(fullWidth ? { width: '100%' } : {}),
   };
 
+  // Derive accessibility label from children if not provided
+  const derivedAccessibilityLabel = accessibilityLabel || 
+    (typeof children === 'string' ? children : undefined);
+
   return (
     <AnimatedPressable
       style={[buttonStyle, animatedStyle, style]}
@@ -159,6 +175,15 @@ export function Button({
       onPressOut={handlePressOut}
       onPress={handlePress}
       disabled={disabled || loading}
+      accessibilityRole="button"
+      accessibilityLabel={derivedAccessibilityLabel}
+      accessibilityHint={accessibilityHint}
+      accessibilityState={{
+        disabled: disabled || loading,
+        busy: loading,
+      }}
+      hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+      testID={testID}
     >
       {loading ? (
         <ActivityIndicator

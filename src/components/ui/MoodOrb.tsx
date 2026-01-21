@@ -42,37 +42,24 @@ interface MoodOrbProps {
   delay?: number;
 }
 
-const MOOD_COLORS: Record<MoodType, { primary: string; secondary: string; glow: string }> = {
-  energized: {
-    primary: '#E8B347',
-    secondary: '#D4956A',
-    glow: '#F5D799',
-  },
-  calm: {
-    primary: '#7BA39F',
-    secondary: '#5C8A77',
-    glow: '#A8C5B8',
-  },
-  good: {
-    primary: '#6FA08B',
-    secondary: '#4F7F6A',
-    glow: '#8FC4A8',
-  },
-  anxious: {
-    primary: '#A58AB7',
-    secondary: '#8B7BA8',
-    glow: '#C4B0D4',
-  },
-  low: {
-    primary: '#9A8C80',
-    secondary: '#7A6E63',
-    glow: '#B8ADA0',
-  },
-  tough: {
-    primary: '#C97C72',
-    secondary: '#A86058',
-    glow: '#E0A59C',
-  },
+// Helper to generate secondary and glow colors from primary
+const generateMoodPalette = (primary: string) => {
+  // Darken for secondary
+  const secondary = primary.replace(/^#/, '');
+  const r = Math.max(0, parseInt(secondary.slice(0, 2), 16) - 30);
+  const g = Math.max(0, parseInt(secondary.slice(2, 4), 16) - 30);
+  const b = Math.max(0, parseInt(secondary.slice(4, 6), 16) - 30);
+  
+  // Lighten for glow
+  const rGlow = Math.min(255, parseInt(secondary.slice(0, 2), 16) + 40);
+  const gGlow = Math.min(255, parseInt(secondary.slice(2, 4), 16) + 40);
+  const bGlow = Math.min(255, parseInt(secondary.slice(4, 6), 16) + 40);
+  
+  return {
+    primary,
+    secondary: `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`,
+    glow: `#${rGlow.toString(16).padStart(2, '0')}${gGlow.toString(16).padStart(2, '0')}${bGlow.toString(16).padStart(2, '0')}`,
+  };
 };
 
 export function MoodOrb({
@@ -87,7 +74,21 @@ export function MoodOrb({
   const { colors, isDark, reduceMotion } = useTheme();
   const { impactMedium } = useHaptics();
 
-  const moodColor = MOOD_COLORS[mood];
+  // Use theme colors instead of hardcoded values
+  const getMoodColorFromTheme = (moodType: MoodType) => {
+    const themeColor = {
+      energized: colors.moodEnergized,
+      calm: colors.moodCalm,
+      good: colors.moodGood,
+      anxious: colors.moodAnxious,
+      low: colors.moodLow,
+      tough: colors.moodTough,
+    }[moodType];
+    
+    return generateMoodPalette(themeColor);
+  };
+
+  const moodColor = getMoodColorFromTheme(mood);
   
   // Animation values
   const scale = useSharedValue(0);
@@ -200,6 +201,10 @@ export function MoodOrb({
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={handlePress}
+        accessibilityRole="button"
+        accessibilityLabel={`${label} mood${sublabel ? `, ${sublabel}` : ''}`}
+        accessibilityState={{ selected }}
+        accessibilityHint={`Select ${label} as your current mood`}
       >
         {/* Glow layer */}
         <AnimatedView style={[styles.glow, { width: glowSize, height: glowSize }, glowStyle]}>

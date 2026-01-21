@@ -98,10 +98,10 @@ function MainTabs() {
         tabBarActiveTintColor: colors.accentPrimary,
         tabBarInactiveTintColor: colors.inkFaint,
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 12,  // Minimum accessible size (was 11)
           fontFamily: typography.fontFamily.sansMedium,
           marginTop: spacing[1],
-          letterSpacing: 0.4,
+          letterSpacing: 0.3,
         },
       }}
       screenListeners={{
@@ -113,6 +113,7 @@ function MainTabs() {
         component={HomeScreen}
         options={{
           tabBarLabel: 'Home',
+          tabBarAccessibilityLabel: 'Home tab - Your daily wellness hub',
           tabBarIcon: ({ color }) => (
             <Icon name="home" size={24} color={color} />
           ),
@@ -123,6 +124,7 @@ function MainTabs() {
         component={ToolsScreen}
         options={{
           tabBarLabel: 'Tools',
+          tabBarAccessibilityLabel: 'Tools tab - Breathing, grounding, and focus exercises',
           tabBarIcon: ({ color }) => (
             <Icon name="tools" size={24} color={color} />
           ),
@@ -133,6 +135,7 @@ function MainTabs() {
         component={JournalScreen}
         options={{
           tabBarLabel: 'Journal',
+          tabBarAccessibilityLabel: 'Journal tab - Write and reflect',
           tabBarIcon: ({ color }) => (
             <Icon name="journal-tab" size={24} color={color} />
           ),
@@ -143,6 +146,7 @@ function MainTabs() {
         component={ProfileScreen}
         options={{
           tabBarLabel: 'Profile',
+          tabBarAccessibilityLabel: 'Profile tab - Settings and account',
           tabBarIcon: ({ color }) => (
             <Icon name="profile" size={24} color={color} />
           ),

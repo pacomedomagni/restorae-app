@@ -137,8 +137,8 @@ function PromptCard({ prompt, index, onPress }: PromptCardProps) {
       entering={
         reduceMotion
           ? undefined
-          : FadeInDown.delay(300 + index * 100)
-              .duration(400)
+          : FadeInDown.delay(150 + index * 50)
+              .duration(300)
               .easing(Easing.out(Easing.ease))
       }
     >
@@ -404,7 +404,7 @@ export function JournalScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Animated.View
-                entering={reduceMotion ? undefined : FadeIn.delay(400).duration(400)}
+                entering={reduceMotion ? undefined : FadeIn.delay(200).duration(300)}
               >
                 <Text variant="labelSmall" color="inkFaint" style={styles.sectionLabel}>
                   RECENT ENTRIES
@@ -430,7 +430,7 @@ export function JournalScreen() {
                 ))
               ) : (
                 <Animated.View
-                  entering={reduceMotion ? undefined : FadeIn.delay(500).duration(400)}
+                  entering={reduceMotion ? undefined : FadeIn.delay(250).duration(300)}
                 >
                   <GlassCard variant="subtle" padding="lg">
                     <View style={styles.emptyState}>

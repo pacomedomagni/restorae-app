@@ -6,6 +6,22 @@
 export { light, dark, gradients, shadows, withAlpha } from './colors';
 export type { ColorTokens, GradientTokens, ShadowTokens } from './colors';
 
+// Responsive utilities
+export {
+  breakpoints,
+  device,
+  responsive,
+  getResponsivePadding,
+  getMaxContentWidth,
+  getGridColumns,
+  getCardWidth,
+  scaleFontSize,
+  isAtLeast,
+  isBelow,
+  safeArea,
+  createDimensionListener,
+} from './responsive';
+
 // =============================================================================
 // TYPOGRAPHY (matching spec: Plus Jakarta Sans for UI, Lora for display)
 // =============================================================================

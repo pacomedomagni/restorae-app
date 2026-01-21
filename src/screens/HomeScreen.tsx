@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Dimensions,
   Pressable,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -138,8 +139,8 @@ function QuickActionCard({ action, index, onPress }: QuickActionCardProps) {
       entering={
         reduceMotion
           ? undefined
-          : FadeInUp.delay(400 + index * 100)
-              .duration(500)
+          : FadeInUp.delay(200 + index * 50)
+              .duration(350)
               .easing(Easing.out(Easing.ease))
       }
       style={styles.quickActionWrapper}
@@ -249,12 +250,15 @@ export function HomeScreen() {
       <AmbientBackground variant={getBackgroundVariant()} intensity="normal" />
 
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View
-          style={styles.scrollContent}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          bounces={true}
         >
           {/* Header */}
           <Animated.View
-            entering={reduceMotion ? undefined : FadeIn.duration(800)}
+            entering={reduceMotion ? undefined : FadeIn.duration(500)}
             style={styles.header}
           >
             <View style={styles.greetingRow}>
@@ -271,6 +275,10 @@ export function HomeScreen() {
               {/* SOS Button */}
               <Pressable
                 onPress={handleSos}
+                accessibilityRole="button"
+                accessibilityLabel="SOS - Emergency relief tools"
+                accessibilityHint="Open quick relief exercises for immediate support"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 style={({ pressed }) => [
                   styles.sosButton,
                   {
@@ -283,7 +291,7 @@ export function HomeScreen() {
               </Pressable>
             </View>
             
-            <Text variant="bodyLarge" color="inkMuted" style={styles.subtitle}>
+            <Text variant="bodyLarge" color="inkMuted" style={styles.subtitle}>>
               How are you feeling right now?
             </Text>
           </Animated.View>
@@ -293,7 +301,7 @@ export function HomeScreen() {
             entering={
               reduceMotion
                 ? undefined
-                : FadeInDown.delay(200).duration(600).easing(Easing.out(Easing.ease))
+                : FadeInDown.delay(100).duration(400).easing(Easing.out(Easing.ease))
             }
             style={styles.moodSection}
           >
@@ -317,7 +325,7 @@ export function HomeScreen() {
             entering={
               reduceMotion
                 ? undefined
-                : FadeInDown.delay(600).duration(500).easing(Easing.out(Easing.ease))
+                : FadeInDown.delay(250).duration(350).easing(Easing.out(Easing.ease))
             }
           >
             <GlassCard variant="hero" padding="lg" glow="warm">
@@ -364,7 +372,7 @@ export function HomeScreen() {
           {/* Quick Actions */}
           <View style={styles.quickActionsSection}>
             <Animated.View
-              entering={reduceMotion ? undefined : FadeIn.delay(700).duration(400)}
+              entering={reduceMotion ? undefined : FadeIn.delay(350).duration(300)}
             >
               <Text variant="labelSmall" color="inkFaint" style={styles.sectionLabel}>
                 QUICK TOOLS
@@ -385,7 +393,7 @@ export function HomeScreen() {
 
           {/* Bottom spacing for tab bar */}
           <View style={{ height: layout.tabBarHeight + spacing[4] }} />
-        </View>
+        </ScrollView>
       </SafeAreaView>
     </View>
   );
@@ -401,8 +409,11 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  scrollContent: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: layout.screenPaddingHorizontal,
   },
   header: {

@@ -32,6 +32,12 @@ interface GlassCardProps {
   glow?: 'none' | 'warm' | 'calm' | 'primary' | 'cool';
   style?: ViewStyle;
   disabled?: boolean;
+  /** Accessibility label for screen readers */
+  accessibilityLabel?: string;
+  /** Accessibility hint for screen readers */
+  accessibilityHint?: string;
+  /** Test ID for testing */
+  testID?: string;
 }
 
 export function GlassCard({
@@ -42,6 +48,9 @@ export function GlassCard({
   glow = 'none',
   style,
   disabled = false,
+  accessibilityLabel,
+  accessibilityHint,
+  testID,
 }: GlassCardProps) {
   const { colors, isDark } = useTheme();
   const scale = useSharedValue(1);
@@ -269,6 +278,11 @@ export function GlassCard({
         onPressOut={handlePressOut}
         onPress={handlePress}
         disabled={disabled}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
+        accessibilityState={{ disabled }}
+        testID={testID}
       >
         {content}
       </AnimatedPressable>
@@ -276,7 +290,11 @@ export function GlassCard({
   }
 
   return (
-    <Animated.View style={animatedContainerStyle}>
+    <Animated.View 
+      style={animatedContainerStyle}
+      accessibilityRole="none"
+      testID={testID}
+    >
       {content}
     </Animated.View>
   );
