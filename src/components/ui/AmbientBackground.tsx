@@ -60,21 +60,27 @@ export function AmbientBackground({
   }, [animated, reduceMotion, breatheScale, breatheOpacity]);
 
   // Get gradient colors based on variant
+  // Note: `gradients` from useTheme is already resolved for light/dark mode
   const getGradientColors = (): readonly [string, string] => {
-    const gradientSet = isDark ? gradients.dark : gradients.light;
+    // Fallback colors in case gradients aren't loaded yet
+    const fallbackLight: readonly [string, string] = ['#F2EAE1', '#F7F1EA'];
+    const fallbackDark: readonly [string, string] = ['#1B1915', '#171310'];
+    const fallback = isDark ? fallbackDark : fallbackLight;
+    
+    if (!gradients) return fallback;
     
     switch (variant) {
       case 'morning':
-        return gradientSet.morning;
+        return gradients.morning || fallback;
       case 'evening':
-        return gradientSet.evening;
+        return gradients.evening || fallback;
       case 'focus':
-        return gradientSet.calm; // Focus uses calm gradient
+        return gradients.calm || fallback;
       case 'energize':
-        return gradientSet.morning; // Energize uses warm morning gradient
+        return gradients.morning || fallback;
       case 'calm':
       default:
-        return gradientSet.calm;
+        return gradients.calm || fallback;
     }
   };
 
@@ -142,7 +148,7 @@ export function AmbientBackground({
 
       {/* Bottom fade for depth */}
       <LinearGradient
-        colors={isDark ? gradients.dark.overlayFade : gradients.light.overlayFade}
+        colors={gradients?.overlayFade || ['transparent', isDark ? 'rgba(0,0,0,0.35)' : 'rgba(43,32,24,0.06)']}
         style={styles.bottomFade}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
