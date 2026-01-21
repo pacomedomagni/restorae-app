@@ -1,0 +1,312 @@
+/**
+ * BreathingSelectScreen
+ * 
+ * Selection grid for all 15 breathing patterns
+ */
+import React, { useState } from 'react';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  Dimensions,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  FadeIn,
+  FadeInDown,
+} from 'react-native-reanimated';
+
+import { useTheme } from '../../contexts/ThemeContext';
+import {
+  Text,
+  GlassCard,
+  AmbientBackground,
+  ScreenHeader,
+} from '../../components/ui';
+import { spacing, borderRadius, layout, withAlpha } from '../../theme';
+import { RootStackParamList, BreathingPattern } from '../../types';
+import { useHaptics } from '../../hooks/useHaptics';
+import {
+  BREATHING_PATTERNS,
+  BREATHING_CATEGORIES,
+  getPatternsByCategory,
+  type BreathingCategory,
+} from '../../data';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CARD_WIDTH = (SCREEN_WIDTH - layout.screenPaddingHorizontal * 2 - spacing[3]) / 2;
+
+// =============================================================================
+// CATEGORY PILL
+// =============================================================================
+interface CategoryPillProps {
+  category: typeof BREATHING_CATEGORIES[number];
+  isActive: boolean;
+  onPress: () => void;
+}
+
+function CategoryPill({ category, isActive, onPress }: CategoryPillProps) {
+  const { colors } = useTheme();
+  const { impactLight } = useHaptics();
+  const scale = useSharedValue(1);
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.95, { damping: 15, stiffness: 400 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 12, stiffness: 300 });
+  };
+
+  const handlePress = async () => {
+    await impactLight();
+    onPress();
+  };
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Pressable
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      onPress={handlePress}
+    >
+      <Animated.View
+        style={[
+          styles.categoryPill,
+          animatedStyle,
+          {
+            backgroundColor: isActive
+              ? colors.accentPrimary
+              : withAlpha(colors.ink, 0.06),
+          },
+        ]}
+      >
+        <Text style={styles.categoryIcon}>{category.icon}</Text>
+        <Text
+          variant="labelMedium"
+          style={{ color: isActive ? colors.inkInverse : colors.ink }}
+        >
+          {category.label}
+        </Text>
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+// =============================================================================
+// PATTERN CARD
+// =============================================================================
+interface PatternCardProps {
+  pattern: BreathingPattern;
+  index: number;
+  onPress: () => void;
+}
+
+function PatternCard({ pattern, index, onPress }: PatternCardProps) {
+  const { colors, reduceMotion } = useTheme();
+  const { impactLight } = useHaptics();
+  const scale = useSharedValue(1);
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.97, { damping: 15, stiffness: 400 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 12, stiffness: 300 });
+  };
+
+  const handlePress = async () => {
+    await impactLight();
+    onPress();
+  };
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const categoryColors: Record<string, string> = {
+    calm: colors.accentCalm,
+    focus: colors.accentPrimary,
+    energy: colors.accentWarm,
+    sleep: '#9B8E80',
+    emergency: colors.statusError,
+    balance: colors.accentPrimary,
+  };
+
+  const accentColor = categoryColors[pattern.category || 'calm'] || colors.accentPrimary;
+
+  return (
+    <Animated.View
+      entering={reduceMotion ? undefined : FadeInDown.delay(100 + index * 50).duration(400)}
+      style={[styles.cardWrapper, animatedStyle]}
+    >
+      <Pressable
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        onPress={handlePress}
+      >
+        <GlassCard variant="default" padding="md">
+          <View style={styles.cardContent}>
+            <View style={[styles.categoryDot, { backgroundColor: accentColor }]} />
+            <Text variant="headlineSmall" color="ink" numberOfLines={1}>
+              {pattern.name}
+            </Text>
+            <Text variant="bodySmall" color="inkMuted" numberOfLines={2} style={styles.cardDescription}>
+              {pattern.description}
+            </Text>
+            <View style={styles.cardMeta}>
+              <Text variant="labelSmall" color="inkFaint">
+                {pattern.duration}
+              </Text>
+              {pattern.bestFor && (
+                <Text variant="labelSmall" color="inkFaint">
+                  • {pattern.bestFor}
+                </Text>
+              )}
+            </View>
+          </View>
+        </GlassCard>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+// =============================================================================
+// MAIN SCREEN
+// =============================================================================
+export function BreathingSelectScreen() {
+  const { colors, reduceMotion } = useTheme();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const [selectedCategory, setSelectedCategory] = useState<BreathingCategory>('all');
+
+  const patterns = getPatternsByCategory(selectedCategory);
+
+  const handlePatternSelect = (patternId: string) => {
+    navigation.navigate('Breathing', { patternId });
+  };
+
+  return (
+    <View style={styles.container}>
+      <AmbientBackground />
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(600)}>
+          <ScreenHeader
+            title="Breathe"
+            subtitle="15 patterns for every moment"
+            showBack
+          />
+        </Animated.View>
+
+        {/* Category Filter */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoriesContainer}
+          style={styles.categoriesScroll}
+        >
+          {BREATHING_CATEGORIES.map((category) => (
+            <CategoryPill
+              key={category.id}
+              category={category}
+              isActive={selectedCategory === category.id}
+              onPress={() => setSelectedCategory(category.id)}
+            />
+          ))}
+        </ScrollView>
+
+        {/* Pattern Grid */}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.grid}>
+            {patterns.map((pattern, index) => (
+              <PatternCard
+                key={pattern.id}
+                pattern={pattern}
+                index={index}
+                onPress={() => handlePatternSelect(pattern.id)}
+              />
+            ))}
+          </View>
+          <View style={{ height: layout.tabBarHeight + spacing[4] }} />
+        </ScrollView>
+      </SafeAreaView>
+    </View>
+  );
+}
+
+// =============================================================================
+// STYLES
+// =============================================================================
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  safeArea: {
+    flex: 1,
+  },
+  categoriesScroll: {
+    flexGrow: 0,
+    marginBottom: spacing[4],
+  },
+  categoriesContainer: {
+    paddingHorizontal: layout.screenPaddingHorizontal,
+    gap: spacing[2],
+  },
+  categoryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.full,
+    gap: spacing[1],
+  },
+  categoryIcon: {
+    fontSize: 14,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: layout.screenPaddingHorizontal,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing[3],
+  },
+  cardWrapper: {
+    width: CARD_WIDTH,
+  },
+  cardContent: {
+    gap: spacing[1],
+  },
+  categoryDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginBottom: spacing[1],
+  },
+  cardDescription: {
+    marginTop: spacing[1],
+    lineHeight: 18,
+  },
+  cardMeta: {
+    flexDirection: 'row',
+    gap: spacing[1],
+    marginTop: spacing[2],
+  },
+});
+
+export default BreathingSelectScreen;

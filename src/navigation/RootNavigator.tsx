@@ -36,6 +36,34 @@ import { MoodResultScreen } from '../screens/MoodResultScreen';
 import { JournalEntryScreen } from '../screens/JournalEntryScreen';
 import { RitualScreen } from '../screens/RitualScreen';
 
+// New Tool Selection & Session Screens
+import { BreathingSelectScreen } from '../screens/tools/BreathingSelectScreen';
+import { GroundingSelectScreen } from '../screens/tools/GroundingSelectScreen';
+import { GroundingSessionScreen } from '../screens/tools/GroundingSessionScreen';
+import { ResetSelectScreen } from '../screens/tools/ResetSelectScreen';
+import { ResetSessionScreen } from '../screens/tools/ResetSessionScreen';
+import { FocusSelectScreen } from '../screens/tools/FocusSelectScreen';
+import { FocusSessionScreen } from '../screens/tools/FocusSessionScreen';
+import { SOSSelectScreen } from '../screens/tools/SOSSelectScreen';
+import { SOSSessionScreen } from '../screens/tools/SOSSessionScreen';
+import { SituationalSelectScreen } from '../screens/tools/SituationalSelectScreen';
+import { SituationalSessionScreen } from '../screens/tools/SituationalSessionScreen';
+import { MorningRitualScreen } from '../screens/tools/MorningRitualScreen';
+import { EveningRitualScreen } from '../screens/tools/EveningRitualScreen';
+
+// Subscription & Paywall Screens
+import { SubscriptionScreen } from '../screens/SubscriptionScreen';
+import { PaywallScreen } from '../screens/PaywallScreen';
+
+// Mood & Ritual Screens
+import MoodHistoryScreen from '../screens/MoodHistoryScreen';
+import CreateRitualScreen from '../screens/CreateRitualScreen';
+import CustomRitualSessionScreen from '../screens/CustomRitualSessionScreen';
+import JournalSearchScreen from '../screens/JournalSearchScreen';
+import AppLockScreen from '../screens/AppLockScreen';
+import AppLockSetupScreen from '../screens/AppLockSetupScreen';
+import { DataSettingsScreen } from '../screens/DataSettingsScreen';
+
 // Icons
 import { Icon } from '../components/Icon';
 
@@ -189,6 +217,158 @@ export function RootNavigator() {
         <Stack.Screen name="Reset" component={ResetScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Focus" component={FocusScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Sos" component={SosScreen} options={{ animation: 'fade' }} />
+        
+        {/* New Selection Screens */}
+        <Stack.Screen 
+          name="BreathingSelect" 
+          component={BreathingSelectScreen} 
+          options={{ animation: 'slide_from_right' }} 
+        />
+        <Stack.Screen 
+          name="GroundingSelect" 
+          component={GroundingSelectScreen} 
+          options={{ animation: 'slide_from_right' }} 
+        />
+        <Stack.Screen 
+          name="GroundingSession" 
+          component={GroundingSessionScreen} 
+          options={{ 
+            animation: 'slide_from_bottom',
+            presentation: 'fullScreenModal',
+          }} 
+        />
+        <Stack.Screen 
+          name="ResetSelect" 
+          component={ResetSelectScreen} 
+          options={{ animation: 'slide_from_right' }} 
+        />
+        <Stack.Screen 
+          name="ResetSession" 
+          component={ResetSessionScreen} 
+          options={{ 
+            animation: 'slide_from_bottom',
+            presentation: 'fullScreenModal',
+          }} 
+        />
+        <Stack.Screen 
+          name="FocusSelect" 
+          component={FocusSelectScreen} 
+          options={{ animation: 'slide_from_right' }} 
+        />
+        <Stack.Screen 
+          name="FocusSession" 
+          component={FocusSessionScreen} 
+          options={{ 
+            animation: 'slide_from_bottom',
+            presentation: 'fullScreenModal',
+          }} 
+        />
+        <Stack.Screen 
+          name="SOSSelect" 
+          component={SOSSelectScreen} 
+          options={{ animation: 'slide_from_right' }} 
+        />
+        <Stack.Screen 
+          name="SOSSession" 
+          component={SOSSessionScreen} 
+          options={{ 
+            animation: 'slide_from_bottom',
+            presentation: 'fullScreenModal',
+          }} 
+        />
+        <Stack.Screen 
+          name="SituationalSelect" 
+          component={SituationalSelectScreen} 
+          options={{ animation: 'slide_from_right' }} 
+        />
+        <Stack.Screen 
+          name="SituationalSession" 
+          component={SituationalSessionScreen} 
+          options={{ 
+            animation: 'slide_from_bottom',
+            presentation: 'fullScreenModal',
+          }} 
+        />
+        <Stack.Screen 
+          name="MorningRitual" 
+          component={MorningRitualScreen} 
+          options={{ 
+            animation: 'slide_from_bottom',
+            presentation: 'fullScreenModal',
+          }} 
+        />
+        <Stack.Screen 
+          name="EveningRitual" 
+          component={EveningRitualScreen} 
+          options={{ 
+            animation: 'slide_from_bottom',
+            presentation: 'fullScreenModal',
+          }} 
+        />
+        
+        {/* Subscription & Paywall */}
+        <Stack.Screen 
+          name="Subscription" 
+          component={SubscriptionScreen} 
+          options={{ animation: 'slide_from_right' }} 
+        />
+        <Stack.Screen 
+          name="Paywall" 
+          component={PaywallScreen} 
+          options={{ 
+            animation: 'slide_from_bottom',
+            presentation: 'modal',
+          }} 
+        />
+        
+        {/* Mood History */}
+        <Stack.Screen 
+          name="MoodHistory" 
+          component={MoodHistoryScreen} 
+          options={{ animation: 'slide_from_right' }} 
+        />
+        
+        {/* Custom Rituals */}
+        <Stack.Screen 
+          name="CreateRitual" 
+          component={CreateRitualScreen} 
+          options={{ animation: 'slide_from_right' }} 
+        />
+        <Stack.Screen 
+          name="CustomRitualSession" 
+          component={CustomRitualSessionScreen} 
+          options={{ 
+            animation: 'slide_from_bottom',
+            presentation: 'fullScreenModal',
+          }} 
+        />
+        
+        {/* Journal Search */}
+        <Stack.Screen 
+          name="JournalSearch" 
+          component={JournalSearchScreen} 
+          options={{ animation: 'slide_from_right' }} 
+        />
+        
+        {/* App Lock */}
+        <Stack.Screen 
+          name="AppLock" 
+          component={AppLockScreen} 
+          options={{ 
+            animation: 'fade',
+            presentation: 'fullScreenModal',
+          }} 
+        />
+        <Stack.Screen
+          name="AppLockSetup"
+          component={AppLockSetupScreen}
+          options={{ title: 'App Lock' }}
+        />
+        <Stack.Screen
+          name="DataSettings"
+          component={DataSettingsScreen}
+          options={{ title: 'Data & Storage' }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -54,7 +54,7 @@ export function JournalPromptsScreen() {
   const handlePromptSelect = async (prompt: string) => {
     await selectionLight();
     // Navigate to entry with prompt pre-filled
-    navigation.navigate('JournalEntry');
+    navigation.navigate('JournalEntry', { mode: 'prompt', prompt });
   };
 
   return (

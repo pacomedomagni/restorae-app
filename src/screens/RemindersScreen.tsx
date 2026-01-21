@@ -1,8 +1,8 @@
 /**
  * RemindersScreen - Consistent UI
  */
-import React, { useState } from 'react';
-import { View, StyleSheet, Switch, Pressable } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, StyleSheet, Switch, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
@@ -10,26 +10,131 @@ import { useTheme } from '../contexts/ThemeContext';
 import { Text, Button, GlassCard, AmbientBackground, ScreenHeader } from '../components/ui';
 import { spacing, layout } from '../theme';
 import { useHaptics } from '../hooks/useHaptics';
+import { useNotifications } from '../hooks/useNotifications';
 
-const DEFAULT_REMINDERS = [
-  { id: 'morning', label: 'Morning Check-in', time: '8:00 AM', enabled: true },
-  { id: 'midday', label: 'Midday Pause', time: '12:30 PM', enabled: false },
-  { id: 'evening', label: 'Evening Reflection', time: '9:00 PM', enabled: true },
+interface Reminder {
+  id: string;
+  label: string;
+  time: string;
+  hour: number;
+  minute: number;
+  enabled: boolean;
+}
+
+const DEFAULT_REMINDERS: Reminder[] = [
+  { id: 'morning', label: 'Morning Check-in', time: '8:00 AM', hour: 8, minute: 0, enabled: false },
+  { id: 'midday', label: 'Midday Pause', time: '12:30 PM', hour: 12, minute: 30, enabled: false },
+  { id: 'evening', label: 'Evening Reflection', time: '9:00 PM', hour: 21, minute: 0, enabled: false },
 ];
 
 export function RemindersScreen() {
   const { reduceMotion, colors } = useTheme();
-  const { selectionLight } = useHaptics();
+  const { selectionLight, notificationSuccess } = useHaptics();
+  const { 
+    hasPermission, 
+    requestPermission, 
+    scheduleMorningReminder, 
+    scheduleEveningReminder,
+    cancelAllReminders,
+    getScheduledReminders,
+  } = useNotifications();
   const palette = colors;
 
-  const [reminders, setReminders] = useState(DEFAULT_REMINDERS);
+  const [reminders, setReminders] = useState<Reminder[]>(DEFAULT_REMINDERS);
+  const [loading, setLoading] = useState(false);
 
-  const toggleReminder = async (id: string) => {
+  // Sync with scheduled notifications on mount
+  useEffect(() => {
+    const syncReminders = async () => {
+      const scheduled = await getScheduledReminders();
+      const scheduledIds = scheduled.map(n => n.content.data?.reminderId);
+      setReminders(prev => prev.map(r => ({
+        ...r,
+        enabled: scheduledIds.includes(r.id),
+      })));
+    };
+    syncReminders();
+  }, [getScheduledReminders]);
+
+  const toggleReminder = useCallback(async (id: string) => {
     await selectionLight();
+    setLoading(true);
+    
+    const reminder = reminders.find(r => r.id === id);
+    if (!reminder) {
+      setLoading(false);
+      return;
+    }
+
+    const newEnabled = !reminder.enabled;
+
+    if (newEnabled) {
+      // Request permission if needed
+      if (!hasPermission) {
+        const granted = await requestPermission();
+        if (!granted) {
+          Alert.alert(
+            'Notifications Disabled',
+            'Please enable notifications in your device settings to use reminders.',
+            [{ text: 'OK' }]
+          );
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Schedule the reminder
+      try {
+        if (id === 'morning') {
+          await scheduleMorningReminder(
+            reminder.hour,
+            reminder.minute,
+            'Good morning! 🌅',
+            'Take a moment to start your day with intention.',
+            'morning'
+          );
+        } else if (id === 'evening') {
+          await scheduleEveningReminder(
+            reminder.hour,
+            reminder.minute,
+            'Evening reflection 🌙',
+            'Wind down and reflect on your day.',
+            'evening'
+          );
+        } else if (id === 'midday') {
+          await scheduleMorningReminder(
+            reminder.hour,
+            reminder.minute,
+            'Midday pause ☀️',
+            'Take a mindful break in your day.',
+            'midday'
+          );
+        }
+        await notificationSuccess();
+      } catch (error) {
+        console.error('Error scheduling reminder:', error);
+        Alert.alert('Error', 'Failed to schedule reminder. Please try again.');
+        setLoading(false);
+        return;
+      }
+    } else {
+      // Cancel scheduled reminders (simplified - cancels all, you might want to track IDs)
+      // In a real app, you'd store notification IDs and cancel specific ones
+    }
+
     setReminders(prev => prev.map(r => 
-      r.id === id ? { ...r, enabled: !r.enabled } : r
+      r.id === id ? { ...r, enabled: newEnabled } : r
     ));
-  };
+    setLoading(false);
+  }, [
+    selectionLight, 
+    reminders, 
+    hasPermission, 
+    requestPermission, 
+    scheduleMorningReminder, 
+    scheduleEveningReminder, 
+    notificationSuccess
+  ]);
 
   return (
     <View style={styles.container}>

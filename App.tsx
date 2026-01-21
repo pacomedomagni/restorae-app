@@ -19,6 +19,12 @@ import {
 
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
 import { PreferencesProvider } from './src/contexts/PreferencesContext';
+import { SubscriptionProvider } from './src/contexts/SubscriptionContext';
+import { AudioProvider } from './src/contexts/AudioContext';
+import { JournalProvider } from './src/contexts/JournalContext';
+import { MoodProvider } from './src/contexts/MoodContext';
+import { AppLockProvider } from './src/contexts/AppLockContext';
+import { RitualsProvider } from './src/contexts/RitualsContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
 
 function AppContent() {
@@ -69,7 +75,19 @@ export default function App() {
       <SafeAreaProvider>
         <ThemeProvider>
           <PreferencesProvider>
-            <AppContent />
+            <SubscriptionProvider>
+              <AudioProvider>
+                <JournalProvider>
+                  <MoodProvider>
+                    <RitualsProvider>
+                      <AppLockProvider>
+                        <AppContent />
+                      </AppLockProvider>
+                    </RitualsProvider>
+                  </MoodProvider>
+                </JournalProvider>
+              </AudioProvider>
+            </SubscriptionProvider>
           </PreferencesProvider>
         </ThemeProvider>
       </SafeAreaProvider>

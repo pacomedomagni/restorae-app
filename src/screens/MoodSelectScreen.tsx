@@ -11,15 +11,15 @@ import { useTheme } from '../contexts/ThemeContext';
 import { Text, GlassCard, AmbientBackground, ScreenHeader } from '../components/ui';
 import { spacing, layout } from '../theme';
 import { useHaptics } from '../hooks/useHaptics';
-import type { RootStackParamList } from '../types';
+import type { RootStackParamList, MoodType } from '../types';
 
-const MOODS = [
+const MOODS: { id: MoodType; label: string; emoji: string; color: string }[] = [
+  { id: 'energized', label: 'Energized', emoji: '⚡', color: '#F9D56E' },
   { id: 'calm', label: 'Calm', emoji: '😌', color: '#7DD3C0' },
-  { id: 'happy', label: 'Happy', emoji: '😊', color: '#F9D56E' },
+  { id: 'good', label: 'Good', emoji: '😊', color: '#B8D4B8' },
   { id: 'anxious', label: 'Anxious', emoji: '😰', color: '#E6A4B4' },
-  { id: 'sad', label: 'Sad', emoji: '😢', color: '#9BB5CE' },
-  { id: 'angry', label: 'Angry', emoji: '😠', color: '#E07A5F' },
-  { id: 'tired', label: 'Tired', emoji: '😴', color: '#B8A9C9' },
+  { id: 'low', label: 'Low', emoji: '😔', color: '#9BB5CE' },
+  { id: 'tough', label: 'Tough', emoji: '😤', color: '#E07A5F' },
 ];
 
 export function MoodSelectScreen() {
@@ -27,7 +27,7 @@ export function MoodSelectScreen() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { selectionLight } = useHaptics();
 
-  const handleMoodSelect = async (moodId: string) => {
+  const handleMoodSelect = async (moodId: MoodType) => {
     await selectionLight();
     navigation.navigate('MoodCheckin', { mood: moodId });
   };

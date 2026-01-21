@@ -309,15 +309,25 @@ export function JournalScreen() {
             entering={reduceMotion ? undefined : FadeIn.duration(600)}
             style={styles.header}
           >
-            <Text variant="labelSmall" color="inkFaint" style={styles.eyebrow}>
-              PRIVATE REFLECTION
-            </Text>
-            <Text variant="displayMedium" color="ink">
-              Journal
-            </Text>
-            <Text variant="bodyLarge" color="inkMuted" style={styles.subtitle}>
-              Your thoughts, unjudged
-            </Text>
+            <View style={styles.headerRow}>
+              <View>
+                <Text variant="labelSmall" color="inkFaint" style={styles.eyebrow}>
+                  PRIVATE REFLECTION
+                </Text>
+                <Text variant="displayMedium" color="ink">
+                  Journal
+                </Text>
+                <Text variant="bodyLarge" color="inkMuted" style={styles.subtitle}>
+                  Your thoughts, unjudged
+                </Text>
+              </View>
+              <Pressable 
+                onPress={() => navigation.navigate('JournalSearch')}
+                style={[styles.searchButton, { backgroundColor: withAlpha(colors.accentPrimary, 0.12) }]}
+              >
+                <LuxeIcon name="focus" size={22} color={colors.accentPrimary} />
+              </Pressable>
+            </View>
           </Animated.View>
 
           {/* New Entry CTA */}
@@ -467,6 +477,18 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: spacing[4],
     paddingBottom: spacing[4],
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  searchButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   eyebrow: {
     marginBottom: spacing[1],

@@ -4,12 +4,15 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import { useTheme } from '../contexts/ThemeContext';
 import { Text, Button, GlassCard, AmbientBackground, ScreenHeader } from '../components/ui';
 import { spacing, layout } from '../theme';
 import { useHaptics } from '../hooks/useHaptics';
+import { RootStackParamList } from '../types';
 
 const RITUALS = [
   { 
@@ -38,6 +41,7 @@ const RITUALS = [
 export function RitualScreen() {
   const { reduceMotion } = useTheme();
   const { selectionLight, notificationSuccess } = useHaptics();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [rituals, setRituals] = useState(RITUALS);
 
   const toggleRitual = async (id: string) => {
@@ -105,7 +109,7 @@ export function RitualScreen() {
               variant="secondary"
               size="md"
               fullWidth
-              onPress={() => {}}
+              onPress={() => navigation.navigate('CreateRitual')}
               style={styles.addButton}
             >
               + Create Custom Ritual

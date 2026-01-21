@@ -35,45 +35,7 @@ import { Icon } from '../../components/Icon';
 import { spacing, borderRadius, layout, withAlpha } from '../../theme';
 import { RootStackParamList, BreathingPattern } from '../../types';
 import { useHaptics } from '../../hooks/useHaptics';
-
-// =============================================================================
-// BREATHING PATTERNS
-// =============================================================================
-const breathingPatterns: Record<string, BreathingPattern> = {
-  'calm-breath': {
-    id: 'calm-breath',
-    name: 'Calm Breath',
-    description: 'A gentle pattern to bring you back to center',
-    inhale: 4,
-    hold1: 4,
-    exhale: 6,
-    hold2: 0,
-    cycles: 6,
-    duration: 2,
-  },
-  'box-breathing': {
-    id: 'box-breathing',
-    name: 'Box Breathing',
-    description: 'Used by Navy SEALs to stay calm under pressure',
-    inhale: 4,
-    hold1: 4,
-    exhale: 4,
-    hold2: 4,
-    cycles: 4,
-    duration: 2,
-  },
-  '478-sleep': {
-    id: '478-sleep',
-    name: '4-7-8 Sleep',
-    description: "Dr. Andrew Weil's relaxation technique",
-    inhale: 4,
-    hold1: 7,
-    exhale: 8,
-    hold2: 0,
-    cycles: 4,
-    duration: 2,
-  },
-};
+import { getPatternById, BREATHING_PATTERNS } from '../../data';
 
 type Phase = 'idle' | 'inhale' | 'hold' | 'exhale' | 'complete';
 
@@ -94,7 +56,9 @@ export function BreathingScreen() {
   const navigation = useNavigation();
   const route = useRoute<RouteProp<RootStackParamList, 'Breathing'>>();
 
-  const pattern = breathingPatterns[route.params?.patternId ?? 'calm-breath'] || breathingPatterns['calm-breath'];
+  // Get pattern from data library, default to box-breathing
+  const patternId = route.params?.patternId ?? 'box-breathing';
+  const pattern = getPatternById(patternId) || BREATHING_PATTERNS[0];
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [currentCycle, setCurrentCycle] = useState(0);

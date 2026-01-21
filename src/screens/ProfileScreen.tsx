@@ -56,6 +56,20 @@ interface SettingItem {
 
 const SETTINGS: SettingItem[] = [
   {
+    id: 'mood-history',
+    label: 'Mood History',
+    description: 'View your emotional trends',
+    icon: 'home',
+    route: 'MoodHistory',
+  },
+  {
+    id: 'subscription',
+    label: 'Subscription',
+    description: 'Manage your premium plan',
+    icon: 'home',
+    route: 'Subscription',
+  },
+  {
     id: 'preferences',
     label: 'Preferences',
     description: 'Appearance, sounds & reminders',
@@ -63,9 +77,23 @@ const SETTINGS: SettingItem[] = [
     route: 'Preferences',
   },
   {
+    id: 'app-lock',
+    label: 'App Lock',
+    description: 'PIN & biometric security',
+    icon: 'journal-tab',
+    route: 'AppLockSetup',
+  },
+  {
+    id: 'data',
+    label: 'Data & Storage',
+    description: 'Export & delete your data',
+    icon: 'journal-tab',
+    route: 'DataSettings',
+  },
+  {
     id: 'privacy',
     label: 'Privacy',
-    description: 'App lock, export & data',
+    description: 'Privacy policy',
     icon: 'journal-tab',
     route: 'Privacy',
   },

@@ -81,7 +81,7 @@ export function MoodResultScreen() {
               variant="primary"
               size="lg"
               fullWidth
-              onPress={() => navigation.navigate('Tools')}
+              onPress={() => navigation.navigate('Main')}
               style={styles.primaryButton}
             >
               Explore Tools
@@ -91,7 +91,7 @@ export function MoodResultScreen() {
               variant="secondary"
               size="md"
               fullWidth
-              onPress={() => navigation.navigate('Home')}
+              onPress={() => navigation.navigate('Main')}
             >
               Back to Home
             </Button>

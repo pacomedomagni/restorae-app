@@ -231,12 +231,16 @@ export function HomeScreen() {
   const handleStartRitual = async () => {
     await impactMedium();
     const hour = new Date().getHours();
-    navigation.navigate('Ritual', { type: hour < 17 ? 'morning' : 'evening' });
+    if (hour < 17) {
+      navigation.navigate('MorningRitual');
+    } else {
+      navigation.navigate('EveningRitual');
+    }
   };
 
   const handleSos = async () => {
     await impactMedium();
-    navigation.navigate('Sos');
+    navigation.navigate('SOSSelect');
   };
 
   return (

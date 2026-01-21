@@ -80,7 +80,7 @@ export function JournalEntriesScreen() {
               variant="primary"
               size="lg"
               fullWidth
-              onPress={() => navigation.navigate('JournalEntry')}
+              onPress={() => navigation.navigate('JournalEntry', { mode: 'new' })}
               style={styles.newButton}
             >
               + New Entry

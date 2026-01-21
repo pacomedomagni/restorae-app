@@ -27,6 +27,8 @@ export interface BreathingPattern {
   cycles: number;
   duration: string;
   icon?: string;
+  category?: 'calm' | 'focus' | 'energy' | 'sleep' | 'emergency' | 'balance';
+  bestFor?: string;
 }
 
 // Grounding exercise
@@ -117,39 +119,73 @@ export type RootStackParamList = {
   Onboarding: undefined;
   Main: undefined;
   Tool: { type: ToolType; id?: string };
-  Breathing: { patternId: string };
-  Grounding: { exerciseId: string };
+  Breathing: { patternId?: string };
+  BreathingSelect: undefined;
+  Grounding: { techniqueId?: string };
+  GroundingSelect: undefined;
+  GroundingSession: { techniqueId?: string };
   Movement: { exerciseId: string };
-  Focus: { sessionId: string };
+  Reset: { exerciseId?: string };
+  ResetSelect: undefined;
+  ResetSession: { exerciseId?: string };
+  Focus: { sessionId?: string };
+  FocusSelect: undefined;
+  FocusSession: { sessionId?: string; soundId?: string };
   Journal: { promptId?: string; entryId?: string };
   JournalEntry: { 
     mode: 'view' | 'prompt' | 'new'; 
     prompt?: string;
-    entry?: { title?: string; content: string; };
+    entryId?: string;
+    entry?: { id?: string; title?: string; content: string; };
   };
   JournalEntries: undefined;
   JournalPrompts: undefined;
-  SOS: { protocolId?: string };
+  JournalSearch: undefined;
+  Sos: { presetId?: string };
+  SOSSelect: undefined;
+  SOSSession: { presetId?: string };
+  SituationalSelect: undefined;
+  SituationalSession: { guideId?: string };
   Settings: undefined;
   Subscription: undefined;
+  Paywall: { feature?: string; featureName?: string };
   Preferences: undefined;
   Appearance: undefined;
   SoundHaptics: undefined;
   Reminders: undefined;
   Privacy: undefined;
   Support: undefined;
-  MoodCheckin: undefined;
+  EditProfile: undefined;
+  MoodCheckin: { mood?: MoodType; moodId?: string; moodLabel?: string };
   MoodSelect: undefined;
-  MoodResult: { mood: MoodType; note?: string };
+  MoodResult: { 
+    mood?: MoodType; 
+    moodId?: string;
+    moodLabel?: string;
+    factors?: string[];
+    notes?: string;
+    note?: string; 
+  };
+  MoodHistory: undefined;
   ToolsMore: undefined;
   QuickReset: undefined;
-  Ritual: undefined;
-  Reset: { exerciseId: string };
+  Ritual: { type?: 'morning' | 'evening'; ritualId?: string };
+  RitualSession: { type: 'morning' | 'evening'; ritualId: string };
+  MorningRitual: undefined;
+  EveningRitual: undefined;
+  CreateRitual: undefined;
+  CustomRitualSession: { ritualId: string };
+  AppLock: undefined;
+  AppLockSetup: undefined;
+  DataSettings: undefined;
 };
 
 export type MainTabParamList = {
-  Home: undefined;
-  Tools: undefined;
+  HomeTab: undefined;
+  ToolsTab: undefined;
   JournalTab: undefined;
-  Profile: undefined;
+  ProfileTab: undefined;
 };
+
+// Theme
+export type ThemeMode = 'light' | 'dark' | 'system';
