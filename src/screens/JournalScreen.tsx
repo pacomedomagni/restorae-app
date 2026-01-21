@@ -33,8 +33,11 @@ import {
   Text,
   GlassCard,
   AmbientBackground,
-  PremiumButton,
+  Button,
   ScreenHeader,
+  TabSafeScrollView,
+  SkeletonJournalEntry,
+  EmptyState,
 } from '../components/ui';
 import { LuxeIcon } from '../components/LuxeIcon';
 import { spacing, borderRadius, layout, withAlpha } from '../theme';
@@ -274,7 +277,20 @@ export function JournalScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { impactMedium } = useHaptics();
 
-  const [entries, setEntries] = useState<JournalEntry[]>(MOCK_ENTRIES);
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Simulate data loading
+  useEffect(() => {
+    const loadEntries = async () => {
+      setIsLoading(true);
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 800));
+      setEntries(MOCK_ENTRIES);
+      setIsLoading(false);
+    };
+    loadEntries();
+  }, []);
 
   const handleNewEntry = async () => {
     await impactMedium();
@@ -358,7 +374,7 @@ export function JournalScreen() {
                     </Text>
                   </View>
                 </View>
-                <PremiumButton
+                <Button
                   variant="glow"
                   size="lg"
                   tone="warm"
@@ -367,7 +383,7 @@ export function JournalScreen() {
                   style={styles.newEntryButton}
                 >
                   New Entry
-                </PremiumButton>
+                </Button>
               </View>
             </GlassCard>
           </Animated.View>
@@ -419,7 +435,14 @@ export function JournalScreen() {
             </View>
 
             <View style={styles.entriesList}>
-              {entries.length > 0 ? (
+              {isLoading ? (
+                // Loading skeletons
+                <>
+                  <SkeletonJournalEntry />
+                  <SkeletonJournalEntry />
+                  <SkeletonJournalEntry />
+                </>
+              ) : entries.length > 0 ? (
                 entries.map((entry, index) => (
                   <EntryCard
                     key={entry.id}
@@ -429,31 +452,24 @@ export function JournalScreen() {
                   />
                 ))
               ) : (
-                <Animated.View
-                  entering={reduceMotion ? undefined : FadeIn.delay(250).duration(300)}
-                >
-                  <GlassCard variant="subtle" padding="lg">
-                    <View style={styles.emptyState}>
-                      <Text variant="headlineSmall" color="inkMuted" align="center">
-                        No entries yet
-                      </Text>
-                      <Text
-                        variant="bodyMedium"
-                        color="inkFaint"
-                        align="center"
-                        style={styles.emptyStateText}
-                      >
-                        Start your first journal entry to begin your reflection journey
-                      </Text>
-                    </View>
-                  </GlassCard>
-                </Animated.View>
+                <EmptyState
+                  icon="journal"
+                  title="No entries yet"
+                  description="Start your first journal entry to begin your reflection journey"
+                  action={
+                    <Button
+                      variant="primary"
+                      size="md"
+                      tone="warm"
+                      onPress={handleNewEntry}
+                    >
+                      Write First Entry
+                    </Button>
+                  }
+                />
               )}
             </View>
           </View>
-
-          {/* Bottom spacing */}
-          <View style={{ height: layout.tabBarHeight + spacing[4] }} />
         </View>
       </SafeAreaView>
     </View>

@@ -10,7 +10,6 @@ import {
   StyleSheet,
   Dimensions,
   Pressable,
-  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -35,7 +34,9 @@ import {
   GlassCard,
   AmbientBackground,
   MoodOrb,
-  PremiumButton,
+  Button,
+  ScreenHeader,
+  TabSafeScrollView,
 } from '../components/ui';
 import { LuxeIcon } from '../components/LuxeIcon';
 import { Icon } from '../components/Icon';
@@ -218,11 +219,12 @@ export function HomeScreen() {
     await impactMedium();
     setSelectedMood(mood);
     
-    // Save and navigate after a brief moment
+    // Brief visual confirmation before navigation (user can see selection)
     await AsyncStorage.setItem('@restorae/last_mood', mood);
+    // Allow user to see their selection before navigating
     setTimeout(() => {
-      navigation.navigate('MoodResult', { mood });
-    }, 300);
+      navigation.navigate('MoodCheckin', { mood });
+    }, 400);
   };
 
   const handleQuickAction = (route: keyof RootStackParamList) => {
@@ -250,11 +252,9 @@ export function HomeScreen() {
       <AmbientBackground variant={getBackgroundVariant()} intensity="normal" />
 
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <ScrollView
+        <TabSafeScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          bounces={true}
+          contentStyle={styles.scrollContent}
         >
           {/* Header */}
           <Animated.View
@@ -291,7 +291,7 @@ export function HomeScreen() {
               </Pressable>
             </View>
             
-            <Text variant="bodyLarge" color="inkMuted" style={styles.subtitle}>>
+            <Text variant="bodyLarge" color="inkMuted" style={styles.subtitle}>
               How are you feeling right now?
             </Text>
           </Animated.View>
@@ -356,7 +356,7 @@ export function HomeScreen() {
                   : 'Release the day with softness, ease, and intention.'}
               </Text>
 
-              <PremiumButton
+              <Button
                 variant="glow"
                 size="lg"
                 tone={new Date().getHours() < 17 ? 'warm' : 'calm'}
@@ -365,7 +365,7 @@ export function HomeScreen() {
                 style={styles.ritualButton}
               >
                 Begin Ritual
-              </PremiumButton>
+              </Button>
             </GlassCard>
           </Animated.View>
 
@@ -390,10 +390,7 @@ export function HomeScreen() {
               ))}
             </View>
           </View>
-
-          {/* Bottom spacing for tab bar */}
-          <View style={{ height: layout.tabBarHeight + spacing[4] }} />
-        </ScrollView>
+        </TabSafeScrollView>
       </SafeAreaView>
     </View>
   );

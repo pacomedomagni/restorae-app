@@ -31,6 +31,8 @@ import {
   Text,
   GlassCard,
   AmbientBackground,
+  Skeleton,
+  SkeletonCard,
 } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { spacing, borderRadius, layout, withAlpha } from '../theme';
@@ -306,16 +308,26 @@ export function ProfileScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const [userName, setUserName] = useState<string>('');
-  const [stats, setStats] = useState<StatData[]>([
-    { label: 'Sessions', value: '47', sublabel: 'this month', color: 'primary' },
-    { label: 'Streak', value: '12', sublabel: 'days', color: 'warm' },
-    { label: 'Minutes', value: '234', sublabel: 'total time', color: 'calm' },
-  ]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState<StatData[]>([]);
 
   useEffect(() => {
-    AsyncStorage.getItem('@restorae/user_name').then((name) => {
+    const loadData = async () => {
+      setIsLoading(true);
+      // Load user data
+      const name = await AsyncStorage.getItem('@restorae/user_name');
       if (name) setUserName(name);
-    });
+      
+      // Simulate loading stats from storage/API
+      await new Promise(resolve => setTimeout(resolve, 600));
+      setStats([
+        { label: 'Sessions', value: '47', sublabel: 'this month', color: 'primary' },
+        { label: 'Streak', value: '12', sublabel: 'days', color: 'warm' },
+        { label: 'Minutes', value: '234', sublabel: 'total time', color: 'calm' },
+      ]);
+      setIsLoading(false);
+    };
+    loadData();
   }, []);
 
   const weeklyProgress = 0.68; // 68% of weekly goal
@@ -405,9 +417,23 @@ export function ProfileScreen() {
             </Animated.View>
             
             <View style={styles.statsGrid}>
-              {stats.map((stat, index) => (
-                <StatCard key={stat.label} stat={stat} index={index} />
-              ))}
+              {isLoading ? (
+                <>
+                  <View style={styles.statCard}>
+                    <SkeletonCard />
+                  </View>
+                  <View style={styles.statCard}>
+                    <SkeletonCard />
+                  </View>
+                  <View style={styles.statCard}>
+                    <SkeletonCard />
+                  </View>
+                </>
+              ) : (
+                stats.map((stat, index) => (
+                  <StatCard key={stat.label} stat={stat} index={index} />
+                ))
+              )}
             </View>
           </View>
 
@@ -448,9 +474,6 @@ export function ProfileScreen() {
               Your sanctuary for calm
             </Text>
           </Animated.View>
-
-          {/* Bottom spacing */}
-          <View style={{ height: layout.tabBarHeight + spacing[4] }} />
         </View>
       </SafeAreaView>
     </View>

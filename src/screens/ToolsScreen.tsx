@@ -32,7 +32,7 @@ import {
   Text,
   GlassCard,
   AmbientBackground,
-  PremiumButton,
+  Button,
 } from '../components/ui';
 import { LuxeIcon } from '../components/LuxeIcon';
 import { spacing, borderRadius, layout, withAlpha } from '../theme';
@@ -376,20 +376,130 @@ function FeaturedToolCard({ tool, onPress }: FeaturedToolCardProps) {
                   </View>
                 </View>
 
-                <PremiumButton
+                <Button
                   variant="primary"
                   size="md"
                   tone="primary"
                   onPress={handlePress}
                 >
                   Start Now
-                </PremiumButton>
+                </Button>
               </View>
             </View>
           </GlassCard>
         </Animated.View>
       </Pressable>
     </Animated.View>
+  );
+}
+
+// =============================================================================
+// QUICK START SECTION - For reduced navigation depth
+// =============================================================================
+interface QuickStartItem {
+  id: string;
+  label: string;
+  sublabel: string;
+  icon: 'breathe' | 'ground' | 'reset' | 'focus';
+  tone: 'primary' | 'warm' | 'calm';
+  route: keyof RootStackParamList;
+  routeParams?: any;
+}
+
+const QUICK_STARTS: QuickStartItem[] = [
+  {
+    id: 'box-breathing',
+    label: 'Box Breathing',
+    sublabel: '4 min • Calm',
+    icon: 'breathe',
+    tone: 'primary',
+    route: 'Breathing',
+    routeParams: { patternId: 'box-breathing' },
+  },
+  {
+    id: '5-4-3-2-1',
+    label: '5-4-3-2-1',
+    sublabel: '3 min • Ground',
+    icon: 'ground',
+    tone: 'warm',
+    route: 'GroundingSession',
+    routeParams: { techniqueId: '5-4-3-2-1' },
+  },
+  {
+    id: 'body-scan',
+    label: 'Quick Scan',
+    sublabel: '2 min • Release',
+    icon: 'reset',
+    tone: 'calm',
+    route: 'ResetSession',
+    routeParams: { exerciseId: 'body-scan' },
+  },
+];
+
+interface QuickStartCardProps {
+  item: QuickStartItem;
+  onPress: () => void;
+}
+
+function QuickStartCard({ item, onPress }: QuickStartCardProps) {
+  const { colors } = useTheme();
+  const { impactLight } = useHaptics();
+  const scale = useSharedValue(1);
+
+  const toneColor =
+    item.tone === 'warm'
+      ? colors.accentWarm
+      : item.tone === 'calm'
+      ? colors.accentCalm
+      : colors.accentPrimary;
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.95, { damping: 15, stiffness: 400 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 12, stiffness: 300 });
+  };
+
+  const handlePress = async () => {
+    await impactLight();
+    onPress();
+  };
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Pressable
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      onPress={handlePress}
+      style={styles.quickStartCard}
+    >
+      <Animated.View style={animatedStyle}>
+        <GlassCard variant="subtle" padding="sm">
+          <View style={styles.quickStartContent}>
+            <View
+              style={[
+                styles.quickStartIcon,
+                { backgroundColor: withAlpha(toneColor, 0.12) },
+              ]}
+            >
+              <LuxeIcon name={item.icon} size={18} color={toneColor} />
+            </View>
+            <View style={styles.quickStartText}>
+              <Text variant="labelMedium" color="ink">
+                {item.label}
+              </Text>
+              <Text variant="labelSmall" color="inkFaint">
+                {item.sublabel}
+              </Text>
+            </View>
+          </View>
+        </GlassCard>
+      </Animated.View>
+    </Pressable>
   );
 }
 
@@ -419,6 +529,17 @@ export function ToolsScreen() {
     [navigation]
   );
 
+  const handleQuickStart = useCallback(
+    (item: QuickStartItem) => {
+      if (item.routeParams) {
+        navigation.navigate(item.route as any, item.routeParams);
+      } else {
+        navigation.navigate(item.route as any);
+      }
+    },
+    [navigation]
+  );
+
   return (
     <View style={styles.container}>
       <AmbientBackground variant="calm" intensity="subtle" />
@@ -442,6 +563,27 @@ export function ToolsScreen() {
               Curated practices for every moment
             </Text>
           </Animated.View>
+
+          {/* Quick Start - Skip selection for popular tools */}
+          {activeCategory === 'all' && (
+            <Animated.View
+              entering={reduceMotion ? undefined : FadeIn.delay(50).duration(400)}
+              style={styles.quickStartSection}
+            >
+              <Text variant="labelSmall" color="inkFaint" style={styles.sectionLabel}>
+                QUICK START
+              </Text>
+              <View style={styles.quickStartGrid}>
+                {QUICK_STARTS.map((item) => (
+                  <QuickStartCard
+                    key={item.id}
+                    item={item}
+                    onPress={() => handleQuickStart(item)}
+                  />
+                ))}
+              </View>
+            </Animated.View>
+          )}
 
           {/* Category Filter */}
           <Animated.View
@@ -485,9 +627,6 @@ export function ToolsScreen() {
               />
             ))}
           </View>
-
-          {/* Bottom spacing */}
-          <View style={{ height: layout.tabBarHeight + spacing[4] }} />
         </View>
       </SafeAreaView>
     </View>
@@ -579,10 +718,42 @@ const styles = StyleSheet.create({
     paddingVertical: spacing[1],
     borderRadius: borderRadius.full,
   },
+  // Quick Start styles
+  quickStartSection: {
+    marginBottom: spacing[4],
+  },
+  sectionLabel: {
+    letterSpacing: 2,
+    marginBottom: spacing[3],
+  },
+  quickStartGrid: {
+    flexDirection: 'row',
+    gap: spacing[3],
+  },
+  quickStartCard: {
+    flex: 1,
+  },
+  quickStartContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  quickStartIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing[3],
+  },
+  quickStartText: {
+    flex: 1,
+  },
+  // Tools grid
   toolsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing[4],
+    paddingBottom: spacing[8],
   },
   toolCard: {
     width: '100%',

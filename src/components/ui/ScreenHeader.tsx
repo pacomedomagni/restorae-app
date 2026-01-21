@@ -14,8 +14,12 @@ interface ScreenHeaderProps {
   subtitle?: string;
   align?: 'left' | 'center';
   compact?: boolean;
+  /** Display variant - 'hero' for main screens, 'page' for sub-screens */
+  variant?: 'hero' | 'page';
   showBack?: boolean;
   rightAction?: React.ReactNode;
+  /** Left action replaces back button when provided */
+  leftAction?: React.ReactNode;
   style?: ViewStyle;
 }
 
@@ -25,8 +29,10 @@ export function ScreenHeader({
   subtitle,
   align = 'left',
   compact = false,
+  variant = 'page',
   showBack = false,
   rightAction,
+  leftAction,
   style,
 }: ScreenHeaderProps) {
   const { colors, reduceMotion } = useTheme();
@@ -38,12 +44,17 @@ export function ScreenHeader({
     navigation.goBack();
   };
 
+  const hasTopRow = showBack || rightAction || leftAction;
+  const titleVariant = variant === 'hero' ? 'displayMedium' : 'headlineLarge';
+
   return (
     <View style={[styles.container, compact && styles.compact, style]}>
       {/* Top row with back button and action */}
-      {(showBack || rightAction) && (
+      {hasTopRow && (
         <View style={styles.topRow}>
-          {showBack ? (
+          {leftAction ? (
+            leftAction
+          ) : showBack ? (
             <Pressable
               onPress={handleBack}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -60,9 +71,9 @@ export function ScreenHeader({
               <Icon name="home" size={20} color={colors.ink} />
             </Pressable>
           ) : (
-            <View />
+            <View style={styles.backButton} />
           )}
-          {rightAction}
+          {rightAction || <View />}
         </View>
       )}
 
@@ -86,7 +97,7 @@ export function ScreenHeader({
       <Animated.View
         entering={reduceMotion ? undefined : FadeInDown.delay(75).duration(300)}
       >
-        <Text variant="displayMedium" color="ink" align={align}>
+        <Text variant={titleVariant} color="ink" align={align}>
           {title}
         </Text>
       </Animated.View>

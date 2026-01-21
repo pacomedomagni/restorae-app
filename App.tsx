@@ -26,6 +26,7 @@ import { MoodProvider } from './src/contexts/MoodContext';
 import { AppLockProvider } from './src/contexts/AppLockContext';
 import { RitualsProvider } from './src/contexts/RitualsContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
+import { ErrorBoundary } from './src/components/ui';
 
 function AppContent() {
   const { isDark, reduceMotion } = useTheme();
@@ -81,7 +82,12 @@ export default function App() {
                   <MoodProvider>
                     <RitualsProvider>
                       <AppLockProvider>
-                        <AppContent />
+                        <ErrorBoundary
+                          errorTitle="Something went wrong"
+                          errorDescription="Restorae encountered an unexpected error. Please restart the app."
+                        >
+                          <AppContent />
+                        </ErrorBoundary>
                       </AppLockProvider>
                     </RitualsProvider>
                   </MoodProvider>
