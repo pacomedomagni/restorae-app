@@ -175,6 +175,54 @@ export const safeArea = {
 };
 
 // =============================================================================
+// RESPONSIVE COMPONENT SIZES
+// =============================================================================
+/**
+ * Get responsive orb/icon sizes based on screen size
+ */
+export const getResponsiveOrbSize = (): { sm: number; md: number; lg: number } => {
+  if (device.isLargeTablet) return { sm: 88, md: 120, lg: 160 };
+  if (device.isTablet) return { sm: 80, md: 108, lg: 140 };
+  if (device.isSmallPhone) return { sm: 64, md: 80, lg: 100 };
+  return { sm: 72, md: 96, lg: 120 };
+};
+
+/**
+ * Get responsive card heights
+ */
+export const getResponsiveCardHeight = (variant: 'sm' | 'md' | 'lg' | 'hero'): number => {
+  const baseHeights = { sm: 80, md: 120, lg: 160, hero: 200 };
+  const scale = device.isTablet ? 1.15 : device.isSmallPhone ? 0.9 : 1;
+  return Math.round(baseHeights[variant] * scale);
+};
+
+/**
+ * Get responsive touch target size (minimum 44pt for accessibility)
+ */
+export const getResponsiveTouchTarget = (): number => {
+  if (device.isTablet) return 52;
+  return 44;
+};
+
+/**
+ * Get responsive modal width for tablets
+ */
+export const getModalMaxWidth = (): number | undefined => {
+  if (device.isLargeTablet) return 600;
+  if (device.isTablet) return 540;
+  return undefined; // Full width on phones
+};
+
+/**
+ * Get responsive header padding
+ */
+export const getResponsiveHeaderPadding = (): { top: number; bottom: number } => {
+  if (device.isTablet) return { top: 24, bottom: 32 };
+  if (device.isSmallPhone) return { top: 12, bottom: 16 };
+  return { top: 16, bottom: 24 };
+};
+
+// =============================================================================
 // HOOK HELPER (for dynamic updates)
 // =============================================================================
 /**

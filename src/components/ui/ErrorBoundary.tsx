@@ -1,14 +1,53 @@
 /**
  * ErrorBoundary & ErrorState Components
- * Graceful error handling with recovery options
+ * Graceful error handling with premium recovery options
  */
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
-import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInUp, useSharedValue, useAnimatedStyle, withSpring, withRepeat, withSequence, withTiming, Easing } from 'react-native-reanimated';
 import { Text } from './Text';
 import { GlassCard } from './GlassCard';
+import { Button } from './Button';
 import { LuxeIcon } from '../LuxeIcon';
 import { spacing, borderRadius, withAlpha, light, dark } from '../../theme';
+
+// =============================================================================
+// BREATHING ANIMATION FOR ERROR ICON
+// =============================================================================
+function BreathingErrorIcon({ colors }: { colors: typeof light }) {
+  const breathe = useSharedValue(1);
+
+  React.useEffect(() => {
+    breathe.value = withRepeat(
+      withSequence(
+        withTiming(1.05, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      false
+    );
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: breathe.value }],
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        styles.iconContainer,
+        { backgroundColor: withAlpha(colors.accentWarm, 0.12) },
+        animatedStyle,
+      ]}
+    >
+      <LuxeIcon name="breathe" size={36} color={colors.accentWarm} />
+    </Animated.View>
+  );
+}
+
+// =============================================================================
+// ERROR STATE COMPONENT
+// =============================================================================
 
 // =============================================================================
 // ERROR STATE COMPONENT
@@ -38,23 +77,24 @@ export function ErrorState({
 }: ErrorStateProps) {
   // Use light theme colors as fallback (context may not be available in error boundary)
   const colors = light;
+  const scale = useSharedValue(1);
 
-  const iconMap = {
-    error: '⚠️',
-    network: '📡',
-    empty: '📭',
+  const handlePressIn = () => {
+    scale.value = withSpring(0.95, { damping: 15, stiffness: 400 });
   };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 12, stiffness: 300 });
+  };
+
+  const buttonAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
   const content = (
     <>
-      <Animated.View
-        entering={FadeIn.delay(100).duration(400)}
-        style={[
-          styles.iconContainer,
-          { backgroundColor: withAlpha(colors.accentDanger, 0.1) },
-        ]}
-      >
-        <Text style={styles.iconEmoji}>{iconMap[icon]}</Text>
+      <Animated.View entering={FadeIn.delay(100).duration(400)}>
+        <BreathingErrorIcon colors={colors} />
       </Animated.View>
 
       <Animated.View entering={FadeInUp.delay(150).duration(400)}>
@@ -69,27 +109,35 @@ export function ErrorState({
         </Text>
       </Animated.View>
 
+      <Animated.View entering={FadeInUp.delay(250).duration(400)}>
+        <Text variant="bodySmall" color="inkFaint" align="center" style={styles.encouragement}>
+          Take a breath. We'll get through this together.
+        </Text>
+      </Animated.View>
+
       {(onRetry || action) && (
         <Animated.View
-          entering={FadeInUp.delay(250).duration(400)}
+          entering={FadeInUp.delay(300).duration(400)}
           style={styles.actionContainer}
         >
           {action || (
-            <Pressable
-              onPress={onRetry}
-              style={({ pressed }) => [
-                styles.retryButton,
-                {
-                  backgroundColor: colors.accentPrimary,
-                  opacity: pressed ? 0.8 : 1,
-                  transform: [{ scale: pressed ? 0.97 : 1 }],
-                },
-              ]}
-            >
-              <Text variant="labelLarge" style={{ color: colors.inkInverse }}>
-                Try Again
-              </Text>
-            </Pressable>
+            <Animated.View style={buttonAnimatedStyle}>
+              <Pressable
+                onPress={onRetry}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                style={({ pressed }) => [
+                  styles.retryButton,
+                  {
+                    backgroundColor: colors.accentPrimary,
+                  },
+                ]}
+              >
+                <Text variant="labelLarge" style={{ color: colors.inkInverse }}>
+                  Try Again
+                </Text>
+              </Pressable>
+            </Animated.View>
           )}
         </Animated.View>
       )}
@@ -231,12 +279,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   iconContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing[4],
+    marginBottom: spacing[5],
   },
   iconEmoji: {
     fontSize: 32,
@@ -245,17 +293,28 @@ const styles = StyleSheet.create({
     marginBottom: spacing[2],
   },
   description: {
+    maxWidth: 300,
+    textAlign: 'center',
+    marginBottom: spacing[2],
+  },
+  encouragement: {
     maxWidth: 280,
     textAlign: 'center',
+    fontStyle: 'italic',
   },
   actionContainer: {
     marginTop: spacing[6],
   },
   retryButton: {
     paddingVertical: spacing[3],
-    paddingHorizontal: spacing[6],
+    paddingHorizontal: spacing[8],
     borderRadius: borderRadius.full,
-    minWidth: 140,
+    minWidth: 160,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
 });

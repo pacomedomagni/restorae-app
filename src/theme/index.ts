@@ -20,6 +20,11 @@ export {
   isBelow,
   safeArea,
   createDimensionListener,
+  getResponsiveOrbSize,
+  getResponsiveCardHeight,
+  getResponsiveTouchTarget,
+  getModalMaxWidth,
+  getResponsiveHeaderPadding,
 } from './responsive';
 
 // =============================================================================

@@ -191,13 +191,27 @@ export function HomeScreen() {
 
   const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
   const [userName, setUserName] = useState<string>('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Load user preferences
-  useEffect(() => {
-    AsyncStorage.getItem('@restorae/user_name').then((name) => {
-      if (name) setUserName(name);
-    });
+  const loadUserData = useCallback(async () => {
+    const name = await AsyncStorage.getItem('@restorae/user_name');
+    if (name) setUserName(name);
   }, []);
+
+  useEffect(() => {
+    loadUserData();
+  }, [loadUserData]);
+
+  // Pull to refresh handler
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await impactLight();
+    await loadUserData();
+    // Simulate refresh delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    setIsRefreshing(false);
+  };
 
   // Time-based greeting
   const getGreeting = useCallback(() => {
@@ -255,6 +269,8 @@ export function HomeScreen() {
         <TabSafeScrollView
           style={styles.scrollView}
           contentStyle={styles.scrollContent}
+          onRefresh={handleRefresh}
+          refreshing={isRefreshing}
         >
           {/* Header */}
           <Animated.View

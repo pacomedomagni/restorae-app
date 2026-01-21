@@ -25,7 +25,7 @@ import Animated, {
 import { useHaptics } from '../../hooks/useHaptics';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text } from './Text';
-import { spacing, withAlpha } from '../../theme';
+import { spacing, withAlpha, getResponsiveOrbSize } from '../../theme';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const AnimatedView = Animated.View;
@@ -98,7 +98,9 @@ export function MoodOrb({
   const ripple = useSharedValue(0);
   const selectedValue = useSharedValue(selected ? 1 : 0);
 
-  const orbSize = size === 'sm' ? 72 : size === 'lg' ? 120 : 96;
+  // Responsive orb sizing
+  const responsiveOrbSizes = getResponsiveOrbSize();
+  const orbSize = size === 'sm' ? responsiveOrbSizes.sm : size === 'lg' ? responsiveOrbSizes.lg : responsiveOrbSizes.md;
   const glowSize = orbSize * 1.6;
 
   // Entry animation

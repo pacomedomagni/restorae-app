@@ -33,6 +33,7 @@ import {
   GlassCard,
   AmbientBackground,
   Button,
+  TabSafeScrollView,
 } from '../components/ui';
 import { LuxeIcon } from '../components/LuxeIcon';
 import { spacing, borderRadius, layout, withAlpha } from '../theme';
@@ -545,8 +546,9 @@ export function ToolsScreen() {
       <AmbientBackground variant="calm" intensity="subtle" />
 
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View
-          style={styles.scrollContent}
+        <TabSafeScrollView
+          style={styles.scrollView}
+          contentStyle={styles.scrollContent}
         >
           {/* Header */}
           <Animated.View
@@ -627,7 +629,7 @@ export function ToolsScreen() {
               />
             ))}
           </View>
-        </View>
+        </TabSafeScrollView>
       </SafeAreaView>
     </View>
   );
@@ -643,8 +645,10 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  scrollContent: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: layout.screenPaddingHorizontal,
   },
   header: {

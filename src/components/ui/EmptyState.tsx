@@ -1,10 +1,19 @@
 /**
  * EmptyState Component
- * Beautiful empty state for lists and content areas
+ * Beautiful empty state for lists and content areas with premium animations
  */
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
-import Animated, { FadeIn, FadeInUp } from 'react-native-reanimated';
+import Animated, { 
+  FadeIn, 
+  FadeInUp,
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
 import { Text } from './Text';
 import { GlassCard } from './GlassCard';
 import { LuxeIcon } from '../LuxeIcon';
@@ -22,6 +31,8 @@ interface EmptyStateProps {
   action?: React.ReactNode;
   /** Visual variant */
   variant?: 'card' | 'inline';
+  /** Optional encouraging message */
+  encouragement?: string;
 }
 
 export function EmptyState({
@@ -30,19 +41,67 @@ export function EmptyState({
   description,
   action,
   variant = 'card',
+  encouragement,
 }: EmptyStateProps) {
   const { colors, reduceMotion } = useTheme();
+  
+  // Subtle breathing animation for the icon
+  const breathe = useSharedValue(1);
+  const glowOpacity = useSharedValue(0.4);
+
+  useEffect(() => {
+    if (reduceMotion) return;
+    
+    breathe.value = withRepeat(
+      withSequence(
+        withTiming(1.08, { duration: 2500, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1, { duration: 2500, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      false
+    );
+    
+    glowOpacity.value = withRepeat(
+      withSequence(
+        withTiming(0.6, { duration: 2500, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0.4, { duration: 2500, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      false
+    );
+  }, [reduceMotion, breathe, glowOpacity]);
+
+  const iconContainerStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: breathe.value }],
+  }));
+
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: glowOpacity.value,
+  }));
 
   const content = (
     <>
       <Animated.View
         entering={reduceMotion ? undefined : FadeIn.delay(100).duration(400)}
-        style={[
-          styles.iconContainer,
-          { backgroundColor: withAlpha(colors.accentPrimary, 0.1) },
-        ]}
+        style={styles.iconWrapper}
       >
-        <LuxeIcon name={icon} size={32} color={colors.accentPrimary} />
+        {/* Glow behind icon */}
+        <Animated.View
+          style={[
+            styles.iconGlow,
+            { backgroundColor: colors.accentPrimary },
+            glowStyle,
+          ]}
+        />
+        <Animated.View
+          style={[
+            styles.iconContainer,
+            { backgroundColor: withAlpha(colors.accentPrimary, 0.12) },
+            iconContainerStyle,
+          ]}
+        >
+          <LuxeIcon name={icon} size={36} color={colors.accentPrimary} />
+        </Animated.View>
       </Animated.View>
 
       <Animated.View
@@ -61,9 +120,19 @@ export function EmptyState({
         </Text>
       </Animated.View>
 
-      {action && (
+      {encouragement && (
         <Animated.View
           entering={reduceMotion ? undefined : FadeInUp.delay(250).duration(400)}
+        >
+          <Text variant="bodySmall" color="inkFaint" align="center" style={styles.encouragement}>
+            {encouragement}
+          </Text>
+        </Animated.View>
+      )}
+
+      {action && (
+        <Animated.View
+          entering={reduceMotion ? undefined : FadeInUp.delay(300).duration(400)}
           style={styles.actionContainer}
         >
           {action}
@@ -92,20 +161,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing[8],
   },
-  iconContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+  iconWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing[4],
+    marginBottom: spacing[5],
+  },
+  iconGlow: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    transform: [{ scale: 1.2 }],
+  },
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
     marginBottom: spacing[2],
   },
   description: {
+    maxWidth: 300,
+    textAlign: 'center',
+    marginBottom: spacing[2],
+  },
+  encouragement: {
     maxWidth: 280,
     textAlign: 'center',
+    fontStyle: 'italic',
   },
   actionContainer: {
     marginTop: spacing[5],

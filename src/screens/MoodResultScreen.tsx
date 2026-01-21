@@ -1,94 +1,139 @@
 /**
- * MoodResultScreen - Consistent UI
+ * MoodResultScreen - Consistent UI with visual mood continuity
  */
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, ZoomIn, FadeInUp } from 'react-native-reanimated';
 import { useNavigation, useRoute, NavigationProp, RouteProp } from '@react-navigation/native';
 
 import { useTheme } from '../contexts/ThemeContext';
-import { Text, Button, GlassCard, AmbientBackground } from '../components/ui';
-import { spacing, layout } from '../theme';
-import type { RootStackParamList } from '../types';
+import { Text, Button, GlassCard, AmbientBackground, MoodOrb } from '../components/ui';
+import { spacing, layout, withAlpha } from '../theme';
+import type { RootStackParamList, MoodType } from '../types';
 
-const MOOD_DATA: Record<string, { emoji: string; message: string; suggestion: string }> = {
-  calm: { 
-    emoji: '😌', 
-    message: 'You\'re feeling calm', 
-    suggestion: 'Great time to journal or set intentions' 
+const MOOD_DATA: Record<MoodType, { message: string; suggestion: string; tool: string; toolRoute: keyof RootStackParamList }> = {
+  energized: { 
+    message: 'You\'re feeling energized!', 
+    suggestion: 'Great time to tackle something meaningful',
+    tool: 'Start a Focus Session',
+    toolRoute: 'FocusSelect',
   },
-  happy: { 
-    emoji: '😊', 
-    message: 'You\'re feeling happy', 
-    suggestion: 'Capture this moment in your journal' 
+  calm: { 
+    message: 'You\'re feeling calm', 
+    suggestion: 'A perfect state for reflection or intention-setting',
+    tool: 'Journal Your Thoughts',
+    toolRoute: 'JournalEntry',
+  },
+  good: { 
+    message: 'You\'re feeling good', 
+    suggestion: 'Capture this moment in your journal',
+    tool: 'Journal Your Thoughts',
+    toolRoute: 'JournalEntry',
   },
   anxious: { 
-    emoji: '😰', 
     message: 'You\'re feeling anxious', 
-    suggestion: 'Try a breathing exercise to center yourself' 
+    suggestion: 'A breathing exercise can help you find calm',
+    tool: 'Try Breathing Exercise',
+    toolRoute: 'BreathingSelect',
   },
-  sad: { 
-    emoji: '😢', 
-    message: 'You\'re feeling sad', 
-    suggestion: 'Be gentle with yourself. A grounding exercise may help' 
+  low: { 
+    message: 'You\'re feeling low', 
+    suggestion: 'Be gentle with yourself. A grounding exercise may help',
+    tool: 'Try Grounding Exercise',
+    toolRoute: 'GroundingSelect',
   },
-  angry: { 
-    emoji: '😠', 
-    message: 'You\'re feeling angry', 
-    suggestion: 'A quick reset can help release some tension' 
-  },
-  tired: { 
-    emoji: '😴', 
-    message: 'You\'re feeling tired', 
-    suggestion: 'Rest is important. Maybe a gentle focus session?' 
+  tough: { 
+    message: 'You\'re having a tough time', 
+    suggestion: 'A quick reset can help release some tension',
+    tool: 'Quick Reset',
+    toolRoute: 'QuickReset',
   },
 };
 
+const MOOD_LABELS: Record<MoodType, string> = {
+  energized: 'Energized',
+  calm: 'Calm',
+  good: 'Good',
+  anxious: 'Anxious',
+  low: 'Low',
+  tough: 'Tough',
+};
+
 export function MoodResultScreen() {
-  const { reduceMotion } = useTheme();
+  const { reduceMotion, colors } = useTheme();
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'MoodResult'>>();
 
-  const mood = route.params?.mood || 'calm';
+  const mood = (route.params?.mood || 'calm') as MoodType;
+  const note = route.params?.note;
   const moodInfo = MOOD_DATA[mood] || MOOD_DATA.calm;
 
   return (
     <View style={styles.container}>
-      <AmbientBackground />
+      <AmbientBackground variant="calm" />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.scrollContent}>
+          {/* Mood Orb - Visual continuity */}
           <Animated.View 
-            entering={reduceMotion ? undefined : FadeIn.duration(600)}
-            style={styles.emojiContainer}
+            entering={reduceMotion ? undefined : ZoomIn.duration(500).springify()}
+            style={styles.moodOrbContainer}
           >
-            <Text style={styles.emoji}>{moodInfo.emoji}</Text>
+            <MoodOrb
+              mood={mood}
+              label={MOOD_LABELS[mood]}
+              size="lg"
+              selected
+            />
           </Animated.View>
 
-          <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(200).duration(400)}>
-            <GlassCard variant="elevated" padding="lg">
-              <Text variant="headlineMedium" color="ink" align="center">
+          {/* Success checkmark animation */}
+          <Animated.View
+            entering={reduceMotion ? undefined : FadeInUp.delay(200).duration(400)}
+            style={styles.checkContainer}
+          >
+            <View style={[styles.checkBadge, { backgroundColor: withAlpha(colors.accentPrimary, 0.15) }]}>
+              <Text variant="bodyMedium" style={{ color: colors.accentPrimary }}>
+                ✓ Check-in saved
+              </Text>
+            </View>
+          </Animated.View>
+
+          <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(300).duration(400)}>
+            <GlassCard variant="elevated" padding="lg" glow="calm">
+              <Text variant="headlineLarge" color="ink" align="center">
                 {moodInfo.message}
               </Text>
               <Text variant="bodyLarge" color="inkMuted" align="center" style={styles.suggestion}>
                 {moodInfo.suggestion}
               </Text>
+              {note && (
+                <View style={[styles.noteContainer, { backgroundColor: withAlpha(colors.canvasDeep, 0.5) }]}>
+                  <Text variant="bodySmall" color="inkFaint" style={styles.noteLabel}>
+                    Your note
+                  </Text>
+                  <Text variant="bodyMedium" color="inkMuted" numberOfLines={3}>
+                    "{note}"
+                  </Text>
+                </View>
+              )}
             </GlassCard>
           </Animated.View>
 
-          <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(300).duration(400)}>
+          <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(400).duration(400)}>
             <Button
-              variant="primary"
+              variant="glow"
               size="lg"
+              tone="primary"
               fullWidth
-              onPress={() => navigation.navigate('Main')}
+              onPress={() => navigation.navigate(moodInfo.toolRoute as any)}
               style={styles.primaryButton}
             >
-              Explore Tools
+              {moodInfo.tool}
             </Button>
 
             <Button
-              variant="secondary"
+              variant="ghost"
               size="md"
               fullWidth
               onPress={() => navigation.navigate('Main')}
@@ -114,17 +159,33 @@ const styles = StyleSheet.create({
   scrollContent: {
     flex: 1,
     paddingHorizontal: layout.screenPaddingHorizontal,
-    paddingTop: spacing[8],
   },
-  emojiContainer: {
+  moodOrbContainer: {
+    alignItems: 'center',
+    marginTop: spacing[8],
+    marginBottom: spacing[4],
+  },
+  checkContainer: {
     alignItems: 'center',
     marginBottom: spacing[6],
   },
-  emoji: {
-    fontSize: 80,
+  checkBadge: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    borderRadius: 20,
   },
   suggestion: {
     marginTop: spacing[3],
+  },
+  noteContainer: {
+    marginTop: spacing[4],
+    padding: spacing[4],
+    borderRadius: 12,
+  },
+  noteLabel: {
+    marginBottom: spacing[1],
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   primaryButton: {
     marginTop: spacing[6],

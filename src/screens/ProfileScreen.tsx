@@ -33,6 +33,7 @@ import {
   AmbientBackground,
   Skeleton,
   SkeletonCard,
+  TabSafeScrollView,
 } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { spacing, borderRadius, layout, withAlpha } from '../theme';
@@ -57,6 +58,13 @@ interface SettingItem {
 }
 
 const SETTINGS: SettingItem[] = [
+  {
+    id: 'account',
+    label: 'Account',
+    description: 'Profile, logout & data management',
+    icon: 'profile',
+    route: 'EditProfile',
+  },
   {
     id: 'mood-history',
     label: 'Mood History',
@@ -337,8 +345,9 @@ export function ProfileScreen() {
       <AmbientBackground variant="evening" intensity="subtle" />
 
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View
-          style={styles.scrollContent}
+        <TabSafeScrollView
+          style={styles.scrollView}
+          contentStyle={styles.scrollContent}
         >
           {/* Header */}
           <Animated.View
@@ -471,16 +480,14 @@ export function ProfileScreen() {
               Restorae v1.0.0
             </Text>
             <Text variant="bodySmall" color="inkFaint" style={styles.tagline}>
-              Your sanctuary for calm
-            </Text>
-          </Animated.View>
-        </View>
+            Your sanctuary for calm
+          </Text>
+        </Animated.View>
+        </TabSafeScrollView>
       </SafeAreaView>
     </View>
   );
-}
-
-// =============================================================================
+}// =============================================================================
 // STYLES
 // =============================================================================
 const styles = StyleSheet.create({
@@ -490,8 +497,10 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  scrollContent: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: layout.screenPaddingHorizontal,
   },
   header: {

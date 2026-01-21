@@ -2,8 +2,15 @@ import React from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View, Pressable } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  withSpring,
+  useSharedValue,
+  interpolateColor,
+} from 'react-native-reanimated';
 import { useHaptics } from '../hooks/useHaptics';
+import { withAlpha } from '../theme';
 
 import { useTheme } from '../contexts/ThemeContext';
 import { RootStackParamList, MainTabParamList } from '../types';
@@ -63,12 +70,93 @@ import JournalSearchScreen from '../screens/JournalSearchScreen';
 import AppLockScreen from '../screens/AppLockScreen';
 import AppLockSetupScreen from '../screens/AppLockSetupScreen';
 import { DataSettingsScreen } from '../screens/DataSettingsScreen';
+import { EditProfileScreen } from '../screens/EditProfileScreen';
 
 // Icons
 import { Icon } from '../components/Icon';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
+
+// =============================================================================
+// ANIMATED TAB BAR BUTTON
+// =============================================================================
+interface AnimatedTabButtonProps {
+  focused: boolean;
+  icon: React.ReactNode;
+  label: string;
+  onPress: () => void;
+  onLongPress: () => void;
+  colors: any;
+  accessibilityLabel: string;
+}
+
+function AnimatedTabButton({
+  focused,
+  icon,
+  label,
+  onPress,
+  onLongPress,
+  colors,
+  accessibilityLabel,
+}: AnimatedTabButtonProps) {
+  const scale = useSharedValue(1);
+  const { impactLight } = useHaptics();
+
+  const animatedContainerStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    backgroundColor: focused
+      ? withAlpha(colors.accentPrimary, 0.12)
+      : 'transparent',
+  }));
+
+  const animatedIconStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: focused ? 1.1 : 1 }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.9, { damping: 15, stiffness: 400 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 12, stiffness: 300 });
+  };
+
+  const handlePress = async () => {
+    await impactLight();
+    onPress();
+  };
+
+  return (
+    <Pressable
+      onPress={handlePress}
+      onLongPress={onLongPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      accessibilityRole="button"
+      accessibilityState={{ selected: focused }}
+      accessibilityLabel={accessibilityLabel}
+      style={styles.tabButton}
+    >
+      <Animated.View style={[styles.tabButtonInner, animatedContainerStyle]}>
+        <Animated.View style={animatedIconStyle}>
+          {icon}
+        </Animated.View>
+        <Animated.Text
+          style={[
+            styles.tabLabel,
+            {
+              color: focused ? colors.accentPrimary : colors.inkFaint,
+              fontWeight: focused ? '600' : '500',
+            },
+          ]}
+        >
+          {label}
+        </Animated.Text>
+      </Animated.View>
+    </Pressable>
+  );
+}
 
 function MainTabs() {
   const { colors } = useTheme();
@@ -98,14 +186,11 @@ function MainTabs() {
         tabBarActiveTintColor: colors.accentPrimary,
         tabBarInactiveTintColor: colors.inkFaint,
         tabBarLabelStyle: {
-          fontSize: 12,  // Minimum accessible size (was 11)
+          fontSize: 12,
           fontFamily: typography.fontFamily.sansMedium,
           marginTop: spacing[1],
           letterSpacing: 0.3,
         },
-      }}
-      screenListeners={{
-        tabPress: impactLight,
       }}
     >
       <Tab.Screen
@@ -114,10 +199,13 @@ function MainTabs() {
         options={{
           tabBarLabel: 'Home',
           tabBarAccessibilityLabel: 'Home tab - Your daily wellness hub',
-          tabBarIcon: ({ color }) => (
-            <Icon name="home" size={24} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.tabIconContainer, focused && { backgroundColor: withAlpha(color, 0.12) }]}>
+              <Icon name="home" size={24} color={color} />
+            </View>
           ),
         }}
+        listeners={{ tabPress: impactLight }}
       />
       <Tab.Screen
         name="ToolsTab"
@@ -125,10 +213,13 @@ function MainTabs() {
         options={{
           tabBarLabel: 'Tools',
           tabBarAccessibilityLabel: 'Tools tab - Breathing, grounding, and focus exercises',
-          tabBarIcon: ({ color }) => (
-            <Icon name="tools" size={24} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.tabIconContainer, focused && { backgroundColor: withAlpha(color, 0.12) }]}>
+              <Icon name="tools" size={24} color={color} />
+            </View>
           ),
         }}
+        listeners={{ tabPress: impactLight }}
       />
       <Tab.Screen
         name="JournalTab"
@@ -136,10 +227,13 @@ function MainTabs() {
         options={{
           tabBarLabel: 'Journal',
           tabBarAccessibilityLabel: 'Journal tab - Write and reflect',
-          tabBarIcon: ({ color }) => (
-            <Icon name="journal-tab" size={24} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.tabIconContainer, focused && { backgroundColor: withAlpha(color, 0.12) }]}>
+              <Icon name="journal-tab" size={24} color={color} />
+            </View>
           ),
         }}
+        listeners={{ tabPress: impactLight }}
       />
       <Tab.Screen
         name="ProfileTab"
@@ -147,10 +241,13 @@ function MainTabs() {
         options={{
           tabBarLabel: 'Profile',
           tabBarAccessibilityLabel: 'Profile tab - Settings and account',
-          tabBarIcon: ({ color }) => (
-            <Icon name="profile" size={24} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.tabIconContainer, focused && { backgroundColor: withAlpha(color, 0.12) }]}>
+              <Icon name="profile" size={24} color={color} />
+            </View>
           ),
         }}
+        listeners={{ tabPress: impactLight }}
       />
     </Tab.Navigator>
   );
@@ -202,25 +299,112 @@ export function RootNavigator() {
             presentation: 'fullScreenModal',
           }}
         />
-        <Stack.Screen name="QuickReset" component={QuickResetScreen} options={{ animation: 'fade' }} />
-        <Stack.Screen name="MoodCheckin" component={MoodCheckinScreen} options={{ animation: 'fade' }} />
-        <Stack.Screen name="MoodSelect" component={MoodSelectScreen} options={{ animation: 'fade' }} />
-        <Stack.Screen name="MoodResult" component={MoodResultScreen} options={{ animation: 'fade' }} />
-        <Stack.Screen name="ToolsMore" component={ToolsMoreScreen} options={{ animation: 'fade' }} />
-        <Stack.Screen name="JournalPrompts" component={JournalPromptsScreen} options={{ animation: 'fade' }} />
-        <Stack.Screen name="JournalEntries" component={JournalEntriesScreen} options={{ animation: 'fade' }} />
-        <Stack.Screen name="JournalEntry" component={JournalEntryScreen} options={{ animation: 'fade' }} />
-        <Stack.Screen name="Ritual" component={RitualScreen} options={{ animation: 'fade' }} />
-        <Stack.Screen name="Appearance" component={AppearanceScreen} options={{ animation: 'fade' }} />
-        <Stack.Screen name="Preferences" component={PreferencesScreen} options={{ animation: 'fade' }} />
-        <Stack.Screen name="SoundHaptics" component={SoundHapticsScreen} options={{ animation: 'fade' }} />
-        <Stack.Screen name="Reminders" component={RemindersScreen} options={{ animation: 'fade' }} />
-        <Stack.Screen name="Privacy" component={PrivacyScreen} options={{ animation: 'fade' }} />
-        <Stack.Screen name="Support" component={SupportScreen} options={{ animation: 'fade' }} />
-        <Stack.Screen name="Grounding" component={GroundingScreen} options={{ animation: 'fade' }} />
-        <Stack.Screen name="Reset" component={ResetScreen} options={{ animation: 'fade' }} />
-        <Stack.Screen name="Focus" component={FocusScreen} options={{ animation: 'fade' }} />
-        <Stack.Screen name="Sos" component={SosScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen 
+          name="QuickReset" 
+          component={QuickResetScreen} 
+          options={{ 
+            animation: 'slide_from_bottom',
+            presentation: 'fullScreenModal',
+          }} 
+        />
+        <Stack.Screen 
+          name="MoodCheckin" 
+          component={MoodCheckinScreen} 
+          options={{ animation: 'fade_from_bottom' }} 
+        />
+        <Stack.Screen 
+          name="MoodSelect" 
+          component={MoodSelectScreen} 
+          options={{ animation: 'fade_from_bottom' }} 
+        />
+        <Stack.Screen 
+          name="MoodResult" 
+          component={MoodResultScreen} 
+          options={{ animation: 'fade' }} 
+        />
+        <Stack.Screen 
+          name="ToolsMore" 
+          component={ToolsMoreScreen} 
+          options={{ animation: 'slide_from_right' }} 
+        />
+        <Stack.Screen 
+          name="JournalPrompts" 
+          component={JournalPromptsScreen} 
+          options={{ animation: 'slide_from_right' }} 
+        />
+        <Stack.Screen 
+          name="JournalEntries" 
+          component={JournalEntriesScreen} 
+          options={{ animation: 'slide_from_right' }} 
+        />
+        <Stack.Screen 
+          name="JournalEntry" 
+          component={JournalEntryScreen} 
+          options={{ 
+            animation: 'slide_from_bottom',
+            presentation: 'fullScreenModal',
+          }} 
+        />
+        <Stack.Screen 
+          name="Ritual" 
+          component={RitualScreen} 
+          options={{ animation: 'slide_from_right' }} 
+        />
+        <Stack.Screen 
+          name="Appearance" 
+          component={AppearanceScreen} 
+          options={{ animation: 'slide_from_right' }} 
+        />
+        <Stack.Screen 
+          name="Preferences" 
+          component={PreferencesScreen} 
+          options={{ animation: 'slide_from_right' }} 
+        />
+        <Stack.Screen 
+          name="SoundHaptics" 
+          component={SoundHapticsScreen} 
+          options={{ animation: 'slide_from_right' }} 
+        />
+        <Stack.Screen 
+          name="Reminders" 
+          component={RemindersScreen} 
+          options={{ animation: 'slide_from_right' }} 
+        />
+        <Stack.Screen 
+          name="Privacy" 
+          component={PrivacyScreen} 
+          options={{ animation: 'slide_from_right' }} 
+        />
+        <Stack.Screen 
+          name="Support" 
+          component={SupportScreen} 
+          options={{ animation: 'slide_from_right' }} 
+        />
+        <Stack.Screen 
+          name="EditProfile" 
+          component={EditProfileScreen} 
+          options={{ animation: 'slide_from_right' }} 
+        />
+        <Stack.Screen 
+          name="Grounding" 
+          component={GroundingScreen} 
+          options={{ animation: 'slide_from_right' }} 
+        />
+        <Stack.Screen 
+          name="Reset" 
+          component={ResetScreen} 
+          options={{ animation: 'slide_from_right' }} 
+        />
+        <Stack.Screen 
+          name="Focus" 
+          component={FocusScreen} 
+          options={{ animation: 'slide_from_right' }} 
+        />
+        <Stack.Screen 
+          name="Sos" 
+          component={SosScreen} 
+          options={{ animation: 'slide_from_right' }} 
+        />
         
         {/* New Selection Screens */}
         <Stack.Screen 
@@ -366,14 +550,44 @@ export function RootNavigator() {
         <Stack.Screen
           name="AppLockSetup"
           component={AppLockSetupScreen}
-          options={{ title: 'App Lock' }}
+          options={{ animation: 'slide_from_right' }}
         />
         <Stack.Screen
           name="DataSettings"
           component={DataSettingsScreen}
-          options={{ title: 'Data & Storage' }}
+          options={{ animation: 'slide_from_right' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
   );
 }
+
+// =============================================================================
+// STYLES
+// =============================================================================
+const styles = StyleSheet.create({
+  tabIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabButtonInner: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  tabLabel: {
+    fontSize: 11,
+    marginTop: 4,
+    fontFamily: typography.fontFamily.sansMedium,
+  },
+});

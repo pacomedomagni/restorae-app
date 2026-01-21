@@ -275,22 +275,36 @@ function EntryCard({ entry, index, onPress }: EntryCardProps) {
 export function JournalScreen() {
   const { colors, reduceMotion } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { impactMedium } = useHaptics();
+  const { impactMedium, impactLight } = useHaptics();
 
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Simulate data loading
-  useEffect(() => {
-    const loadEntries = async () => {
+  // Load entries function
+  const loadEntries = async (isRefresh = false) => {
+    if (isRefresh) {
+      setIsRefreshing(true);
+      await impactLight();
+    } else {
       setIsLoading(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 800));
-      setEntries(MOCK_ENTRIES);
-      setIsLoading(false);
-    };
+    }
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setEntries(MOCK_ENTRIES);
+    setIsLoading(false);
+    setIsRefreshing(false);
+  };
+
+  // Initial load
+  useEffect(() => {
     loadEntries();
   }, []);
+
+  // Pull to refresh handler
+  const handleRefresh = () => {
+    loadEntries(true);
+  };
 
   const handleNewEntry = async () => {
     await impactMedium();
@@ -317,8 +331,11 @@ export function JournalScreen() {
       <AmbientBackground variant="morning" intensity="subtle" />
 
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View
-          style={styles.scrollContent}
+        <TabSafeScrollView
+          style={styles.scrollView}
+          contentStyle={styles.scrollContent}
+          onRefresh={handleRefresh}
+          refreshing={isRefreshing}
         >
           {/* Header */}
           <Animated.View
@@ -470,7 +487,7 @@ export function JournalScreen() {
               )}
             </View>
           </View>
-        </View>
+        </TabSafeScrollView>
       </SafeAreaView>
     </View>
   );
@@ -486,8 +503,10 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  scrollContent: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: layout.screenPaddingHorizontal,
   },
   header: {
