@@ -236,7 +236,7 @@ function WelcomeStep() {
           Restorae
         </Text>
         <Text
-          variant="titleLarge"
+          variant="bodyLarge"
           color="inkMuted"
           align="center"
           style={styles.welcomeTagline}
@@ -330,7 +330,7 @@ function BreathingPreviewStep() {
         <FloatingOrb isBreathing />
         
         <Animated.View style={[styles.breathingPhase, textStyle]}>
-          <Text variant="titleMedium" color="accentPrimary" align="center">
+          <Text variant="headlineMedium" color="accent" align="center">
             {phaseText[breathPhase]}
           </Text>
         </Animated.View>
@@ -491,7 +491,7 @@ function ReadyStep({ name }: { name: string }) {
           {greeting}
         </Text>
         <Text
-          variant="titleMedium"
+          variant="bodyLarge"
           color="inkMuted"
           align="center"
           style={styles.readySubtitle}

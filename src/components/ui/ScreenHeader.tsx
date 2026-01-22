@@ -68,7 +68,7 @@ export function ScreenHeader({
                 },
               ]}
             >
-              <Icon name="home" size={20} color={colors.ink} />
+              <Icon name="back" size={20} color={colors.ink} />
             </Pressable>
           ) : (
             <View style={styles.backButton} />

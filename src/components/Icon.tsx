@@ -25,7 +25,15 @@ type IconName =
   | 'home'
   | 'tools'
   | 'journal-tab'
-  | 'profile';
+  | 'profile'
+  | 'back'
+  | 'settings'
+  | 'history'
+  | 'subscription'
+  | 'lock'
+  | 'data'
+  | 'privacy'
+  | 'support';
 
 export const Icon: React.FC<IconProps> = ({ name, size = 24, color }) => {
   const { colors } = useTheme();
@@ -157,6 +165,86 @@ export const Icon: React.FC<IconProps> = ({ name, size = 24, color }) => {
           fill="none"
         />
         <Line x1="6" y1="24" x2="26" y2="24" stroke={stroke} strokeWidth={strokeThin} strokeLinecap="round" />
+      </Svg>
+    ),
+
+    // Navigation / Utility Icons
+    back: (
+      <Svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+        <Path
+          d="M19 8L11 16L19 24"
+          stroke={stroke}
+          strokeWidth={strokeBold}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </Svg>
+    ),
+
+    settings: (
+      <Svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+        <Circle cx="16" cy="16" r="5" stroke={stroke} strokeWidth={strokeWide} />
+        <G stroke={stroke} strokeWidth={strokeThin} strokeLinecap="round">
+          <Line x1="16" y1="4" x2="16" y2="8" />
+          <Line x1="16" y1="24" x2="16" y2="28" />
+          <Line x1="4" y1="16" x2="8" y2="16" />
+          <Line x1="24" y1="16" x2="28" y2="16" />
+          <Line x1="7" y1="7" x2="9.5" y2="9.5" />
+          <Line x1="22.5" y1="22.5" x2="25" y2="25" />
+          <Line x1="7" y1="25" x2="9.5" y2="22.5" />
+          <Line x1="22.5" y1="9.5" x2="25" y2="7" />
+        </G>
+      </Svg>
+    ),
+
+    history: (
+      <Svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+        <Circle cx="16" cy="16" r="10" stroke={stroke} strokeWidth={strokeWide} />
+        <Path d="M16 10V16L20 19" stroke={stroke} strokeWidth={strokeWide} strokeLinecap="round" strokeLinejoin="round" />
+      </Svg>
+    ),
+
+    subscription: (
+      <Svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+        <Rect x="6" y="9" width="20" height="14" rx="2.5" stroke={stroke} strokeWidth={strokeWide} />
+        <Line x1="6" y1="13" x2="26" y2="13" stroke={stroke} strokeWidth={strokeThin} />
+        <Line x1="10" y1="19" x2="16" y2="19" stroke={stroke} strokeWidth={strokeThin} strokeLinecap="round" />
+      </Svg>
+    ),
+
+    lock: (
+      <Svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+        <Rect x="8" y="14" width="16" height="12" rx="2.5" stroke={stroke} strokeWidth={strokeWide} />
+        <Path d="M12 14V11C12 8.8 13.8 7 16 7C18.2 7 20 8.8 20 11V14" stroke={stroke} strokeWidth={strokeWide} strokeLinecap="round" />
+      </Svg>
+    ),
+
+    data: (
+      <Svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+        <Rect x="7" y="7" width="18" height="6" rx="3" stroke={stroke} strokeWidth={strokeWide} />
+        <Rect x="7" y="13" width="18" height="6" rx="3" stroke={stroke} strokeWidth={strokeWide} />
+        <Rect x="7" y="19" width="18" height="6" rx="3" stroke={stroke} strokeWidth={strokeWide} />
+      </Svg>
+    ),
+
+    privacy: (
+      <Svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+        <Path
+          d="M16 5L25 9V16C25 21 21 25 16 27C11 25 7 21 7 16V9L16 5Z"
+          stroke={stroke}
+          strokeWidth={strokeWide}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+      </Svg>
+    ),
+
+    support: (
+      <Svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+        <Circle cx="16" cy="16" r="10" stroke={stroke} strokeWidth={strokeWide} />
+        <Path d="M12.5 12.5C13 10.8 14.5 9.8 16 9.8C17.7 9.8 19.2 11 19.2 12.8C19.2 14.5 18.2 15.4 16.8 16.3" stroke={stroke} strokeWidth={strokeWide} strokeLinecap="round" />
+        <Circle cx="16" cy="22" r="1" fill={stroke} />
       </Svg>
     ),
 

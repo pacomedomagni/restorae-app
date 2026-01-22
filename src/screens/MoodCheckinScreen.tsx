@@ -8,7 +8,7 @@ import Animated, { FadeIn, FadeInDown, FadeInUp, ZoomIn } from 'react-native-rea
 import { useNavigation, useRoute, NavigationProp, RouteProp } from '@react-navigation/native';
 
 import { useTheme } from '../contexts/ThemeContext';
-import { Text, Button, GlassCard, AmbientBackground, ScreenHeader, MoodOrb } from '../components/ui';
+import { Text, Button, GlassCard, AmbientBackground, ScreenHeader, MoodOrb, TabSafeScrollView } from '../components/ui';
 import { spacing, layout } from '../theme';
 import { useHaptics } from '../hooks/useHaptics';
 import type { RootStackParamList, MoodType } from '../types';
@@ -41,7 +41,11 @@ export function MoodCheckinScreen() {
     <View style={styles.container}>
       <AmbientBackground />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.scrollContent}>
+        <TabSafeScrollView
+          style={styles.scrollView}
+          contentStyle={styles.scrollContent}
+          noTabBar
+        >
           {/* Selected Mood Display - Visual continuity from Home */}
           <Animated.View
             entering={reduceMotion ? undefined : ZoomIn.duration(400).springify()}
@@ -102,9 +106,7 @@ export function MoodCheckinScreen() {
               Skip note
             </Button>
           </Animated.View>
-
-          <View style={{ height: layout.tabBarHeight }} />
-        </View>
+        </TabSafeScrollView>
       </SafeAreaView>
     </View>
   );
@@ -115,6 +117,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   safeArea: {
+    flex: 1,
+  },
+  scrollView: {
     flex: 1,
   },
   scrollContent: {

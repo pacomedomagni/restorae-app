@@ -88,36 +88,93 @@ export function JournalEntryScreen() {
     }
   }, [mode, prompt]);
 
-  const handleEncryptionToggle = useCallback(async () => {
-    await impactLight();
-    if (!encrypted && biometricsAvailable) {
-      // Verify user wants to encrypt
-      Alert.alert(
-        'Encrypt Entry',
-        'This entry will be secured with biometric authentication. You\'ll need to authenticate to view it later.',
-        [
+  const getHeaderTitle = () => {
+    if (mode === 'prompt') return 'Reflect';
+    if (isEditing) return 'Edit Entry';
+    return 'New Entry';
+  };
+
+  const getHeaderSubtitle = () => {
+    if (mode === 'prompt') return 'Respond to the prompt';
+    if (isEditing) return 'Update your journal';
+    return 'Write freely';
+  };
+
+  const handleSave = useCallback(async () => {
+    if (!content.trim() || isSaving) return;
+
+    setIsSaving(true);
+    try {
+      if (isEditing && existingEntry?.id) {
+        await updateEntry(existingEntry.id, {
+          title: title.trim() || undefined,
+          content: content.trim(),
+          prompt: prompt ?? undefined,
+        });
+      } else {
+        await createEntry({
+          title: title.trim() || undefined,
+          content: content.trim(),
+          prompt: prompt ?? undefined,
+          isEncrypted: encrypted,
+          isLocked: encrypted,
+        });
+      }
+
       await notificationSuccess();
-      
-      // Clear draft on successful save
+
       if (mode === 'new') {
         await AsyncStorage.removeItem(DRAFT_KEY);
       }
 
       navigation.goBack();
-    } catch (error) {crypt', 
+    } catch (error) {
+      console.log('Failed to save entry', error);
+      Alert.alert('Save Failed', 'Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [
+    content,
+    isSaving,
+    isEditing,
+    existingEntry?.id,
+    title,
+    mode,
+    prompt,
+    createEntry,
+    updateEntry,
+    encrypted,
+    notificationSuccess,
+    navigation,
+  ]);
+
+  const handleEncryptionToggle = useCallback(async () => {
+    await impactLight();
+
+    if (!encrypted && biometricsAvailable) {
+      Alert.alert(
+        'Encrypt Entry',
+        'This entry will be secured with biometric authentication. You\'ll need to authenticate to view it later.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Encrypt',
             onPress: async () => {
               const success = await authenticate();
               if (success) {
                 setEncrypted(true);
+                await notificationSuccess();
               }
-            }
+            },
           },
         ]
       );
-    } else {
-      setEncrypted(!encrypted);
+      return;
     }
-  }, [encrypted, biometricsAvailable, authenticate, impactLight]);
+
+    setEncrypted(!encrypted);
+  }, [encrypted, biometricsAvailable, authenticate, impactLight, notificationSuccess]);
   return (
     <View style={styles.container}>
       <AmbientBackground />
@@ -235,55 +292,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    // Removed flex: 1 to allow ScrollView to grow with content
     paddingHorizontal: layout.screenPaddingHorizontal,
     paddingBottom: spacing[8],
-  },                thumbColor="#FFFFFF"
-                  />
-                </View>
-              )}
-            </GlassCard>
-          </Animated.View>
-
-          <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(300).duration(400)}>
-            <Button
-              variant="primary"
-              size="lg"
-              fullWidth
-              disabled={!content.trim() || isSaving}
-              onPress={handleSave}
-              style={styles.saveButton}
-            >
-              {isSaving ? 'Saving...' : (isEditing ? 'Update Entry' : 'Save Entry')}
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="md"
-              fullWidth
-              onPress={() => navigation.goBack()}
-            >
-              Cancel
-            </Button>
-          </Animated.View>
-
-          <View style={{ height: layout.tabBarHeight }} />
-        </View>
-      </SafeAreaView>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  safeArea: {
-    flex: 1,
-  },
-  scrollContent: {
-    flex: 1,
-    paddingHorizontal: layout.screenPaddingHorizontal,
   },
   promptCard: {
     marginBottom: spacing[4],

@@ -53,7 +53,7 @@ interface SettingItem {
   id: string;
   label: string;
   description: string;
-  icon: 'home' | 'journal-tab' | 'profile';
+  icon: 'profile' | 'history' | 'subscription' | 'settings' | 'lock' | 'data' | 'privacy' | 'support';
   route: keyof RootStackParamList;
 }
 
@@ -69,49 +69,49 @@ const SETTINGS: SettingItem[] = [
     id: 'mood-history',
     label: 'Mood History',
     description: 'View your emotional trends',
-    icon: 'home',
+    icon: 'history',
     route: 'MoodHistory',
   },
   {
     id: 'subscription',
     label: 'Subscription',
     description: 'Manage your premium plan',
-    icon: 'home',
+    icon: 'subscription',
     route: 'Subscription',
   },
   {
     id: 'preferences',
     label: 'Preferences',
     description: 'Appearance, sounds & reminders',
-    icon: 'home',
+    icon: 'settings',
     route: 'Preferences',
   },
   {
     id: 'app-lock',
     label: 'App Lock',
     description: 'PIN & biometric security',
-    icon: 'journal-tab',
+    icon: 'lock',
     route: 'AppLockSetup',
   },
   {
     id: 'data',
     label: 'Data & Storage',
     description: 'Export & delete your data',
-    icon: 'journal-tab',
+    icon: 'data',
     route: 'DataSettings',
   },
   {
     id: 'privacy',
     label: 'Privacy',
     description: 'Privacy policy',
-    icon: 'journal-tab',
+    icon: 'privacy',
     route: 'Privacy',
   },
   {
     id: 'support',
     label: 'Support',
     description: 'Help, feedback & about',
-    icon: 'profile',
+    icon: 'support',
     route: 'Support',
   },
 ];
@@ -277,6 +277,9 @@ function SettingRow({ setting, index, onPress }: SettingRowProps) {
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={handlePress}
+        accessibilityRole="button"
+        accessibilityLabel={`${setting.label}. ${setting.description}`}
+        accessibilityHint="Opens the selected settings screen"
       >
         <Animated.View style={animatedStyle}>
           <GlassCard variant="subtle" padding="md">

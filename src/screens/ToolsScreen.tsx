@@ -168,6 +168,9 @@ function CategoryPill({ category, isActive, onPress }: CategoryPillProps) {
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       onPress={handlePress}
+      accessibilityRole="button"
+      accessibilityLabel={`Filter tools by ${category.label}`}
+      accessibilityState={{ selected: isActive }}
     >
       <Animated.View
         style={[
@@ -249,6 +252,9 @@ function ToolCard({ tool, index, onPress, compact = false }: ToolCardProps) {
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={handlePress}
+        accessibilityRole="button"
+        accessibilityLabel={`${tool.name}. ${tool.description}. ${tool.duration}`}
+        accessibilityHint="Opens the tool details"
       >
         <Animated.View style={animatedStyle}>
           <GlassCard
@@ -324,6 +330,9 @@ function FeaturedToolCard({ tool, onPress }: FeaturedToolCardProps) {
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={handlePress}
+        accessibilityRole="button"
+        accessibilityLabel={`${tool.name}. ${tool.description}. ${tool.duration}`}
+        accessibilityHint="Starts the featured tool"
       >
         <Animated.View style={animatedStyle}>
           <GlassCard variant="hero" padding="xl" glow="primary">
@@ -477,6 +486,9 @@ function QuickStartCard({ item, onPress }: QuickStartCardProps) {
       onPressOut={handlePressOut}
       onPress={handlePress}
       style={styles.quickStartCard}
+      accessibilityRole="button"
+      accessibilityLabel={`${item.label}. ${item.sublabel}`}
+      accessibilityHint="Starts a quick tool session"
     >
       <Animated.View style={animatedStyle}>
         <GlassCard variant="subtle" padding="sm">
