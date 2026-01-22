@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useKeepAwake } from 'expo-keep-awake';
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -166,6 +167,7 @@ function TimerCircle({ progress, timeRemaining, isPaused }: TimerCircleProps) {
 // MAIN SCREEN
 // =============================================================================
 export function FocusSessionScreen() {
+  useKeepAwake();
   const { colors, reduceMotion } = useTheme();
   const { impactLight, impactMedium, notificationSuccess } = useHaptics();
   const { playSound, pauseSound, stopSound, isPlaying: audioIsPlaying } = useAudio();

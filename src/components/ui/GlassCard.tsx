@@ -206,8 +206,8 @@ export function GlassCard({
             StyleSheet.absoluteFill,
             {
               backgroundColor: isDark 
-                ? 'rgba(30, 25, 21, 0.92)'
-                : 'rgba(255, 255, 255, 0.92)',
+                ? 'rgba(30, 25, 21, 0.96)'
+                : 'rgba(255, 255, 255, 0.96)',
             },
           ]}
         />

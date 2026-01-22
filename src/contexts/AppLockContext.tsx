@@ -43,7 +43,7 @@ const DEFAULT_STATE: AppLockState = {
   isEnabled: false,
   lockMethod: 'none',
   lockOnBackground: true,
-  lockTimeout: 0,
+  lockTimeout: 15, // Default 15s grace period
   isLocked: false,
   pin: null,
 };

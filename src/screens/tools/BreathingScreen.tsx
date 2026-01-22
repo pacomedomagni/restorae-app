@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useKeepAwake } from 'expo-keep-awake';
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -48,9 +49,10 @@ const phaseLabels: Record<Phase, string> = {
 };
 
 // =============================================================================
-// BREATHING SCREEN
+// COMPONENT
 // =============================================================================
 export function BreathingScreen() {
+  useKeepAwake();
   const { colors, reduceMotion } = useTheme();
   const { impactLight, impactMedium, notificationSuccess } = useHaptics();
   const navigation = useNavigation();

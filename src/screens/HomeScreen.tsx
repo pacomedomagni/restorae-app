@@ -150,6 +150,9 @@ function QuickActionCard({ action, index, onPress }: QuickActionCardProps) {
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={handlePress}
+        accessibilityRole="button"
+        accessibilityLabel={`${action.label}, ${action.sublabel}, ${action.duration}`}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
         <Animated.View style={animatedStyle}>
           <GlassCard variant="elevated" padding="md" glow={action.tone}>

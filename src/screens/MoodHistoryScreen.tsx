@@ -64,8 +64,8 @@ function TrendIndicator({ trend }: { trend: string }) {
 
   return (
     <View style={[styles.trendBadge, { backgroundColor: withAlpha(config.color, 0.15) }]}>
-      <Text style={styles.trendIcon}>{config.icon}</Text>
-      <Text variant="labelSmall" style={{ color: config.color }}>
+      <Text style={[styles.trendIcon, { color: config.color }]}>{config.icon}</Text>
+      <Text variant="labelSmall" color="ink">
         {config.label}
       </Text>
     </View>
