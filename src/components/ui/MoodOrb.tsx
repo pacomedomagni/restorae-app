@@ -7,10 +7,11 @@
  * - Ripple animation on selection
  * - Subtle idle breathing animation
  * - Haptic feedback
+ * - Icon patterns for colorblind accessibility
  */
 import React, { useEffect } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
-import Svg, { Defs, RadialGradient, Stop, Circle as SvgCircle } from 'react-native-svg';
+import Svg, { Defs, RadialGradient, Stop, Circle as SvgCircle, Path } from 'react-native-svg';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -32,6 +33,16 @@ const AnimatedView = Animated.View;
 
 export type MoodType = 'energized' | 'calm' | 'good' | 'anxious' | 'low' | 'tough';
 
+// Mood icons/patterns for colorblind accessibility
+const MOOD_ICONS: Record<MoodType, string> = {
+  energized: '⚡',
+  calm: '🌊',
+  good: '☀️',
+  anxious: '💨',
+  low: '🌧️',
+  tough: '🔥',
+};
+
 interface MoodOrbProps {
   mood: MoodType;
   label: string;
@@ -40,6 +51,8 @@ interface MoodOrbProps {
   selected?: boolean;
   onPress?: () => void;
   delay?: number;
+  /** Show icon overlay for accessibility */
+  showIcon?: boolean;
 }
 
 // Helper to generate secondary and glow colors from primary
@@ -70,6 +83,7 @@ export function MoodOrb({
   selected = false,
   onPress,
   delay = 0,
+  showIcon = true,
 }: MoodOrbProps) {
   const { colors, isDark, reduceMotion } = useTheme();
   const { impactMedium } = useHaptics();
@@ -276,6 +290,15 @@ export function MoodOrb({
               fill={withAlpha('#FFFFFF', 0.4)}
             />
           </Svg>
+          
+          {/* Mood icon for accessibility */}
+          {showIcon && (
+            <View style={styles.iconOverlay}>
+              <Text style={[styles.moodIcon, { fontSize: orbSize * 0.35 }]}>
+                {MOOD_ICONS[mood]}
+              </Text>
+            </View>
+          )}
         </AnimatedView>
       </AnimatedPressable>
 
@@ -331,6 +354,14 @@ const styles = StyleSheet.create({
   orb: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  iconOverlay: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  moodIcon: {
+    textAlign: 'center',
   },
   labelContainer: {
     marginTop: spacing[3],

@@ -1,12 +1,15 @@
 /**
  * JournalContext
  * 
- * Manages journal entries with optional encryption using expo-secure-store
- * Supports biometric lock for sensitive entries
+ * Manages journal entries with optional encryption using expo-secure-store.
+ * Features offline-first architecture with automatic sync to backend.
  */
-import React, { createContext, useContext, useEffect, useMemo, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback, ReactNode, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
+import NetInfo from '@react-native-community/netinfo';
+import api from '../services/api';
+import { syncQueue, SyncOperation } from '../services/syncQueue';
 import { MoodType } from '../types';
 
 // =============================================================================
@@ -14,6 +17,7 @@ import { MoodType } from '../types';
 // =============================================================================
 export interface JournalEntry {
   id: string;
+  serverId?: string;
   title?: string;
   content: string;
   prompt?: string;
@@ -21,15 +25,18 @@ export interface JournalEntry {
   createdAt: string;
   updatedAt: string;
   isEncrypted: boolean;
-  isLocked: boolean; // Requires biometric to view
+  isLocked: boolean;
   tags?: string[];
+  isSynced?: boolean;
 }
 
 interface JournalState {
   entries: JournalEntry[];
   isLoading: boolean;
+  isSyncing: boolean;
   encryptionEnabled: boolean;
   biometricLockEnabled: boolean;
+  lastSyncedAt: string | null;
 }
 
 interface JournalContextType extends JournalState {
@@ -45,6 +52,7 @@ interface JournalContextType extends JournalState {
   getEntriesByMood: (mood: MoodType) => JournalEntry[];
   getRecentEntries: (limit?: number) => JournalEntry[];
   exportEntries: () => Promise<string>;
+  syncWithServer: () => Promise<void>;
 }
 
 // =============================================================================
@@ -52,17 +60,13 @@ interface JournalContextType extends JournalState {
 // =============================================================================
 const STORAGE_KEY = '@restorae/journal';
 const SETTINGS_KEY = '@restorae/journal_settings';
+const LAST_SYNC_KEY = '@restorae/journal_last_sync';
 const ENCRYPTION_KEY_PREFIX = '@restorae/journal_enc_';
 
 // =============================================================================
-// ENCRYPTION HELPERS (Simplified - in production use @noble/ciphers)
+// ENCRYPTION HELPERS
 // =============================================================================
-// Note: For true security, integrate @noble/ciphers or similar
-// This is a placeholder that demonstrates the architecture
-
 async function encryptContent(content: string, entryId: string): Promise<string> {
-  // In production: Use @noble/ciphers with a user-derived key
-  // For now, store in SecureStore which provides hardware-backed encryption
   try {
     await SecureStore.setItemAsync(`${ENCRYPTION_KEY_PREFIX}${entryId}`, content);
     return `[ENCRYPTED:${entryId}]`;
@@ -73,11 +77,7 @@ async function encryptContent(content: string, entryId: string): Promise<string>
 }
 
 async function decryptContent(encryptedMarker: string, entryId: string): Promise<string> {
-  // Check if this is an encrypted marker
-  if (!encryptedMarker.startsWith('[ENCRYPTED:')) {
-    return encryptedMarker;
-  }
-  
+  if (!encryptedMarker.startsWith('[ENCRYPTED:')) return encryptedMarker;
   try {
     const content = await SecureStore.getItemAsync(`${ENCRYPTION_KEY_PREFIX}${entryId}`);
     return content || '';
@@ -107,31 +107,85 @@ export function JournalProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<JournalState>({
     entries: [],
     isLoading: true,
+    isSyncing: false,
     encryptionEnabled: false,
     biometricLockEnabled: false,
+    lastSyncedAt: null,
   });
+  const syncInProgress = useRef(false);
 
-  // Load journal data
+  useEffect(() => { loadJournalData(); }, []);
+
+  // Set up sync queue processor
   useEffect(() => {
-    loadJournalData();
+    const processJournalOps = async (op: SyncOperation): Promise<{ success: boolean; serverId?: string }> => {
+      if (op.entity !== 'journal') return { success: true };
+      try {
+        switch (op.type) {
+          case 'create':
+            const res = await api.createJournalEntry({
+              content: op.data.content,
+              promptId: op.data.promptId,
+              mood: op.data.mood?.toUpperCase(),
+              tags: op.data.tags,
+              isPrivate: op.data.isPrivate,
+            });
+            setState(prev => ({
+              ...prev,
+              entries: prev.entries.map(e => e.id === op.data.localId ? { ...e, serverId: res.id, isSynced: true } : e),
+            }));
+            return { success: true, serverId: res.id };
+          case 'update':
+            if (op.data.serverId) {
+              await api.updateJournalEntry(op.data.serverId, {
+                content: op.data.content,
+                mood: op.data.mood?.toUpperCase(),
+                tags: op.data.tags,
+                isPrivate: op.data.isPrivate,
+              });
+            }
+            return { success: true };
+          case 'delete':
+            if (op.data.serverId) await api.deleteJournalEntry(op.data.serverId);
+            return { success: true };
+          default: return { success: true };
+        }
+      } catch (error: any) {
+        if (error.response?.status === 404) return { success: true };
+        return { success: false };
+      }
+    };
+    syncQueue.processQueue(processJournalOps);
+  }, []);
+
+  // Listen for network changes
+  useEffect(() => {
+    const unsub = NetInfo.addEventListener((netState) => {
+      if (netState.isConnected && netState.isInternetReachable && !syncInProgress.current) {
+        syncWithServer();
+      }
+    });
+    return () => unsub();
   }, []);
 
   const loadJournalData = async () => {
     try {
-      const [entriesData, settingsData] = await Promise.all([
+      const [entriesData, settingsData, lastSync] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEY),
         AsyncStorage.getItem(SETTINGS_KEY),
+        AsyncStorage.getItem(LAST_SYNC_KEY),
       ]);
-
       const entries = entriesData ? JSON.parse(entriesData) : [];
       const settings = settingsData ? JSON.parse(settingsData) : {};
-
       setState({
         entries,
         isLoading: false,
+        isSyncing: false,
         encryptionEnabled: settings.encryptionEnabled || false,
         biometricLockEnabled: settings.biometricLockEnabled || false,
+        lastSyncedAt: lastSync,
       });
+      syncWithServer();
     } catch (error) {
       console.error('Failed to load journal data:', error);
       setState(prev => ({ ...prev, isLoading: false }));
@@ -139,147 +193,180 @@ export function JournalProvider({ children }: { children: ReactNode }) {
   };
 
   const saveEntries = async (entries: JournalEntry[]) => {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-    } catch (error) {
-      console.error('Failed to save entries:', error);
-    }
+    try { await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); }
+    catch (error) { console.error('Failed to save entries:', error); }
   };
 
   const saveSettings = async (settings: { encryptionEnabled: boolean; biometricLockEnabled: boolean }) => {
-    try {
-      await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-    } catch (error) {
-      console.error('Failed to save settings:', error);
-    }
+    try { await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
+    catch (error) { console.error('Failed to save settings:', error); }
   };
 
-  // Generate unique ID
+  const syncWithServer = useCallback(async () => {
+    if (syncInProgress.current || state.isSyncing) return;
+    const netInfo = await NetInfo.fetch();
+    if (!netInfo.isConnected || !netInfo.isInternetReachable) return;
+    syncInProgress.current = true;
+    setState(prev => ({ ...prev, isSyncing: true }));
+    try {
+      const response = await api.getJournalEntries({ limit: 500 });
+      const serverEntries = response.entries || [];
+      const localData = await AsyncStorage.getItem(STORAGE_KEY);
+      const localEntries: JournalEntry[] = localData ? JSON.parse(localData) : [];
+      const localByServerId = new Map(localEntries.filter(e => e.serverId).map(e => [e.serverId, e]));
+      const mergedEntries: JournalEntry[] = [];
+      serverEntries.forEach((se: any) => {
+        const le = localByServerId.get(se.id);
+        mergedEntries.push({
+          id: le?.id || `entry_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          serverId: se.id,
+          title: se.title,
+          content: se.content,
+          prompt: se.promptId,
+          mood: se.mood?.toLowerCase() as MoodType,
+          createdAt: se.createdAt,
+          updatedAt: se.updatedAt || se.createdAt,
+          isEncrypted: le?.isEncrypted || false,
+          isLocked: le?.isLocked || false,
+          tags: se.tags || [],
+          isSynced: true,
+        });
+      });
+      localEntries.forEach(le => { if (!le.serverId && !le.isSynced) mergedEntries.push(le); });
+      mergedEntries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setState(prev => ({ ...prev, entries: mergedEntries, isSyncing: false, lastSyncedAt: new Date().toISOString() }));
+      await saveEntries(mergedEntries);
+      await AsyncStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
+    } catch (error) {
+      console.error('Failed to sync journal data:', error);
+      setState(prev => ({ ...prev, isSyncing: false }));
+    } finally {
+      syncInProgress.current = false;
+    }
+  }, [state.isSyncing]);
+
   const generateId = () => `entry_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-  // Create new entry
-  const createEntry = useCallback(async (
-    entry: Omit<JournalEntry, 'id' | 'createdAt' | 'updatedAt'>
-  ): Promise<JournalEntry> => {
+  const createEntry = useCallback(async (entry: Omit<JournalEntry, 'id' | 'createdAt' | 'updatedAt'>): Promise<JournalEntry> => {
     const id = generateId();
     const now = new Date().toISOString();
-    
     let content = entry.content;
     let isEncrypted = entry.isEncrypted;
-
-    // Encrypt if encryption is enabled or specifically requested
     if (state.encryptionEnabled || entry.isEncrypted) {
       content = await encryptContent(entry.content, id);
       isEncrypted = true;
     }
-
-    const newEntry: JournalEntry = {
-      ...entry,
-      id,
-      content,
-      isEncrypted,
-      createdAt: now,
-      updatedAt: now,
-    };
-
+    const newEntry: JournalEntry = { ...entry, id, content, isEncrypted, createdAt: now, updatedAt: now, isSynced: false };
     const updatedEntries = [newEntry, ...state.entries];
     setState(prev => ({ ...prev, entries: updatedEntries }));
     await saveEntries(updatedEntries);
-
+    
+    // Sync with server
+    const netInfo = await NetInfo.fetch();
+    if (netInfo.isConnected && netInfo.isInternetReachable) {
+      try {
+        const originalContent = isEncrypted ? entry.content : content;
+        const res = await api.createJournalEntry({
+          content: originalContent,
+          promptId: entry.prompt,
+          mood: entry.mood?.toUpperCase(),
+          tags: entry.tags,
+          isPrivate: entry.isLocked,
+        });
+        const syncedEntry = { ...newEntry, serverId: res.id, isSynced: true };
+        const finalEntries = updatedEntries.map(e => e.id === id ? syncedEntry : e);
+        setState(prev => ({ ...prev, entries: finalEntries }));
+        await saveEntries(finalEntries);
+        return syncedEntry;
+      } catch (error) {
+        console.error('Failed to sync journal entry:', error);
+        await syncQueue.addToQueue({ type: 'create', entity: 'journal', data: { localId: id, content: entry.content, promptId: entry.prompt, mood: entry.mood, tags: entry.tags, isPrivate: entry.isLocked } });
+      }
+    } else {
+      await syncQueue.addToQueue({ type: 'create', entity: 'journal', data: { localId: id, content: entry.content, promptId: entry.prompt, mood: entry.mood, tags: entry.tags, isPrivate: entry.isLocked } });
+    }
     return newEntry;
   }, [state.entries, state.encryptionEnabled]);
 
-  // Update entry
   const updateEntry = useCallback(async (id: string, updates: Partial<JournalEntry>) => {
     const entryIndex = state.entries.findIndex(e => e.id === id);
     if (entryIndex === -1) return;
-
     const existingEntry = state.entries[entryIndex];
     let content = updates.content;
     let isEncrypted = updates.isEncrypted ?? existingEntry.isEncrypted;
-
-    // Handle content encryption
-    if (content !== undefined) {
-      if (state.encryptionEnabled || isEncrypted) {
-        content = await encryptContent(content, id);
-        isEncrypted = true;
-      }
+    if (content !== undefined && (state.encryptionEnabled || isEncrypted)) {
+      content = await encryptContent(content, id);
+      isEncrypted = true;
     }
-
-    const updatedEntry: JournalEntry = {
-      ...existingEntry,
-      ...updates,
-      content: content ?? existingEntry.content,
-      isEncrypted,
-      updatedAt: new Date().toISOString(),
-    };
-
+    const updatedEntry: JournalEntry = { ...existingEntry, ...updates, content: content ?? existingEntry.content, isEncrypted, updatedAt: new Date().toISOString(), isSynced: false };
     const updatedEntries = [...state.entries];
     updatedEntries[entryIndex] = updatedEntry;
-    
     setState(prev => ({ ...prev, entries: updatedEntries }));
     await saveEntries(updatedEntries);
+    
+    if (existingEntry.serverId) {
+      const netInfo = await NetInfo.fetch();
+      if (netInfo.isConnected && netInfo.isInternetReachable) {
+        try {
+          await api.updateJournalEntry(existingEntry.serverId, {
+            content: updates.content,
+            mood: updates.mood?.toUpperCase(),
+            tags: updates.tags,
+            isPrivate: updates.isLocked,
+          });
+          updatedEntries[entryIndex] = { ...updatedEntry, isSynced: true };
+          setState(prev => ({ ...prev, entries: [...updatedEntries] }));
+          await saveEntries(updatedEntries);
+        } catch (error) {
+          await syncQueue.addToQueue({ type: 'update', entity: 'journal', data: { serverId: existingEntry.serverId, ...updates } });
+        }
+      } else {
+        await syncQueue.addToQueue({ type: 'update', entity: 'journal', data: { serverId: existingEntry.serverId, ...updates } });
+      }
+    }
   }, [state.entries, state.encryptionEnabled]);
 
-  // Delete entry
   const deleteEntry = useCallback(async (id: string) => {
     const entry = state.entries.find(e => e.id === id);
-    if (entry?.isEncrypted) {
-      await deleteEncryptedContent(id);
-    }
-
+    if (!entry) return;
+    if (entry.isEncrypted) await deleteEncryptedContent(id);
     const updatedEntries = state.entries.filter(e => e.id !== id);
     setState(prev => ({ ...prev, entries: updatedEntries }));
     await saveEntries(updatedEntries);
+    
+    if (entry.serverId) {
+      const netInfo = await NetInfo.fetch();
+      if (netInfo.isConnected && netInfo.isInternetReachable) {
+        try { await api.deleteJournalEntry(entry.serverId); }
+        catch (error) { await syncQueue.addToQueue({ type: 'delete', entity: 'journal', data: { serverId: entry.serverId } }); }
+      } else {
+        await syncQueue.addToQueue({ type: 'delete', entity: 'journal', data: { serverId: entry.serverId } });
+      }
+    }
   }, [state.entries]);
 
-  // Clear all entries
   const clearAllEntries = useCallback(async () => {
-    // Delete encrypted content for all encrypted entries
     for (const entry of state.entries) {
-      if (entry.isEncrypted) {
-        await deleteEncryptedContent(entry.id);
-      }
+      if (entry.isEncrypted) await deleteEncryptedContent(entry.id);
     }
     setState(prev => ({ ...prev, entries: [] }));
     await AsyncStorage.removeItem(STORAGE_KEY);
   }, [state.entries]);
 
-  // Get single entry
-  const getEntry = useCallback((id: string): JournalEntry | undefined => {
-    return state.entries.find(e => e.id === id);
-  }, [state.entries]);
-
-  // Get decrypted content
+  const getEntry = useCallback((id: string): JournalEntry | undefined => state.entries.find(e => e.id === id), [state.entries]);
   const getDecryptedContent = useCallback(async (id: string): Promise<string> => {
     const entry = state.entries.find(e => e.id === id);
     if (!entry) return '';
-
-    if (entry.isEncrypted) {
-      return decryptContent(entry.content, id);
-    }
-    return entry.content;
+    return entry.isEncrypted ? decryptContent(entry.content, id) : entry.content;
   }, [state.entries]);
-
-  // Toggle encryption
   const setEncryptionEnabled = useCallback(async (enabled: boolean) => {
     setState(prev => ({ ...prev, encryptionEnabled: enabled }));
-    await saveSettings({ 
-      encryptionEnabled: enabled, 
-      biometricLockEnabled: state.biometricLockEnabled 
-    });
+    await saveSettings({ encryptionEnabled: enabled, biometricLockEnabled: state.biometricLockEnabled });
   }, [state.biometricLockEnabled]);
-
-  // Toggle biometric lock
   const setBiometricLockEnabled = useCallback(async (enabled: boolean) => {
     setState(prev => ({ ...prev, biometricLockEnabled: enabled }));
-    await saveSettings({ 
-      encryptionEnabled: state.encryptionEnabled, 
-      biometricLockEnabled: enabled 
-    });
+    await saveSettings({ encryptionEnabled: state.encryptionEnabled, biometricLockEnabled: enabled });
   }, [state.encryptionEnabled]);
-
-  // Search entries
   const searchEntries = useCallback((query: string): JournalEntry[] => {
     const lowerQuery = query.toLowerCase();
     return state.entries.filter(entry => 
@@ -289,26 +376,13 @@ export function JournalProvider({ children }: { children: ReactNode }) {
       entry.tags?.some(tag => tag.toLowerCase().includes(lowerQuery))
     );
   }, [state.entries]);
-
-  // Get entries by mood
-  const getEntriesByMood = useCallback((mood: MoodType): JournalEntry[] => {
-    return state.entries.filter(entry => entry.mood === mood);
-  }, [state.entries]);
-
-  // Get recent entries
-  const getRecentEntries = useCallback((limit = 10): JournalEntry[] => {
-    return state.entries.slice(0, limit);
-  }, [state.entries]);
-
-  // Export entries (for backup)
+  const getEntriesByMood = useCallback((mood: MoodType): JournalEntry[] => state.entries.filter(entry => entry.mood === mood), [state.entries]);
+  const getRecentEntries = useCallback((limit = 10): JournalEntry[] => state.entries.slice(0, limit), [state.entries]);
   const exportEntries = useCallback(async (): Promise<string> => {
-    // Decrypt all entries for export
     const exportData = await Promise.all(
       state.entries.map(async (entry) => ({
         ...entry,
-        content: entry.isEncrypted 
-          ? await decryptContent(entry.content, entry.id) 
-          : entry.content,
+        content: entry.isEncrypted ? await decryptContent(entry.content, entry.id) : entry.content,
         isEncrypted: false,
       }))
     );
@@ -317,38 +391,15 @@ export function JournalProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<JournalContextType>(() => ({
     ...state,
-    createEntry,
-    updateEntry,
-    deleteEntry,
-    clearAllEntries,
-    getEntry,
-    getDecryptedContent,
-    setEncryptionEnabled,
-    setBiometricLockEnabled,
-    searchEntries,
-    getEntriesByMood,
-    getRecentEntries,
-    exportEntries,
-  }), [
-    state, createEntry, updateEntry, deleteEntry, clearAllEntries, getEntry,
-    getDecryptedContent, setEncryptionEnabled, setBiometricLockEnabled,
-    searchEntries, getEntriesByMood, getRecentEntries, exportEntries
-  ]);
+    createEntry, updateEntry, deleteEntry, clearAllEntries, getEntry, getDecryptedContent,
+    setEncryptionEnabled, setBiometricLockEnabled, searchEntries, getEntriesByMood, getRecentEntries, exportEntries, syncWithServer,
+  }), [state, createEntry, updateEntry, deleteEntry, clearAllEntries, getEntry, getDecryptedContent, setEncryptionEnabled, setBiometricLockEnabled, searchEntries, getEntriesByMood, getRecentEntries, exportEntries, syncWithServer]);
 
-  return (
-    <JournalContext.Provider value={value}>
-      {children}
-    </JournalContext.Provider>
-  );
+  return <JournalContext.Provider value={value}>{children}</JournalContext.Provider>;
 }
 
-// =============================================================================
-// HOOK
-// =============================================================================
 export function useJournal() {
   const context = useContext(JournalContext);
-  if (!context) {
-    throw new Error('useJournal must be used within a JournalProvider');
-  }
+  if (!context) throw new Error('useJournal must be used within a JournalProvider');
   return context;
 }

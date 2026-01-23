@@ -2,12 +2,16 @@
  * FocusSessionScreen
  * 
  * Timer-based focus session with ambient sound and optional music
+ * 
+ * UX Improvements:
+ * - Exit confirmation when session is in progress
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   StyleSheet,
   Pressable,
+  BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -31,6 +35,7 @@ import {
   GlassCard,
   AmbientBackground,
   PremiumButton,
+  ExitConfirmationModal,
 } from '../../components/ui';
 import { spacing, layout, withAlpha, borderRadius } from '../../theme';
 import { RootStackParamList } from '../../types';
@@ -181,10 +186,25 @@ export function FocusSessionScreen() {
   const [isPaused, setIsPaused] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(session.duration * 60);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const totalTime = session.duration * 60;
   const progress = 1 - (timeRemaining / totalTime);
+  const isSessionActive = phase === 'focusing';
+
+  // Handle hardware back button on Android
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (isSessionActive) {
+        setShowExitConfirm(true);
+        return true;
+      }
+      return false;
+    });
+
+    return () => backHandler.remove();
+  }, [isSessionActive]);
 
   // Cleanup on unmount - stop audio
   useEffect(() => {
@@ -245,6 +265,23 @@ export function FocusSessionScreen() {
     navigation.goBack();
   }, [navigation, stopSound]);
 
+  const handleCloseAttempt = useCallback(() => {
+    if (isSessionActive) {
+      setShowExitConfirm(true);
+    } else {
+      handleClose();
+    }
+  }, [isSessionActive, handleClose]);
+
+  const handleExitConfirm = useCallback(() => {
+    setShowExitConfirm(false);
+    handleClose();
+  }, [handleClose]);
+
+  const handleExitCancel = useCallback(() => {
+    setShowExitConfirm(false);
+  }, []);
+
   const handleRestart = useCallback(async () => {
     await impactMedium();
     setPhase('ready');
@@ -264,7 +301,7 @@ export function FocusSessionScreen() {
           entering={reduceMotion ? undefined : FadeIn.duration(400)}
           style={styles.header}
         >
-          <Pressable onPress={handleClose} style={styles.closeButton} hitSlop={12}>
+          <Pressable onPress={handleCloseAttempt} style={styles.closeButton} hitSlop={12}>
             <Text variant="bodyMedium" color="ink">Close</Text>
           </Pressable>
 
@@ -401,6 +438,17 @@ export function FocusSessionScreen() {
           )}
         </View>
       </SafeAreaView>
+
+      {/* Exit Confirmation Modal */}
+      <ExitConfirmationModal
+        visible={showExitConfirm}
+        title="Leave focus session?"
+        message="Your focus session will end and progress won't be saved."
+        confirmText="Leave"
+        cancelText="Keep focusing"
+        onConfirm={handleExitConfirm}
+        onCancel={handleExitCancel}
+      />
     </View>
   );
 }

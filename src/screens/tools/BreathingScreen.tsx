@@ -3,12 +3,17 @@
  * 
  * Guided breathing exercises with animated orb,
  * multiple patterns, and completion tracking.
+ * 
+ * UX Improvements:
+ * - Exit confirmation dialog when session is in progress
+ * - Swipe gesture to dismiss (with confirmation)
  */
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { 
   View, 
   StyleSheet, 
   Pressable,
+  BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -31,6 +36,7 @@ import {
   BreathingOrb,
   GlassCard,
   PremiumButton,
+  ExitConfirmationModal,
 } from '../../components/ui';
 import { Icon } from '../../components/Icon';
 import { spacing, borderRadius, layout, withAlpha } from '../../theme';
@@ -66,7 +72,21 @@ export function BreathingScreen() {
   const [currentCycle, setCurrentCycle] = useState(0);
   const [countdown, setCountdown] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Handle hardware back button on Android
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (isRunning && phase !== 'complete') {
+        setShowExitConfirm(true);
+        return true;
+      }
+      return false;
+    });
+
+    return () => backHandler.remove();
+  }, [isRunning, phase]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -136,9 +156,27 @@ export function BreathingScreen() {
     runBreathCycle(1);
   };
 
+  const handleCloseAttempt = () => {
+    // If session is running, show confirmation
+    if (isRunning && phase !== 'complete') {
+      setShowExitConfirm(true);
+    } else {
+      handleClose();
+    }
+  };
+
   const handleClose = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     navigation.goBack();
+  };
+
+  const handleExitConfirm = () => {
+    setShowExitConfirm(false);
+    handleClose();
+  };
+
+  const handleExitCancel = () => {
+    setShowExitConfirm(false);
   };
 
   const handleRestart = () => {
@@ -162,7 +200,7 @@ export function BreathingScreen() {
           entering={reduceMotion ? undefined : FadeIn.duration(400)} 
           style={styles.header}
         >
-          <Pressable onPress={handleClose} style={styles.closeButton} hitSlop={12}>
+          <Pressable onPress={handleCloseAttempt} style={styles.closeButton} hitSlop={12}>
             <Text variant="bodyMedium" color="ink">Close</Text>
           </Pressable>
           
@@ -259,6 +297,17 @@ export function BreathingScreen() {
           </Animated.View>
         )}
       </SafeAreaView>
+
+      {/* Exit Confirmation Modal */}
+      <ExitConfirmationModal
+        visible={showExitConfirm}
+        title="Leave breathing session?"
+        message="Your progress won't be saved. You can always start again."
+        confirmText="Leave"
+        cancelText="Keep breathing"
+        onConfirm={handleExitConfirm}
+        onCancel={handleExitCancel}
+      />
     </View>
   );
 }

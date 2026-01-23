@@ -484,9 +484,116 @@ class ApiClient {
     return this.getContent({ type: 'EVENING_RITUAL' });
   }
 
-  async getCustomRituals() {
-    const response = await this.client.get('/rituals/custom');
+  async getRituals(includeArchived = false) {
+    const response = await this.client.get('/rituals', { 
+      params: { includeArchived } 
+    });
     return response.data;
+  }
+
+  async getRitualById(id: string) {
+    const response = await this.client.get(`/rituals/${id}`);
+    return response.data;
+  }
+
+  async getTodayRituals() {
+    const response = await this.client.get('/rituals/today');
+    return response.data;
+  }
+
+  async getFavoriteRituals() {
+    const response = await this.client.get('/rituals/favorites');
+    return response.data;
+  }
+
+  async createRitual(data: {
+    title: string;
+    description?: string;
+    steps: Array<{
+      id: string;
+      title: string;
+      duration: number;
+      description?: string;
+    }>;
+    timeOfDay: 'morning' | 'midday' | 'evening' | 'anytime';
+    days: string[];
+    reminderEnabled?: boolean;
+    reminderTime?: string;
+  }) {
+    const response = await this.client.post('/rituals', data);
+    return response.data;
+  }
+
+  async updateRitual(id: string, data: Partial<{
+    title: string;
+    description: string;
+    steps: Array<{
+      id: string;
+      title: string;
+      duration: number;
+      description?: string;
+    }>;
+    timeOfDay: 'morning' | 'midday' | 'evening' | 'anytime';
+    days: string[];
+    reminderEnabled: boolean;
+    reminderTime: string;
+  }>) {
+    const response = await this.client.patch(`/rituals/${id}`, data);
+    return response.data;
+  }
+
+  async deleteRitual(id: string) {
+    const response = await this.client.delete(`/rituals/${id}`);
+    return response.data;
+  }
+
+  async archiveRitual(id: string) {
+    const response = await this.client.post(`/rituals/${id}/archive`);
+    return response.data;
+  }
+
+  async unarchiveRitual(id: string) {
+    const response = await this.client.post(`/rituals/${id}/unarchive`);
+    return response.data;
+  }
+
+  async toggleRitualFavorite(id: string) {
+    const response = await this.client.post(`/rituals/${id}/favorite`);
+    return response.data;
+  }
+
+  async getRitualCompletions(ritualId?: string, limit = 30) {
+    const response = await this.client.get('/rituals/completions', {
+      params: { ritualId, limit }
+    });
+    return response.data;
+  }
+
+  async recordRitualCompletion(data: {
+    ritualId: string;
+    duration: number;
+    completedSteps: number;
+    totalSteps: number;
+    mood?: 'great' | 'good' | 'okay' | 'tired';
+    notes?: string;
+  }) {
+    const response = await this.client.post('/rituals/completions', data);
+    return response.data;
+  }
+
+  async getRitualStreak() {
+    const response = await this.client.get('/rituals/streak');
+    return response.data;
+  }
+
+  async getWeeklyCompletionRate() {
+    const response = await this.client.get('/rituals/weekly-rate');
+    return response.data;
+  }
+
+  // Legacy methods (kept for backward compatibility)
+  async getCustomRituals() {
+    return this.getRituals(false);
   }
 
   async createCustomRitual(data: {

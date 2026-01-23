@@ -3,6 +3,11 @@
  * 
  * Main home experience with mood selection, quick actions,
  * and personalized greetings based on time of day.
+ * 
+ * UX Improvements:
+ * - Progressive disclosure for mood selection (4 primary + expand)
+ * - Improved visual hierarchy (mood selection more prominent)
+ * - Reduced cognitive load for anxious users
  */
 import React, { useCallback, useState, useEffect } from 'react';
 import {
@@ -25,6 +30,7 @@ import Animated, {
   FadeInUp,
   interpolate,
   Easing,
+  Layout,
 } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useHaptics } from '../hooks/useHaptics';
@@ -37,6 +43,7 @@ import {
   Button,
   ScreenHeader,
   TabSafeScrollView,
+  SOSFloatingButton,
 } from '../components/ui';
 import { LuxeIcon } from '../components/LuxeIcon';
 import { Icon } from '../components/Icon';
@@ -88,13 +95,24 @@ const QUICK_ACTIONS: QuickAction[] = [
   },
 ];
 
-const MOODS: { id: MoodType; label: string }[] = [
-  { id: 'energized', label: 'Energized' },
-  { id: 'calm', label: 'Calm' },
+// Primary moods shown initially (reduced cognitive load for anxious users)
+const PRIMARY_MOODS: { id: MoodType; label: string }[] = [
   { id: 'good', label: 'Good' },
+  { id: 'calm', label: 'Calm' },
   { id: 'anxious', label: 'Anxious' },
   { id: 'low', label: 'Low' },
+];
+
+// Secondary moods revealed on expansion
+const SECONDARY_MOODS: { id: MoodType; label: string }[] = [
+  { id: 'energized', label: 'Energized' },
   { id: 'tough', label: 'Tough' },
+];
+
+// All moods combined for reference
+const ALL_MOODS: { id: MoodType; label: string }[] = [
+  ...PRIMARY_MOODS,
+  ...SECONDARY_MOODS,
 ];
 
 // =============================================================================
@@ -195,6 +213,7 @@ export function HomeScreen() {
   const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
   const [userName, setUserName] = useState<string>('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showAllMoods, setShowAllMoods] = useState(false);
 
   // Load user preferences
   const loadUserData = useCallback(async () => {
@@ -244,6 +263,11 @@ export function HomeScreen() {
     }, 400);
   };
 
+  const handleToggleShowAllMoods = async () => {
+    await impactLight();
+    setShowAllMoods(!showAllMoods);
+  };
+
   const handleQuickAction = (route: keyof RootStackParamList) => {
     navigation.navigate(route as any);
   };
@@ -263,6 +287,9 @@ export function HomeScreen() {
     navigation.navigate('SOSSelect');
   };
 
+  // Moods to display based on expansion state
+  const visibleMoods = showAllMoods ? ALL_MOODS : PRIMARY_MOODS;
+
   return (
     <View style={styles.container}>
       {/* Living ambient background */}
@@ -275,7 +302,7 @@ export function HomeScreen() {
           onRefresh={handleRefresh}
           refreshing={isRefreshing}
         >
-          {/* Header */}
+          {/* Header - Reduced size for better hierarchy */}
           <Animated.View
             entering={reduceMotion ? undefined : FadeIn.duration(500)}
             style={styles.header}
@@ -285,37 +312,15 @@ export function HomeScreen() {
                 <Text variant="labelSmall" color="inkFaint" style={styles.eyebrow}>
                   RESTORAE
                 </Text>
-                <Text variant="displayMedium" color="ink">
+                <Text variant="headlineLarge" color="ink">
                   {getGreeting()}
                   {userName ? `, ${userName}` : ''}
                 </Text>
               </View>
-              
-              {/* SOS Button */}
-              <Pressable
-                onPress={handleSos}
-                accessibilityRole="button"
-                accessibilityLabel="SOS - Emergency relief tools"
-                accessibilityHint="Open quick relief exercises for immediate support"
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                style={({ pressed }) => [
-                  styles.sosButton,
-                  {
-                    backgroundColor: withAlpha(colors.accentWarm, pressed ? 0.2 : 0.12),
-                    transform: [{ scale: pressed ? 0.95 : 1 }],
-                  },
-                ]}
-              >
-                <LuxeIcon name="sos" size={20} color={colors.accentWarm} />
-              </Pressable>
             </View>
-            
-            <Text variant="bodyLarge" color="inkMuted" style={styles.subtitle}>
-              How are you feeling right now?
-            </Text>
           </Animated.View>
 
-          {/* Mood Selection - Direct on Home */}
+          {/* Mood Selection - PRIMARY FOCUS */}
           <Animated.View
             entering={
               reduceMotion
@@ -324,19 +329,48 @@ export function HomeScreen() {
             }
             style={styles.moodSection}
           >
-            <View style={styles.moodGrid}>
-              {MOODS.map((mood, index) => (
-                <MoodOrb
-                  key={mood.id}
-                  mood={mood.id}
-                  label={mood.label}
-                  size="md"
-                  selected={selectedMood === mood.id}
-                  onPress={() => handleMoodSelect(mood.id)}
-                  delay={300 + index * 80}
+            <GlassCard variant="hero" padding="lg">
+              <Text variant="headlineMedium" color="ink" style={styles.moodPrompt}>
+                How are you feeling?
+              </Text>
+              <Text variant="bodyMedium" color="inkMuted" style={styles.moodSubtitle}>
+                Take a moment to check in with yourself
+              </Text>
+
+              <Animated.View 
+                style={styles.moodGrid}
+                layout={reduceMotion ? undefined : Layout.springify()}
+              >
+                {visibleMoods.map((mood, index) => (
+                  <MoodOrb
+                    key={mood.id}
+                    mood={mood.id}
+                    label={mood.label}
+                    size="md"
+                    selected={selectedMood === mood.id}
+                    onPress={() => handleMoodSelect(mood.id)}
+                    delay={300 + index * 80}
+                  />
+                ))}
+              </Animated.View>
+
+              {/* Expand/Collapse button */}
+              <Pressable
+                onPress={handleToggleShowAllMoods}
+                style={styles.expandButton}
+                accessibilityRole="button"
+                accessibilityLabel={showAllMoods ? 'Show fewer mood options' : 'Show more mood options'}
+              >
+                <Text variant="labelMedium" style={{ color: colors.accentPrimary }}>
+                  {showAllMoods ? 'Show less' : 'More options'}
+                </Text>
+                <Icon 
+                  name={showAllMoods ? 'chevronUp' : 'chevronDown'} 
+                  size={16} 
+                  color={colors.accentPrimary}
                 />
-              ))}
-            </View>
+              </Pressable>
+            </GlassCard>
           </Animated.View>
 
           {/* Daily Ritual Card */}
@@ -347,13 +381,13 @@ export function HomeScreen() {
                 : FadeInDown.delay(250).duration(350).easing(Easing.out(Easing.ease))
             }
           >
-            <GlassCard variant="hero" padding="lg" glow="warm">
+            <GlassCard variant="elevated" padding="lg" glow="warm">
               <View style={styles.ritualHeader}>
                 <View>
                   <Text variant="labelSmall" color="inkFaint">
                     TODAY'S RITUAL
                   </Text>
-                  <Text variant="headlineLarge" color="ink" style={styles.ritualTitle}>
+                  <Text variant="headlineMedium" color="ink" style={styles.ritualTitle}>
                     {new Date().getHours() < 17 ? 'Morning Reset' : 'Evening Wind-Down'}
                   </Text>
                 </View>
@@ -411,6 +445,9 @@ export function HomeScreen() {
           </View>
         </TabSafeScrollView>
       </SafeAreaView>
+
+      {/* Persistent SOS FAB */}
+      <SOSFloatingButton />
     </View>
   );
 }
@@ -434,7 +471,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: spacing[4],
-    paddingBottom: spacing[6],
+    paddingBottom: spacing[4],
   },
   greetingRow: {
     flexDirection: 'row',
@@ -445,24 +482,28 @@ const styles = StyleSheet.create({
     marginBottom: spacing[1],
     letterSpacing: 2,
   },
-  subtitle: {
-    marginTop: spacing[3],
-  },
-  sosButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   moodSection: {
-    marginBottom: spacing[8],
+    marginBottom: spacing[6],
+  },
+  moodPrompt: {
+    marginBottom: spacing[1],
+  },
+  moodSubtitle: {
+    marginBottom: spacing[5],
   },
   moodGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     gap: spacing[4],
+  },
+  expandButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[1],
+    marginTop: spacing[5],
+    paddingVertical: spacing[2],
   },
   ritualHeader: {
     flexDirection: 'row',
@@ -485,7 +526,7 @@ const styles = StyleSheet.create({
     marginTop: spacing[2],
   },
   quickActionsSection: {
-    marginTop: spacing[8],
+    marginTop: spacing[6],
   },
   sectionLabel: {
     marginBottom: spacing[4],

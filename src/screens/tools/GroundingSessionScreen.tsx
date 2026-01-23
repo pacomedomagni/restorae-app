@@ -2,12 +2,16 @@
  * GroundingSessionScreen
  * 
  * Guided grounding session with step-by-step instructions
+ * 
+ * UX Improvements:
+ * - Exit confirmation when session is in progress
  */
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
   Pressable,
+  BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -25,6 +29,7 @@ import {
   GlassCard,
   AmbientBackground,
   PremiumButton,
+  ExitConfirmationModal,
 } from '../../components/ui';
 import { spacing, layout } from '../../theme';
 import { RootStackParamList } from '../../types';
@@ -46,10 +51,25 @@ export function GroundingSessionScreen() {
   const [currentStep, setCurrentStep] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const totalSteps = technique.steps.length;
   const isLastStep = currentStep === totalSteps - 1;
+  const isSessionActive = currentStep > 0 && !isComplete;
+
+  // Handle hardware back button on Android
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (isSessionActive) {
+        setShowExitConfirm(true);
+        return true;
+      }
+      return false;
+    });
+
+    return () => backHandler.remove();
+  }, [isSessionActive]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -91,9 +111,26 @@ export function GroundingSessionScreen() {
     }
   };
 
+  const handleCloseAttempt = () => {
+    if (isSessionActive) {
+      setShowExitConfirm(true);
+    } else {
+      handleClose();
+    }
+  };
+
   const handleClose = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     navigation.goBack();
+  };
+
+  const handleExitConfirm = () => {
+    setShowExitConfirm(false);
+    handleClose();
+  };
+
+  const handleExitCancel = () => {
+    setShowExitConfirm(false);
   };
 
   const handleRestart = async () => {
@@ -112,7 +149,7 @@ export function GroundingSessionScreen() {
           entering={reduceMotion ? undefined : FadeIn.duration(400)}
           style={styles.header}
         >
-          <Pressable onPress={handleClose} style={styles.closeButton} hitSlop={12}>
+          <Pressable onPress={handleCloseAttempt} style={styles.closeButton} hitSlop={12}>
             <Text variant="bodyMedium" color="ink">Close</Text>
           </Pressable>
 
@@ -225,6 +262,17 @@ export function GroundingSessionScreen() {
           )}
         </View>
       </SafeAreaView>
+
+      {/* Exit Confirmation Modal */}
+      <ExitConfirmationModal
+        visible={showExitConfirm}
+        title="Leave grounding session?"
+        message="Your progress won't be saved. You can always start again."
+        confirmText="Leave"
+        cancelText="Keep going"
+        onConfirm={handleExitConfirm}
+        onCancel={handleExitCancel}
+      />
     </View>
   );
 }

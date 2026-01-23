@@ -144,6 +144,63 @@ export function SkeletonJournalEntry() {
   );
 }
 
+export function SkeletonMoodRow() {
+  return (
+    <View style={styles.moodRow}>
+      {[1, 2, 3, 4].map((i) => (
+        <SkeletonMoodOrb key={i} />
+      ))}
+    </View>
+  );
+}
+
+interface SkeletonStatCardProps {
+  style?: ViewStyle;
+}
+
+export function SkeletonStatCard({ style }: SkeletonStatCardProps) {
+  const { colors } = useTheme();
+  
+  return (
+    <View
+      style={[
+        styles.statCard,
+        { backgroundColor: withAlpha(colors.canvasElevated, 0.5) },
+        style,
+      ]}
+    >
+      <Skeleton width={32} height={32} radius="md" />
+      <Skeleton width="60%" height={24} style={styles.mt2} />
+      <Skeleton width="40%" height={12} style={styles.mt2} />
+    </View>
+  );
+}
+
+interface SkeletonRitualCardProps {
+  style?: ViewStyle;
+}
+
+export function SkeletonRitualCard({ style }: SkeletonRitualCardProps) {
+  const { colors } = useTheme();
+  
+  return (
+    <View
+      style={[
+        styles.ritualCard,
+        { backgroundColor: withAlpha(colors.canvasElevated, 0.5) },
+        style,
+      ]}
+    >
+      <Skeleton width={48} height={48} radius="lg" />
+      <View style={styles.ritualContent}>
+        <Skeleton width="60%" height={16} />
+        <Skeleton width="40%" height={12} style={styles.mt2} />
+      </View>
+      <Skeleton width={24} height={24} radius="full" />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   skeleton: {},
   card: {
@@ -171,6 +228,27 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing[3],
+  },
+  moodRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: spacing[4],
+  },
+  statCard: {
+    padding: spacing[4],
+    borderRadius: borderRadius.lg,
+    alignItems: 'center',
+    minWidth: 100,
+  },
+  ritualCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing[4],
+    borderRadius: borderRadius.lg,
+  },
+  ritualContent: {
+    flex: 1,
+    marginLeft: spacing[3],
   },
   mb2: {
     marginBottom: spacing[2],

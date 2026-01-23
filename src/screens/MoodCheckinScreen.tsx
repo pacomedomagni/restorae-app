@@ -1,14 +1,29 @@
 /**
  * MoodCheckinScreen - Consistent UI with visual mood continuity
+ * 
+ * UX Improvements:
+ * - Optional badge for note field
+ * - Character counter with auto-save indication
+ * - Improved form labels
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, StyleSheet, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown, FadeInUp, ZoomIn } from 'react-native-reanimated';
 import { useNavigation, useRoute, NavigationProp, RouteProp } from '@react-navigation/native';
 
 import { useTheme } from '../contexts/ThemeContext';
-import { Text, Button, GlassCard, AmbientBackground, ScreenHeader, MoodOrb, TabSafeScrollView } from '../components/ui';
+import { 
+  Text, 
+  Button, 
+  GlassCard, 
+  AmbientBackground, 
+  ScreenHeader, 
+  MoodOrb, 
+  TabSafeScrollView,
+  CharacterCounter,
+  OptionalBadge,
+} from '../components/ui';
 import { spacing, layout } from '../theme';
 import { useHaptics } from '../hooks/useHaptics';
 import type { RootStackParamList, MoodType } from '../types';
@@ -22,15 +37,58 @@ const MOOD_LABELS: Record<MoodType, string> = {
   tough: 'Tough',
 };
 
+const MAX_NOTE_LENGTH = 500;
+const AUTO_SAVE_DELAY = 1500;
+
 export function MoodCheckinScreen() {
   const { reduceMotion, colors } = useTheme();
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'MoodCheckin'>>();
   const { notificationSuccess } = useHaptics();
   const [note, setNote] = useState('');
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const mood = (route.params?.mood || 'calm') as MoodType;
   const palette = colors;
+
+  // Auto-save simulation
+  const triggerAutoSave = useCallback(() => {
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+
+    if (note.trim().length > 0) {
+      setAutoSaveStatus('saving');
+      autoSaveTimerRef.current = setTimeout(() => {
+        setAutoSaveStatus('saved');
+        // Reset to idle after showing "Saved"
+        setTimeout(() => setAutoSaveStatus('idle'), 2000);
+      }, 800);
+    }
+  }, [note]);
+
+  useEffect(() => {
+    if (note.trim().length > 0) {
+      const timer = setTimeout(triggerAutoSave, AUTO_SAVE_DELAY);
+      return () => clearTimeout(timer);
+    }
+  }, [note, triggerAutoSave]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleNoteChange = (text: string) => {
+    if (text.length <= MAX_NOTE_LENGTH) {
+      setNote(text);
+    }
+  };
 
   const handleSave = async () => {
     await notificationSuccess();
@@ -61,15 +119,23 @@ export function MoodCheckinScreen() {
 
           <Animated.View entering={reduceMotion ? undefined : FadeInUp.delay(150).duration(400)}>
             <Text variant="headlineLarge" color="ink" align="center" style={styles.title}>
-              How are you feeling {MOOD_LABELS[mood].toLowerCase()}?
+              Feeling {MOOD_LABELS[mood].toLowerCase()}
             </Text>
             <Text variant="bodyMedium" color="inkMuted" align="center" style={styles.subtitle}>
-              Add a note about what's contributing to this feeling
+              What's contributing to this feeling?
             </Text>
           </Animated.View>
 
           <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(250).duration(400)}>
             <GlassCard variant="elevated" padding="lg">
+              {/* Label with optional badge */}
+              <View style={styles.inputLabelRow}>
+                <Text variant="labelSmall" color="inkFaint" style={styles.inputLabel}>
+                  ADD A NOTE
+                </Text>
+                <OptionalBadge />
+              </View>
+              
               <TextInput
                 style={[
                   styles.textInput,
@@ -80,8 +146,17 @@ export function MoodCheckinScreen() {
                 multiline
                 numberOfLines={6}
                 value={note}
-                onChangeText={setNote}
+                onChangeText={handleNoteChange}
                 textAlignVertical="top"
+                maxLength={MAX_NOTE_LENGTH}
+              />
+              
+              {/* Character counter with auto-save */}
+              <CharacterCounter
+                current={note.length}
+                max={MAX_NOTE_LENGTH}
+                showAutoSave={note.length > 0}
+                autoSaveStatus={autoSaveStatus}
               />
             </GlassCard>
           </Animated.View>
@@ -103,7 +178,7 @@ export function MoodCheckinScreen() {
               fullWidth
               onPress={() => navigation.navigate('MoodResult', { mood })}
             >
-              Skip note
+              Continue without note
             </Button>
           </Animated.View>
         </TabSafeScrollView>
@@ -137,6 +212,15 @@ const styles = StyleSheet.create({
   subtitle: {
     marginBottom: spacing[6],
   },
+  inputLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing[3],
+  },
+  inputLabel: {
+    letterSpacing: 1.5,
+  },
   textInput: {
     minHeight: 150,
     fontSize: 16,
@@ -148,5 +232,7 @@ const styles = StyleSheet.create({
   saveButton: {
     marginTop: spacing[6],
     marginBottom: spacing[3],
+  },
+});
   },
 });

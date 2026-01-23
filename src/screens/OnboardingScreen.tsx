@@ -3,6 +3,10 @@
  * 
  * Premium immersive onboarding experience for Restorae.
  * A gentle, calming flow that introduces users to their sanctuary.
+ * 
+ * UX Improvements:
+ * - "Skip for now" option on personalization step
+ * - Allow users to experience first before committing
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import {
@@ -359,6 +363,7 @@ interface PersonalizationStepProps {
   onNameChange: (name: string) => void;
   selectedGoals: string[];
   onToggleGoal: (goalId: string) => void;
+  onSkipGoals: () => void;
 }
 
 function PersonalizationStep({
@@ -366,6 +371,7 @@ function PersonalizationStep({
   onNameChange,
   selectedGoals,
   onToggleGoal,
+  onSkipGoals,
 }: PersonalizationStepProps) {
   const { colors, reduceMotion } = useTheme();
   const { impactLight } = useHaptics();
@@ -420,9 +426,16 @@ function PersonalizationStep({
         entering={reduceMotion ? undefined : FadeInUp.delay(350).duration(400)}
         style={styles.goalsSection}
       >
-        <Text variant="labelSmall" color="inkFaint" style={styles.goalsLabel}>
-          WHAT BRINGS YOU HERE? (SELECT ANY)
-        </Text>
+        <View style={styles.goalsHeaderRow}>
+          <Text variant="labelSmall" color="inkFaint" style={styles.goalsLabel}>
+            WHAT BRINGS YOU HERE?
+          </Text>
+          <Pressable onPress={onSkipGoals} hitSlop={8}>
+            <Text variant="labelSmall" style={{ color: colors.accentPrimary }}>
+              Skip for now
+            </Text>
+          </Pressable>
+        </View>
         <View style={styles.goalsGrid}>
           {WELLNESS_GOALS.map((goal, index) => {
             const isSelected = selectedGoals.includes(goal.id);
@@ -545,6 +558,13 @@ export function OnboardingScreen() {
     );
   };
 
+  const handleSkipGoals = useCallback(async () => {
+    // Skip goals selection but keep name if entered
+    setSelectedGoals([]);
+    await impactMedium();
+    setStep(step + 1);
+  }, [step, impactMedium]);
+
   const handleNext = useCallback(async () => {
     await impactMedium();
     
@@ -624,6 +644,7 @@ export function OnboardingScreen() {
               onNameChange={setName}
               selectedGoals={selectedGoals}
               onToggleGoal={handleToggleGoal}
+              onSkipGoals={handleSkipGoals}
             />
           )}
           {step === 3 && <ReadyStep name={name} />}
@@ -781,9 +802,14 @@ const styles = StyleSheet.create({
   goalsSection: {
     flex: 1,
   },
+  goalsHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing[3],
+  },
   goalsLabel: {
     letterSpacing: 1.5,
-    marginBottom: spacing[3],
   },
   goalsGrid: {
     flexDirection: 'row',
