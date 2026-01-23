@@ -33,7 +33,7 @@ export function OptionalBadge({ text = 'Optional' }: OptionalBadgeProps) {
 const styles = StyleSheet.create({
   badge: {
     paddingHorizontal: spacing[2],
-    paddingVertical: spacing[0.5] || 2,
+    paddingVertical: 2,
     borderRadius: borderRadius.sm,
   },
 });

@@ -12,6 +12,7 @@ import {
   Pressable,
   Alert,
 } from 'react-native';
+import logger from '../services/logger';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Animated, {
@@ -274,7 +275,7 @@ export function CreateRitualScreen() {
       await notificationSuccess();
       navigation.goBack();
     } catch (error) {
-      console.error('Failed to save ritual:', error);
+      logger.error('Failed to save ritual:', error);
       Alert.alert('Error', 'Failed to save ritual. Please try again.');
     } finally {
       setIsSaving(false);

@@ -11,6 +11,7 @@ import NetInfo from '@react-native-community/netinfo';
 import api from '../services/api';
 import { syncQueue, SyncOperation } from '../services/syncQueue';
 import { MoodType } from '../types';
+import logger from '../services/logger';
 
 // =============================================================================
 // TYPES
@@ -71,7 +72,7 @@ async function encryptContent(content: string, entryId: string): Promise<string>
     await SecureStore.setItemAsync(`${ENCRYPTION_KEY_PREFIX}${entryId}`, content);
     return `[ENCRYPTED:${entryId}]`;
   } catch (error) {
-    console.error('Encryption failed:', error);
+    logger.error('Encryption failed:', error);
     return content;
   }
 }
@@ -82,7 +83,7 @@ async function decryptContent(encryptedMarker: string, entryId: string): Promise
     const content = await SecureStore.getItemAsync(`${ENCRYPTION_KEY_PREFIX}${entryId}`);
     return content || '';
   } catch (error) {
-    console.error('Decryption failed:', error);
+    logger.error('Decryption failed:', error);
     return '';
   }
 }
@@ -91,7 +92,7 @@ async function deleteEncryptedContent(entryId: string): Promise<void> {
   try {
     await SecureStore.deleteItemAsync(`${ENCRYPTION_KEY_PREFIX}${entryId}`);
   } catch (error) {
-    console.error('Failed to delete encrypted content:', error);
+    logger.error('Failed to delete encrypted content:', error);
   }
 }
 
@@ -187,19 +188,19 @@ export function JournalProvider({ children }: { children: ReactNode }) {
       });
       syncWithServer();
     } catch (error) {
-      console.error('Failed to load journal data:', error);
+      logger.error('Failed to load journal data:', error);
       setState(prev => ({ ...prev, isLoading: false }));
     }
   };
 
   const saveEntries = async (entries: JournalEntry[]) => {
     try { await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); }
-    catch (error) { console.error('Failed to save entries:', error); }
+    catch (error) { logger.error('Failed to save entries:', error); }
   };
 
   const saveSettings = async (settings: { encryptionEnabled: boolean; biometricLockEnabled: boolean }) => {
     try { await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
-    catch (error) { console.error('Failed to save settings:', error); }
+    catch (error) { logger.error('Failed to save settings:', error); }
   };
 
   const syncWithServer = useCallback(async () => {
@@ -238,7 +239,7 @@ export function JournalProvider({ children }: { children: ReactNode }) {
       await saveEntries(mergedEntries);
       await AsyncStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
     } catch (error) {
-      console.error('Failed to sync journal data:', error);
+      logger.error('Failed to sync journal data:', error);
       setState(prev => ({ ...prev, isSyncing: false }));
     } finally {
       syncInProgress.current = false;
@@ -279,7 +280,7 @@ export function JournalProvider({ children }: { children: ReactNode }) {
         await saveEntries(finalEntries);
         return syncedEntry;
       } catch (error) {
-        console.error('Failed to sync journal entry:', error);
+        logger.error('Failed to sync journal entry:', error);
         await syncQueue.addToQueue({ type: 'create', entity: 'journal', data: { localId: id, content: entry.content, promptId: entry.prompt, mood: entry.mood, tags: entry.tags, isPrivate: entry.isLocked } });
       }
     } else {

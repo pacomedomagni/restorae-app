@@ -3,6 +3,7 @@
     "name": "Restorae",
     "slug": "restorae",
     "version": "1.0.0",
+    "scheme": "restorae",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -14,20 +15,76 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.restorae.app"
+      "bundleIdentifier": "com.restorae.app",
+      "associatedDomains": ["applinks:restorae.app", "applinks:www.restorae.app"],
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Use Face ID to unlock your private journal entries",
+        "NSCameraUsageDescription": "Take photos for your journal entries",
+        "NSPhotoLibraryUsageDescription": "Add photos to your journal entries"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#fafaf9"
       },
-      "package": "com.restorae.app"
+      "package": "com.restorae.app",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "restorae.app",
+              "pathPrefix": "/"
+            },
+            {
+              "scheme": "https",
+              "host": "www.restorae.app",
+              "pathPrefix": "/"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-secure-store"
-    ]
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#8B7355"
+        }
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "your-org",
+          "project": "restorae-app"
+        }
+      ],
+      "react-native-purchases"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "your-eas-project-id"
+      }
+    },
+    "hooks": {
+      "postPublish": [
+        {
+          "file": "@sentry/react-native/expo",
+          "config": {
+            "organization": "your-org",
+            "project": "restorae-app"
+          }
+        }
+      ]
+    }
   }
 }

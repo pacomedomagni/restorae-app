@@ -8,6 +8,7 @@ import Animated, { FadeIn, FadeInUp, useSharedValue, useAnimatedStyle, withSprin
 import { Text } from './Text';
 import { GlassCard } from './GlassCard';
 import { Button } from './Button';
+import logger from '../../services/logger';
 import { LuxeIcon } from '../LuxeIcon';
 import { spacing, borderRadius, withAlpha, light, dark } from '../../theme';
 
@@ -195,7 +196,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log to error reporting service
-    console.error('ErrorBoundary caught error:', error, errorInfo);
+    logger.error('ErrorBoundary caught error:', error, { componentStack: errorInfo.componentStack });
     this.props.onError?.(error, errorInfo);
   }
 

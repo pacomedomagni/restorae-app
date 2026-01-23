@@ -9,7 +9,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import { useAuth } from './AuthContext';
 import api from '../services/api';
-import { SyncQueue } from '../services/syncQueue';
+import { syncQueue, SyncOperation } from '../services/syncQueue';
+import logger from '../services/logger';
 
 // =============================================================================
 // TYPES
@@ -133,7 +134,7 @@ export function RitualsProvider({ children }: { children: ReactNode }) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   
-  const syncQueueRef = useRef<SyncQueue>(new SyncQueue('rituals'));
+  // Use the global syncQueue singleton
   const isOnlineRef = useRef(true);
 
   // Monitor network status
@@ -178,7 +179,7 @@ export function RitualsProvider({ children }: { children: ReactNode }) {
       if (favoritesData) setFavoriteRitualIds(JSON.parse(favoritesData));
       if (lastSync) setLastSyncedAt(lastSync);
     } catch (error) {
-      console.error('Failed to load rituals data:', error);
+      logger.error('Failed to load rituals data:', error);
     } finally {
       setIsLoading(false);
     }
@@ -188,7 +189,7 @@ export function RitualsProvider({ children }: { children: ReactNode }) {
     try {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newRituals));
     } catch (error) {
-      console.error('Failed to save rituals:', error);
+      logger.error('Failed to save rituals:', error);
     }
   };
 
@@ -196,7 +197,7 @@ export function RitualsProvider({ children }: { children: ReactNode }) {
     try {
       await AsyncStorage.setItem(COMPLETIONS_KEY, JSON.stringify(newCompletions));
     } catch (error) {
-      console.error('Failed to save completions:', error);
+      logger.error('Failed to save completions:', error);
     }
   };
 
@@ -204,7 +205,7 @@ export function RitualsProvider({ children }: { children: ReactNode }) {
     try {
       await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(newFavorites));
     } catch (error) {
-      console.error('Failed to save favorites:', error);
+      logger.error('Failed to save favorites:', error);
     }
   };
 
@@ -218,55 +219,63 @@ export function RitualsProvider({ children }: { children: ReactNode }) {
       setIsSyncing(true);
       
       // Process any queued operations first
-      await syncQueueRef.current.processQueue(async (operation) => {
-        switch (operation.type) {
-          case 'create_ritual':
-            const created = await api.createRitual(operation.data);
-            // Update local ritual with server ID
-            setRituals(prev => {
-              const updated = prev.map(r => 
-                r.id === operation.data.localId 
-                  ? { ...r, serverId: created.id, isSynced: true }
-                  : r
-              );
-              saveRituals(updated);
-              return updated;
-            });
-            break;
-            
-          case 'update_ritual':
-            await api.updateRitual(operation.data.serverId, operation.data.updates);
-            break;
-            
-          case 'delete_ritual':
-            await api.deleteRitual(operation.data.serverId);
-            break;
-            
-          case 'archive_ritual':
-            await api.archiveRitual(operation.data.serverId);
-            break;
-            
-          case 'unarchive_ritual':
-            await api.unarchiveRitual(operation.data.serverId);
-            break;
-            
-          case 'toggle_favorite':
-            await api.toggleRitualFavorite(operation.data.serverId);
-            break;
-            
-          case 'complete_ritual':
-            const completion = await api.recordRitualCompletion(operation.data);
-            // Update local completion with server ID
-            setCompletions(prev => {
-              const updated = prev.map(c =>
-                c.id === operation.data.localId
-                  ? { ...c, serverId: completion.id, isSynced: true }
-                  : c
-              );
-              saveCompletions(updated);
-              return updated;
-            });
-            break;
+      await syncQueue.processQueue(async (operation: SyncOperation): Promise<{ success: boolean; serverId?: string }> => {
+        try {
+          switch (operation.type) {
+            case 'create_ritual':
+              const created = await api.createRitual(operation.data);
+              // Update local ritual with server ID
+              setRituals(prev => {
+                const updated = prev.map(r => 
+                  r.id === operation.data.localId 
+                    ? { ...r, serverId: created.id, isSynced: true }
+                    : r
+                );
+                saveRituals(updated);
+                return updated;
+              });
+              return { success: true, serverId: created.id };
+              
+            case 'update_ritual':
+              await api.updateRitual(operation.data.serverId, operation.data.updates);
+              return { success: true };
+              
+            case 'delete_ritual':
+              await api.deleteRitual(operation.data.serverId);
+              return { success: true };
+              
+            case 'archive_ritual':
+              await api.archiveRitual(operation.data.serverId);
+              return { success: true };
+              
+            case 'unarchive_ritual':
+              await api.unarchiveRitual(operation.data.serverId);
+              return { success: true };
+              
+            case 'toggle_favorite':
+              await api.toggleRitualFavorite(operation.data.serverId);
+              return { success: true };
+              
+            case 'complete_ritual':
+              const completion = await api.recordRitualCompletion(operation.data);
+              // Update local completion with server ID
+              setCompletions(prev => {
+                const updated = prev.map(c =>
+                  c.id === operation.data.localId
+                    ? { ...c, serverId: completion.id, isSynced: true }
+                    : c
+                );
+                saveCompletions(updated);
+                return updated;
+              });
+              return { success: true, serverId: completion.id };
+              
+            default:
+              return { success: true };
+          }
+        } catch (error) {
+          logger.error('Sync operation failed:', error);
+          return { success: false };
         }
       });
       
@@ -277,7 +286,7 @@ export function RitualsProvider({ children }: { children: ReactNode }) {
       setLastSyncedAt(now);
       await AsyncStorage.setItem(LAST_SYNC_KEY, now);
     } catch (error) {
-      console.error('Rituals sync failed:', error);
+      logger.error('Rituals sync failed:', error);
     } finally {
       setIsSyncing(false);
     }
@@ -346,7 +355,7 @@ export function RitualsProvider({ children }: { children: ReactNode }) {
       setFavoriteRitualIds(favoriteIds);
       saveFavorites(favoriteIds);
     } catch (error) {
-      console.error('Failed to refresh rituals from server:', error);
+      logger.error('Failed to refresh rituals from server:', error);
     }
   }, [isAuthenticated]);
 
@@ -395,17 +404,19 @@ export function RitualsProvider({ children }: { children: ReactNode }) {
         await saveRituals(updatedRituals);
         return syncedRitual;
       } catch (error) {
-        console.error('Failed to create ritual on server:', error);
+        logger.error('Failed to create ritual on server:', error);
         // Queue for later sync
-        await syncQueueRef.current.addToQueue({
+        await syncQueue.addToQueue({
+          entity: 'ritual',
           type: 'create_ritual',
           data: { localId, ...ritual },
         });
       }
     } else {
       // Queue for later sync
-      await syncQueueRef.current.addToQueue({
-        type: 'create_ritual',
+      await syncQueue.addToQueue({
+        entity: 'ritual',
+          type: 'create_ritual',
         data: { localId, ...ritual },
       });
     }
@@ -430,15 +441,17 @@ export function RitualsProvider({ children }: { children: ReactNode }) {
       try {
         await api.updateRitual(ritual.serverId, updates);
       } catch (error) {
-        console.error('Failed to update ritual on server:', error);
-        await syncQueueRef.current.addToQueue({
+        logger.error('Failed to update ritual on server:', error);
+        await syncQueue.addToQueue({
+          entity: 'ritual',
           type: 'update_ritual',
           data: { serverId: ritual.serverId, updates },
         });
       }
     } else if (ritual.serverId) {
-      await syncQueueRef.current.addToQueue({
-        type: 'update_ritual',
+      await syncQueue.addToQueue({
+        entity: 'ritual',
+          type: 'update_ritual',
         data: { serverId: ritual.serverId, updates },
       });
     }
@@ -468,15 +481,17 @@ export function RitualsProvider({ children }: { children: ReactNode }) {
       try {
         await api.deleteRitual(ritual.serverId);
       } catch (error) {
-        console.error('Failed to delete ritual on server:', error);
-        await syncQueueRef.current.addToQueue({
+        logger.error('Failed to delete ritual on server:', error);
+        await syncQueue.addToQueue({
+          entity: 'ritual',
           type: 'delete_ritual',
           data: { serverId: ritual.serverId },
         });
       }
     } else if (ritual.serverId) {
-      await syncQueueRef.current.addToQueue({
-        type: 'delete_ritual',
+      await syncQueue.addToQueue({
+        entity: 'ritual',
+          type: 'delete_ritual',
         data: { serverId: ritual.serverId },
       });
     }
@@ -493,15 +508,17 @@ export function RitualsProvider({ children }: { children: ReactNode }) {
       try {
         await api.archiveRitual(ritual.serverId);
       } catch (error) {
-        console.error('Failed to archive ritual on server:', error);
-        await syncQueueRef.current.addToQueue({
+        logger.error('Failed to archive ritual on server:', error);
+        await syncQueue.addToQueue({
+          entity: 'ritual',
           type: 'archive_ritual',
           data: { serverId: ritual.serverId },
         });
       }
     } else if (ritual.serverId) {
-      await syncQueueRef.current.addToQueue({
-        type: 'archive_ritual',
+      await syncQueue.addToQueue({
+        entity: 'ritual',
+          type: 'archive_ritual',
         data: { serverId: ritual.serverId },
       });
     }
@@ -518,15 +535,17 @@ export function RitualsProvider({ children }: { children: ReactNode }) {
       try {
         await api.unarchiveRitual(ritual.serverId);
       } catch (error) {
-        console.error('Failed to unarchive ritual on server:', error);
-        await syncQueueRef.current.addToQueue({
+        logger.error('Failed to unarchive ritual on server:', error);
+        await syncQueue.addToQueue({
+          entity: 'ritual',
           type: 'unarchive_ritual',
           data: { serverId: ritual.serverId },
         });
       }
     } else if (ritual.serverId) {
-      await syncQueueRef.current.addToQueue({
-        type: 'unarchive_ritual',
+      await syncQueue.addToQueue({
+        entity: 'ritual',
+          type: 'unarchive_ritual',
         data: { serverId: ritual.serverId },
       });
     }
@@ -584,8 +603,9 @@ export function RitualsProvider({ children }: { children: ReactNode }) {
         setCompletions(updatedCompletions);
         await saveCompletions(updatedCompletions);
       } catch (error) {
-        console.error('Failed to record completion on server:', error);
-        await syncQueueRef.current.addToQueue({
+        logger.error('Failed to record completion on server:', error);
+        await syncQueue.addToQueue({
+          entity: 'completion',
           type: 'complete_ritual',
           data: {
             localId,
@@ -599,8 +619,9 @@ export function RitualsProvider({ children }: { children: ReactNode }) {
         });
       }
     } else if (serverRitualId) {
-      await syncQueueRef.current.addToQueue({
-        type: 'complete_ritual',
+      await syncQueue.addToQueue({
+        entity: 'completion',
+          type: 'complete_ritual',
         data: {
           localId,
           ritualId: serverRitualId,
@@ -646,15 +667,17 @@ export function RitualsProvider({ children }: { children: ReactNode }) {
       try {
         await api.toggleRitualFavorite(ritual.serverId);
       } catch (error) {
-        console.error('Failed to toggle favorite on server:', error);
-        await syncQueueRef.current.addToQueue({
+        logger.error('Failed to toggle favorite on server:', error);
+        await syncQueue.addToQueue({
+          entity: 'ritual',
           type: 'toggle_favorite',
           data: { serverId: ritual.serverId },
         });
       }
     } else if (ritual.serverId) {
-      await syncQueueRef.current.addToQueue({
-        type: 'toggle_favorite',
+      await syncQueue.addToQueue({
+        entity: 'ritual',
+          type: 'toggle_favorite',
         data: { serverId: ritual.serverId },
       });
     }

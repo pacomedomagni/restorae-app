@@ -6,6 +6,7 @@
  */
 import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode, useRef, useEffect } from 'react';
 import { usePreferences } from './PreferencesContext';
+import logger from '../services/logger';
 
 // =============================================================================
 // TYPES
@@ -105,9 +106,9 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         isLoading: false,
       }));
 
-      console.log(`[Audio] Playing: ${soundId}`);
+      logger.debug(`[Audio] Playing: ${soundId}`);
     } catch (error) {
-      console.error('[Audio] Failed to play sound:', error);
+      logger.error('[Audio] Failed to play sound:', error);
       setState(prev => ({ ...prev, isLoading: false }));
     }
   }, [soundsEnabled]);
@@ -116,9 +117,9 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     try {
       // In real app: await soundRef.current?.pauseAsync();
       setState(prev => ({ ...prev, isPlaying: false }));
-      console.log('[Audio] Paused');
+      logger.debug('[Audio] Paused');
     } catch (error) {
-      console.error('[Audio] Failed to pause:', error);
+      logger.error('[Audio] Failed to pause:', error);
     }
   }, []);
 
@@ -128,9 +129,9 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     try {
       // In real app: await soundRef.current?.playAsync();
       setState(prev => ({ ...prev, isPlaying: true }));
-      console.log('[Audio] Resumed');
+      logger.debug('[Audio] Resumed');
     } catch (error) {
-      console.error('[Audio] Failed to resume:', error);
+      logger.error('[Audio] Failed to resume:', error);
     }
   }, [soundsEnabled, state.currentSoundId]);
 
@@ -146,9 +147,9 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         currentSoundId: null,
         isPlaying: false,
       }));
-      console.log('[Audio] Stopped');
+      logger.debug('[Audio] Stopped');
     } catch (error) {
-      console.error('[Audio] Failed to stop:', error);
+      logger.error('[Audio] Failed to stop:', error);
     }
   }, []);
 

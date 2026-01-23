@@ -12,6 +12,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useJournal } from '../contexts/JournalContext';
 import { Text, Button, GlassCard, AmbientBackground, ScreenHeader } from '../components/ui';
 import { spacing, layout, withAlpha } from '../theme';
+import logger from '../services/logger';
 import { useHaptics } from '../hooks/useHaptics';
 import { useBiometrics } from '../hooks/useBiometrics';
 import type { RootStackParamList } from '../types';
@@ -59,7 +60,7 @@ export function JournalEntryScreen() {
             }
           }
         } catch (e) {
-          console.log('Failed to load draft');
+          logger.debug('Failed to load draft');
         }
       };
       loadDraft();
@@ -74,7 +75,7 @@ export function JournalEntryScreen() {
       try {
         await AsyncStorage.setItem(DRAFT_KEY, JSON.stringify({ title, content }));
       } catch (e) {
-        console.log('Failed to save draft');
+        logger.debug('Failed to save draft');
       }
     }, 1000); // Debounce 1s
 
@@ -129,7 +130,7 @@ export function JournalEntryScreen() {
 
       navigation.goBack();
     } catch (error) {
-      console.log('Failed to save entry', error);
+      logger.debug('Failed to save entry', { error: error instanceof Error ? error.message : String(error) });
       Alert.alert('Save Failed', 'Please try again.');
     } finally {
       setIsSaving(false);

@@ -92,9 +92,16 @@ export function JournalEntriesScreen() {
               <EmptyState
                 icon="journal"
                 title="No entries yet"
-                message="Start journaling to capture your thoughts, reflections, and moments of gratitude."
-                actionLabel="Write your first entry"
-                onAction={() => navigation.navigate('JournalEntry', { mode: 'new' })}
+                description="Start journaling to capture your thoughts, reflections, and moments of gratitude."
+                action={
+                  <Button 
+                    onPress={() => navigation.navigate('JournalEntry', { mode: 'new' })}
+                    variant="primary"
+                    size="md"
+                  >
+                    Write your first entry
+                  </Button>
+                }
               />
             </Animated.View>
           )}
@@ -108,7 +115,7 @@ export function JournalEntriesScreen() {
                   entering={reduceMotion ? undefined : FadeInDown.delay(100 + index * 80).duration(400)}
                 >
                   <Pressable 
-                    onPress={() => navigation.navigate('JournalEntry', { mode: 'edit', entryId: entry.id })}
+                    onPress={() => navigation.navigate('JournalEntry', { mode: 'view', entryId: entry.id })}
                   >
                     <GlassCard variant="interactive" padding="lg">
                       <View style={styles.entryHeader}>
@@ -123,7 +130,7 @@ export function JournalEntriesScreen() {
                         {entry.content || 'No content'}
                       </Text>
                       <Text variant="labelSmall" color="inkFaint" style={styles.date}>
-                        {formatDate(entry.createdAt)}
+                        {formatDate(new Date(entry.createdAt))}
                       </Text>
                     </GlassCard>
                   </Pressable>

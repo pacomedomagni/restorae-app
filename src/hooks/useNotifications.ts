@@ -6,6 +6,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import logger from '../services/logger';
 
 // Dynamic import for expo-notifications
 // Using any type since the package may not be installed
@@ -122,7 +123,7 @@ export function useNotifications(): UseNotificationsReturn {
         isLoading: false,
       });
     } catch (error) {
-      console.error('Failed to load notification state:', error);
+      logger.error('Failed to load notification state:', error);
       setState(prev => ({ ...prev, isLoading: false }));
     }
   };
@@ -131,13 +132,13 @@ export function useNotifications(): UseNotificationsReturn {
     try {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
     } catch (error) {
-      console.error('Failed to save notification settings:', error);
+      logger.error('Failed to save notification settings:', error);
     }
   };
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
     if (!Notifications) {
-      console.warn('expo-notifications not installed');
+      logger.warn('expo-notifications not installed');
       return false;
     }
 
@@ -155,7 +156,7 @@ export function useNotifications(): UseNotificationsReturn {
       setState(prev => ({ ...prev, hasPermission: granted }));
       return granted;
     } catch (error) {
-      console.error('Failed to request notification permission:', error);
+      logger.error('Failed to request notification permission:', error);
       return false;
     }
   }, []);
@@ -271,13 +272,13 @@ export function useNotifications(): UseNotificationsReturn {
       }
     }
 
-    console.log('[Notifications] All reminders scheduled');
+    logger.debug('[Notifications] All reminders scheduled');
   }, [state.hasPermission, state.settings, requestPermission]);
 
   const cancelAllReminders = useCallback(async () => {
     if (!Notifications) return;
     await Notifications.cancelAllScheduledNotificationsAsync();
-    console.log('[Notifications] All reminders cancelled');
+    logger.debug('[Notifications] All reminders cancelled');
   }, []);
 
   const updateSettings = useCallback(async (updates: Partial<ReminderSettings>) => {
@@ -386,7 +387,7 @@ export function useNotifications(): UseNotificationsReturn {
     try {
       return await Notifications.getAllScheduledNotificationsAsync();
     } catch (error) {
-      console.error('Failed to get scheduled notifications:', error);
+      logger.error('Failed to get scheduled notifications:', error);
       return [];
     }
   }, []);

@@ -7,6 +7,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, Rea
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState, AppStateStatus } from 'react-native';
 import { useBiometrics } from '../hooks/useBiometrics';
+import logger from '../services/logger';
 
 // =============================================================================
 // TYPES
@@ -104,7 +105,7 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
         }));
       }
     } catch (error) {
-      console.error('Failed to load app lock settings:', error);
+      logger.error('Failed to load app lock settings:', error);
     }
   };
 
@@ -115,7 +116,7 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
       const { isLocked, pin, ...settingsToSave } = toSave;
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(settingsToSave));
     } catch (error) {
-      console.error('Failed to save app lock settings:', error);
+      logger.error('Failed to save app lock settings:', error);
     }
   };
 

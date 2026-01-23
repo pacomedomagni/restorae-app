@@ -33,7 +33,9 @@ type IconName =
   | 'lock'
   | 'data'
   | 'privacy'
-  | 'support';
+  | 'support'
+  | 'chevronUp'
+  | 'chevronDown';
 
 export const Icon: React.FC<IconProps> = ({ name, size = 24, color }) => {
   const { colors } = useTheme();
@@ -245,6 +247,18 @@ export const Icon: React.FC<IconProps> = ({ name, size = 24, color }) => {
         <Circle cx="16" cy="16" r="10" stroke={stroke} strokeWidth={strokeWide} />
         <Path d="M12.5 12.5C13 10.8 14.5 9.8 16 9.8C17.7 9.8 19.2 11 19.2 12.8C19.2 14.5 18.2 15.4 16.8 16.3" stroke={stroke} strokeWidth={strokeWide} strokeLinecap="round" />
         <Circle cx="16" cy="22" r="1" fill={stroke} />
+      </Svg>
+    ),
+
+    chevronUp: (
+      <Svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+        <Path d="M8 20L16 12L24 20" stroke={stroke} strokeWidth={strokeWide} strokeLinecap="round" strokeLinejoin="round" />
+      </Svg>
+    ),
+
+    chevronDown: (
+      <Svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+        <Path d="M8 12L16 20L24 12" stroke={stroke} strokeWidth={strokeWide} strokeLinecap="round" strokeLinejoin="round" />
       </Svg>
     ),
 

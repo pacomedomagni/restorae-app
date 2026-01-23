@@ -38,6 +38,7 @@ import {
 import { Icon } from '../components/Icon';
 import { spacing, borderRadius, layout, withAlpha } from '../theme';
 import { RootStackParamList } from '../types';
+import logger from '../services/logger';
 
 // =============================================================================
 // CONSTANTS
@@ -171,7 +172,7 @@ export function EditProfileScreen() {
       if (savedName) setName(savedName);
       if (savedEmail) setEmail(savedEmail);
     } catch (error) {
-      console.error('Error loading profile:', error);
+      logger.error('Error loading profile:', error);
     }
   };
 
@@ -187,7 +188,7 @@ export function EditProfileScreen() {
       setHasChanges(false);
       Alert.alert('Profile Updated', 'Your profile has been saved successfully.');
     } catch (error) {
-      console.error('Error saving profile:', error);
+      logger.error('Error saving profile:', error);
       Alert.alert('Error', 'Failed to save profile. Please try again.');
     } finally {
       setIsLoading(false);
@@ -227,7 +228,7 @@ export function EditProfileScreen() {
                 routes: [{ name: 'Onboarding' }],
               });
             } catch (error) {
-              console.error('Error logging out:', error);
+              logger.error('Error logging out:', error);
               Alert.alert('Error', 'Failed to log out. Please try again.');
             }
           },
@@ -274,7 +275,7 @@ export function EditProfileScreen() {
                         routes: [{ name: 'Onboarding' }],
                       });
                     } catch (error) {
-                      console.error('Error deleting account:', error);
+                      logger.error('Error deleting account:', error);
                       Alert.alert('Error', 'Failed to delete account. Please try again.');
                     } finally {
                       setIsLoading(false);

@@ -10,6 +10,7 @@ import NetInfo from '@react-native-community/netinfo';
 import api from '../services/api';
 import { syncQueue, SyncOperation } from '../services/syncQueue';
 import { MoodType } from '../types';
+import logger from '../services/logger';
 
 // =============================================================================
 // TYPES
@@ -119,15 +120,15 @@ function calculateStreak(entries: MoodEntry[]): { current: number; longest: numb
   const uniqueDays = new Set<string>();
   sorted.forEach(e => {
     const d = new Date(e.timestamp);
-    uniqueDays.add(\`\${d.getFullYear()}-\${d.getMonth()}-\${d.getDate()}\`);
+    uniqueDays.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
   });
   const daysArray = Array.from(uniqueDays).sort().reverse();
   let currentStreak = 0;
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
-  const todayKey = \`\${today.getFullYear()}-\${today.getMonth()}-\${today.getDate()}\`;
-  const yesterdayKey = \`\${yesterday.getFullYear()}-\${yesterday.getMonth()}-\${yesterday.getDate()}\`;
+  const todayKey = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+  const yesterdayKey = `${yesterday.getFullYear()}-${yesterday.getMonth()}-${yesterday.getDate()}`;
   if (daysArray[0] === todayKey || daysArray[0] === yesterdayKey) {
     currentStreak = 1;
     for (let i = 1; i < daysArray.length; i++) {
@@ -245,13 +246,13 @@ export function MoodProvider({ children }: { children: ReactNode }) {
       }
       if (lastSync) setLastSyncedAt(lastSync);
       syncWithServer();
-    } catch (error) { console.error('Failed to load mood data:', error); }
+    } catch (error) { logger.error('Failed to load mood data:', error); }
     finally { setIsLoading(false); }
   };
 
   const saveEntries = async (newEntries: MoodEntry[]) => {
     try { await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newEntries)); }
-    catch (error) { console.error('Failed to save mood entries:', error); }
+    catch (error) { logger.error('Failed to save mood entries:', error); }
   };
 
   const syncWithServer = useCallback(async () => {
@@ -270,7 +271,7 @@ export function MoodProvider({ children }: { children: ReactNode }) {
       serverEntries.forEach((se: any) => {
         const le = localByServerId.get(se.id);
         mergedEntries.push({
-          id: le?.id || \`mood_\${Date.now()}_\${Math.random().toString(36).substr(2, 9)}\`,
+          id: le?.id || `mood_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           serverId: se.id, mood: se.mood.toLowerCase() as MoodType, note: se.note,
           timestamp: se.timestamp || se.createdAt, context: mapContextFromAPI(se.context), isSynced: true,
         });
@@ -290,7 +291,7 @@ export function MoodProvider({ children }: { children: ReactNode }) {
       const now = new Date().toISOString();
       setLastSyncedAt(now);
       await AsyncStorage.setItem(LAST_SYNC_KEY, now);
-    } catch (error) { console.error('Failed to sync mood data:', error); }
+    } catch (error) { logger.error('Failed to sync mood data:', error); }
     finally { setIsSyncing(false); syncInProgress.current = false; }
   }, [isSyncing]);
 
@@ -308,7 +309,7 @@ export function MoodProvider({ children }: { children: ReactNode }) {
     let maxCount = 0;
     (Object.keys(moodDistribution) as MoodType[]).forEach(mood => { if (moodDistribution[mood] > maxCount) { maxCount = moodDistribution[mood]; mostCommonMood = mood; } });
     const uniqueDays = new Set<string>();
-    monthlyEntries.forEach(e => { const d = new Date(e.timestamp); uniqueDays.add(\`\${d.getFullYear()}-\${d.getMonth()}-\${d.getDate()}\`); });
+    monthlyEntries.forEach(e => { const d = new Date(e.timestamp); uniqueDays.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`); });
     const averageMoodsPerDay = uniqueDays.size > 0 ? monthlyEntries.length / uniqueDays.size : 0;
     const { current: currentStreak, longest: longestStreak } = calculateStreak(entries);
     const moodTrend = calculateMoodTrend(entries);
@@ -318,7 +319,7 @@ export function MoodProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const weekStart = getWeekStart(new Date());
     const uniqueDaysThisWeek = new Set<string>();
-    entries.forEach(e => { const entryDate = new Date(e.timestamp); if (entryDate >= weekStart) uniqueDaysThisWeek.add(\`\${entryDate.getFullYear()}-\${entryDate.getMonth()}-\${entryDate.getDate()}\`); });
+    entries.forEach(e => { const entryDate = new Date(e.timestamp); if (entryDate >= weekStart) uniqueDaysThisWeek.add(`${entryDate.getFullYear()}-${entryDate.getMonth()}-${entryDate.getDate()}`); });
     const completedDays = uniqueDaysThisWeek.size;
     if (completedDays !== weeklyGoal.completedDays) {
       const newGoal = { ...weeklyGoal, completedDays };
@@ -328,7 +329,7 @@ export function MoodProvider({ children }: { children: ReactNode }) {
   }, [entries, weeklyGoal.completedDays]);
 
   const addMoodEntry = useCallback(async (mood: MoodType, note?: string, context: MoodEntry['context'] = 'manual'): Promise<MoodEntry> => {
-    const localId = \`mood_\${Date.now()}_\${Math.random().toString(36).substr(2, 9)}\`;
+    const localId = `mood_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const entry: MoodEntry = { id: localId, mood, note, timestamp: new Date().toISOString(), context, isSynced: false };
     const newEntries = [entry, ...entries];
     setEntries(newEntries);
@@ -393,7 +394,7 @@ export function MoodProvider({ children }: { children: ReactNode }) {
     const newGoal = { ...weeklyGoal, targetDays: Math.min(7, Math.max(1, days)) };
     setWeeklyGoal(newGoal);
     await AsyncStorage.setItem(GOAL_KEY, JSON.stringify(newGoal));
-    try { await api.setWeeklyGoalTarget(days); } catch (error) { console.error('Failed to sync weekly goal:', error); }
+    try { await api.setWeeklyGoalTarget(days); } catch (error) { logger.error('Failed to sync weekly goal:', error); }
   }, [weeklyGoal]);
   const refreshStats = useCallback(() => { setEntries(prev => [...prev]); }, []);
 

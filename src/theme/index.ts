@@ -6,6 +6,14 @@
 export { light, dark, gradients, shadows, withAlpha } from './colors';
 export type { ColorTokens, GradientTokens, ShadowTokens } from './colors';
 
+// Theme type for createStyles pattern (legacy compatibility)
+export interface Theme {
+  colors: import('./colors').ColorTokens;
+  gradients: import('./colors').GradientTokens;
+  shadows: import('./colors').ShadowTokens;
+  isDark: boolean;
+}
+
 // Responsive utilities
 export {
   breakpoints,

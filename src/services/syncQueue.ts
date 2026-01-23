@@ -6,10 +6,18 @@
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
+import logger from './logger';
+
+// Extended operation types to support ritual-specific actions
+export type SyncOperationType = 
+  | 'create' | 'update' | 'delete'
+  | 'create_ritual' | 'update_ritual' | 'delete_ritual'
+  | 'archive_ritual' | 'unarchive_ritual' | 'toggle_favorite'
+  | 'complete_ritual';
 
 export interface SyncOperation {
   id: string;
-  type: 'create' | 'update' | 'delete';
+  type: SyncOperationType;
   entity: 'mood' | 'journal' | 'ritual' | 'completion';
   data: any;
   localId?: string;
@@ -32,7 +40,7 @@ class SyncQueueManager {
         this.queue = JSON.parse(data);
       }
     } catch (error) {
-      console.error('Failed to load sync queue:', error);
+      logger.error('Failed to load sync queue:', error);
     }
 
     // Listen for network restoration
@@ -98,7 +106,7 @@ class SyncQueueManager {
     try {
       await AsyncStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(this.queue));
     } catch (error) {
-      console.error('Failed to save sync queue:', error);
+      logger.error('Failed to save sync queue:', error);
     }
   }
 
@@ -126,14 +134,14 @@ class SyncQueueManager {
           } else {
             operation.retryCount++;
             if (operation.retryCount >= MAX_RETRIES) {
-              console.warn(`Sync operation ${operation.id} failed after ${MAX_RETRIES} retries`);
+              logger.warn(`Sync operation ${operation.id} failed after ${MAX_RETRIES} retries`);
               await this.removeFromQueue(operation.id);
             } else {
               await this.saveQueue();
             }
           }
         } catch (error) {
-          console.error(`Sync operation ${operation.id} failed:`, error);
+          logger.error(`Sync operation ${operation.id} failed:`, error);
           operation.retryCount++;
           if (operation.retryCount >= MAX_RETRIES) {
             await this.removeFromQueue(operation.id);

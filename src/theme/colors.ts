@@ -60,6 +60,13 @@ export const light = {
   moodAnxious: '#A58AB7',      // Muted violet
   moodLow: '#9A8C80',          // Stone
   moodTough: '#C97C72',        // Muted rose
+
+  // Aliases for compatibility with legacy code
+  text: '#2B2018',             // Alias for ink
+  textSecondary: '#5A4A3D',    // Alias for inkMuted
+  primary: '#1F4D3A',          // Alias for accentPrimary
+  background: '#F2E7DB',       // Alias for canvas
+  card: '#FFF7EF',             // Alias for canvasElevated
 };
 
 // =============================================================================
@@ -112,6 +119,13 @@ export const dark = {
   moodAnxious: '#BDA7CF',      // Muted violet
   moodLow: '#9B8E80',          // Stone
   moodTough: '#D79A8F',        // Muted rose
+
+  // Aliases for compatibility with legacy code
+  text: '#F7EDE3',             // Alias for ink
+  textSecondary: '#B6A596',    // Alias for inkMuted
+  primary: '#6FA08B',          // Alias for accentPrimary
+  background: '#171310',       // Alias for canvas
+  card: '#1F1A16',             // Alias for canvasElevated
 };
 
 // =============================================================================

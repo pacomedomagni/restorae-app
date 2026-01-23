@@ -49,6 +49,7 @@ import {
 import { Icon } from '../components/Icon';
 import { spacing, borderRadius, withAlpha } from '../theme';
 import { RootStackParamList } from '../types';
+import logger from '../services/logger';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -587,7 +588,7 @@ export function OnboardingScreen() {
           routes: [{ name: 'Main' }],
         });
       } catch (error) {
-        console.error('Error saving onboarding data:', error);
+        logger.error('Error saving onboarding data:', error);
         navigation.navigate('Main');
       }
     }

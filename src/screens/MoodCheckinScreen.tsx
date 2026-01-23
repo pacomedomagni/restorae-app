@@ -234,5 +234,3 @@ const styles = StyleSheet.create({
     marginBottom: spacing[3],
   },
 });
-  },
-});

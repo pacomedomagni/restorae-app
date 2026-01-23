@@ -17,6 +17,10 @@ import {
   Lora_700Bold,
 } from '@expo-google-fonts/lora';
 
+// Initialize services
+import { initializeSentry, SentryErrorBoundary } from './src/services/sentry';
+import { migrateTokensToSecureStorage } from './src/services/secureStorage';
+
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
 import { PreferencesProvider } from './src/contexts/PreferencesContext';
 import { SubscriptionProvider } from './src/contexts/SubscriptionContext';
@@ -28,6 +32,12 @@ import { RitualsProvider } from './src/contexts/RitualsContext';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { ErrorBoundary } from './src/components/ui';
+
+// Initialize Sentry for crash reporting
+initializeSentry();
+
+// Migrate tokens from AsyncStorage to SecureStore (one-time migration)
+migrateTokensToSecureStorage();
 
 function AppContent() {
   const { isDark, reduceMotion } = useTheme();

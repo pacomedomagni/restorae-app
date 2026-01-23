@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import { useAuth } from './AuthContext';
 import api, { Subscription } from '../services/api';
+import logger from '../services/logger';
 
 // =============================================================================
 // TYPES
@@ -38,6 +39,9 @@ interface SubscriptionContextType extends SubscriptionState {
   restorePurchases: () => Promise<boolean>;
   checkSubscriptionStatus: () => Promise<void>;
   syncWithServer: () => Promise<void>;
+  // Aliases for easier usage
+  upgradeToPremium: (productId?: string) => Promise<boolean>;
+  upgradeToLifetime: () => Promise<boolean>;
 }
 
 // =============================================================================
@@ -175,7 +179,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         });
       }
     } catch (error) {
-      console.error('Failed to load subscription state:', error);
+      logger.error('Failed to load subscription state:', error);
     } finally {
       setIsLoading(false);
     }
@@ -190,7 +194,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         trialEndsAt: newState.trialEndsAt?.toISOString() || null,
       }));
     } catch (error) {
-      console.error('Failed to save subscription state:', error);
+      logger.error('Failed to save subscription state:', error);
     }
   };
 
@@ -242,7 +246,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       
       await saveLocalState(newState);
     } catch (error) {
-      console.error('Failed to sync subscription with server:', error);
+      logger.error('Failed to sync subscription with server:', error);
       // On error, still check local state expiration
       await checkLocalExpiration();
     } finally {
@@ -302,7 +306,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   // Start 7-day free trial
   const startTrial = useCallback(async (): Promise<boolean> => {
     if (!isAuthenticated) {
-      console.error('Must be authenticated to start trial');
+      logger.error('Must be authenticated to start trial');
       return false;
     }
     
@@ -332,7 +336,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       
       return true;
     } catch (error) {
-      console.error('Failed to start trial:', error);
+      logger.error('Failed to start trial:', error);
       return false;
     }
   }, [isAuthenticated, state.serverSubscription, syncWithServer]);
@@ -340,7 +344,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   // Purchase subscription via in-app purchase
   const purchaseSubscription = useCallback(async (productId: string, receipt: string): Promise<boolean> => {
     if (!isAuthenticated) {
-      console.error('Must be authenticated to purchase');
+      logger.error('Must be authenticated to purchase');
       return false;
     }
     
@@ -372,7 +376,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       await saveLocalState(newState);
       return true;
     } catch (error) {
-      console.error('Failed to validate purchase:', error);
+      logger.error('Failed to validate purchase:', error);
       return false;
     } finally {
       setIsSyncing(false);
@@ -382,7 +386,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   // Purchase lifetime
   const purchaseLifetime = useCallback(async (receipt: string): Promise<boolean> => {
     if (!isAuthenticated) {
-      console.error('Must be authenticated to purchase');
+      logger.error('Must be authenticated to purchase');
       return false;
     }
     
@@ -406,7 +410,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       await saveLocalState(newState);
       return true;
     } catch (error) {
-      console.error('Failed to validate lifetime purchase:', error);
+      logger.error('Failed to validate lifetime purchase:', error);
       return false;
     } finally {
       setIsSyncing(false);
@@ -416,7 +420,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   // Restore purchases
   const restorePurchases = useCallback(async (): Promise<boolean> => {
     if (!isAuthenticated) {
-      console.error('Must be authenticated to restore purchases');
+      logger.error('Must be authenticated to restore purchases');
       return false;
     }
     
@@ -451,7 +455,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       
       return false;
     } catch (error) {
-      console.error('Failed to restore purchases:', error);
+      logger.error('Failed to restore purchases:', error);
       return false;
     } finally {
       setIsSyncing(false);
@@ -469,6 +473,18 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
   }, [isAuthenticated, syncWithServer]);
 
+  // Alias methods for easier usage
+  const upgradeToPremium = useCallback(async (productId?: string) => {
+    // In real app, this would trigger the purchase flow
+    // For now, delegate to purchaseSubscription with a default product
+    const defaultProductId = productId || 'restorae_premium_monthly';
+    return purchaseSubscription(defaultProductId, '');
+  }, [purchaseSubscription]);
+
+  const upgradeToLifetime = useCallback(async () => {
+    return purchaseLifetime('');
+  }, [purchaseLifetime]);
+
   const value = useMemo<SubscriptionContextType>(() => ({
     ...state,
     isPremium,
@@ -481,6 +497,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     restorePurchases,
     checkSubscriptionStatus,
     syncWithServer,
+    upgradeToPremium,
+    upgradeToLifetime,
   }), [
     state, 
     isPremium, 
@@ -493,6 +511,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     restorePurchases, 
     checkSubscriptionStatus,
     syncWithServer,
+    upgradeToPremium,
+    upgradeToLifetime,
   ]);
 
   if (isLoading) {

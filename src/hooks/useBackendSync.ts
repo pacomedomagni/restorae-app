@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import api from '../services/api';
+import logger from '../services/logger';
 
 interface SyncQueue {
   id: string;
@@ -49,7 +50,7 @@ export function useBackendSync() {
         syncQueueRef.current = JSON.parse(queueData);
       }
     } catch (error) {
-      console.error('Failed to load sync queue:', error);
+      logger.error('Failed to load sync queue:', error);
     }
   };
 
@@ -57,7 +58,7 @@ export function useBackendSync() {
     try {
       await AsyncStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(syncQueueRef.current));
     } catch (error) {
-      console.error('Failed to save sync queue:', error);
+      logger.error('Failed to save sync queue:', error);
     }
   };
 
@@ -296,7 +297,7 @@ export function useSubscriptionSync() {
     try {
       return await api.validatePurchase(receipt, productId);
     } catch (error) {
-      console.error('Failed to validate purchase:', error);
+      logger.error('Failed to validate purchase:', error);
       throw error;
     }
   }, []);
@@ -305,7 +306,7 @@ export function useSubscriptionSync() {
     try {
       return await api.restorePurchases();
     } catch (error) {
-      console.error('Failed to restore purchases:', error);
+      logger.error('Failed to restore purchases:', error);
       throw error;
     }
   }, []);

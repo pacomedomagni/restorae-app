@@ -5,6 +5,7 @@
  * Gracefully degrades if expo-local-authentication is not installed
  */
 import { useCallback, useEffect, useState } from 'react';
+import logger from '../services/logger';
 
 // Dynamic import for expo-local-authentication
 // Using any type since the package may not be installed
@@ -86,7 +87,7 @@ export function useBiometrics(): UseBiometricsReturn {
         isEnrolled: enrolled,
       });
     } catch (error) {
-      console.error('Failed to check biometrics:', error);
+      logger.error('Failed to check biometrics:', error);
       setState({
         isAvailable: false,
         biometricType: 'none',
@@ -117,7 +118,7 @@ export function useBiometrics(): UseBiometricsReturn {
 
       return result.success;
     } catch (error) {
-      console.error('Biometric authentication failed:', error);
+      logger.error('Biometric authentication failed:', error);
       return false;
     }
   }, [state.isAvailable, state.isEnrolled]);

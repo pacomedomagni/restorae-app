@@ -11,6 +11,7 @@ import { Text, Button, GlassCard, AmbientBackground, ScreenHeader } from '../com
 import { spacing, layout } from '../theme';
 import { useHaptics } from '../hooks/useHaptics';
 import { useNotifications } from '../hooks/useNotifications';
+import logger from '../services/logger';
 
 interface Reminder {
   id: string;
@@ -112,7 +113,7 @@ export function RemindersScreen() {
         }
         await notificationSuccess();
       } catch (error) {
-        console.error('Error scheduling reminder:', error);
+        logger.error('Error scheduling reminder:', error);
         Alert.alert('Error', 'Failed to schedule reminder. Please try again.');
         setLoading(false);
         return;

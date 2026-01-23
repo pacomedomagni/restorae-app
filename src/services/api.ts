@@ -1,8 +1,10 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import logger from './logger';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
+import { secureStorage, SECURE_KEYS, STORAGE_KEYS } from './secureStorage';
 
 // Types
 export interface ApiResponse<T> {
@@ -88,12 +90,7 @@ export interface Content {
   isPremium: boolean;
 }
 
-// Storage keys
-const STORAGE_KEYS = {
-  ACCESS_TOKEN: '@restorae/access_token',
-  REFRESH_TOKEN: '@restorae/refresh_token',
-  USER: '@restorae/user',
-};
+// Storage keys imported from secureStorage
 
 // API Configuration
 const API_BASE_URL = __DEV__ 
@@ -125,7 +122,7 @@ class ApiClient {
     // Request interceptor - add auth token
     this.client.interceptors.request.use(
       async (config: InternalAxiosRequestConfig) => {
-        const token = await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+        const token = await secureStorage.getItem(SECURE_KEYS.ACCESS_TOKEN);
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -170,7 +167,7 @@ class ApiClient {
 
     this.refreshPromise = (async () => {
       try {
-        const refreshToken = await AsyncStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+        const refreshToken = await secureStorage.getItem(SECURE_KEYS.REFRESH_TOKEN);
         if (!refreshToken) {
           throw new Error('No refresh token');
         }
@@ -191,18 +188,12 @@ class ApiClient {
   }
 
   async saveTokens(tokens: AuthTokens) {
-    await AsyncStorage.multiSet([
-      [STORAGE_KEYS.ACCESS_TOKEN, tokens.accessToken],
-      [STORAGE_KEYS.REFRESH_TOKEN, tokens.refreshToken],
-    ]);
+    await secureStorage.saveTokens(tokens.accessToken, tokens.refreshToken);
   }
 
   async clearTokens() {
-    await AsyncStorage.multiRemove([
-      STORAGE_KEYS.ACCESS_TOKEN,
-      STORAGE_KEYS.REFRESH_TOKEN,
-      STORAGE_KEYS.USER,
-    ]);
+    await secureStorage.clearTokens();
+    await AsyncStorage.removeItem(STORAGE_KEYS.USER);
   }
 
   async saveUser(user: User) {
@@ -215,7 +206,7 @@ class ApiClient {
   }
 
   async hasValidToken(): Promise<boolean> {
-    const token = await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+    const token = await secureStorage.getItem(SECURE_KEYS.ACCESS_TOKEN);
     return !!token;
   }
 
@@ -303,7 +294,7 @@ class ApiClient {
 
   async logout() {
     try {
-      const refreshToken = await AsyncStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+      const refreshToken = await secureStorage.getItem(SECURE_KEYS.REFRESH_TOKEN);
       if (refreshToken) {
         await this.client.post('/auth/logout', { refreshToken });
       }
@@ -390,6 +381,22 @@ class ApiClient {
   }) {
     const response = await this.client.post<MoodEntry>('/mood', data);
     return response.data;
+  }
+
+  async updateMoodEntry(id: string, data: Partial<{
+    mood: string;
+    context: string;
+    note: string;
+    energyLevel: number;
+    sleepQuality: number;
+    tags: string[];
+  }>) {
+    const response = await this.client.patch<MoodEntry>(`/mood/${id}`, data);
+    return response.data;
+  }
+
+  async deleteMoodEntry(id: string) {
+    await this.client.delete(`/mood/${id}`);
   }
 
   async getMoodStats(period: 'week' | 'month' | 'year' = 'week') {
@@ -690,12 +697,24 @@ class ApiClient {
     return response.data;
   }
 
+  async getWeeklyGoal() {
+    // Get the most recent/active weekly goal for mood tracking
+    const response = await this.client.get('/goals/weekly');
+    const goals = response.data?.goals || response.data || [];
+    return Array.isArray(goals) ? goals[0] : goals;
+  }
+
   async createWeeklyGoal(data: {
     type: string;
     target: number;
     weekStart: string;
   }) {
     const response = await this.client.post('/goals/weekly', data);
+    return response.data;
+  }
+
+  async setWeeklyGoalTarget(targetDays: number) {
+    const response = await this.client.patch('/goals/weekly/target', { targetDays });
     return response.data;
   }
 
