@@ -25,6 +25,7 @@ import { JournalProvider } from './src/contexts/JournalContext';
 import { MoodProvider } from './src/contexts/MoodContext';
 import { AppLockProvider } from './src/contexts/AppLockContext';
 import { RitualsProvider } from './src/contexts/RitualsContext';
+import { AuthProvider } from './src/contexts/AuthContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { ErrorBoundary } from './src/components/ui';
 
@@ -75,26 +76,28 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <PreferencesProvider>
-            <SubscriptionProvider>
-              <AudioProvider>
-                <JournalProvider>
-                  <MoodProvider>
-                    <RitualsProvider>
-                      <AppLockProvider>
-                        <ErrorBoundary
-                          errorTitle="Something went wrong"
-                          errorDescription="Restorae encountered an unexpected error. Please restart the app."
-                        >
-                          <AppContent />
-                        </ErrorBoundary>
-                      </AppLockProvider>
-                    </RitualsProvider>
-                  </MoodProvider>
-                </JournalProvider>
-              </AudioProvider>
-            </SubscriptionProvider>
-          </PreferencesProvider>
+          <AuthProvider>
+            <PreferencesProvider>
+              <SubscriptionProvider>
+                <AudioProvider>
+                  <JournalProvider>
+                    <MoodProvider>
+                      <RitualsProvider>
+                        <AppLockProvider>
+                          <ErrorBoundary
+                            errorTitle="Something went wrong"
+                            errorDescription="Restorae encountered an unexpected error. Please restart the app."
+                          >
+                            <AppContent />
+                          </ErrorBoundary>
+                        </AppLockProvider>
+                      </RitualsProvider>
+                    </MoodProvider>
+                  </JournalProvider>
+                </AudioProvider>
+              </SubscriptionProvider>
+            </PreferencesProvider>
+          </AuthProvider>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

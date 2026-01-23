@@ -4,6 +4,9 @@
  * Export all context providers and hooks
  */
 
+// Auth
+export { AuthProvider, useAuth } from './AuthContext';
+
 // Theme
 export { ThemeProvider, useTheme } from './ThemeContext';
 

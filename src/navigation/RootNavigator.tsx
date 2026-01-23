@@ -62,6 +62,11 @@ import { EveningRitualScreen } from '../screens/tools/EveningRitualScreen';
 import { SubscriptionScreen } from '../screens/SubscriptionScreen';
 import { PaywallScreen } from '../screens/PaywallScreen';
 
+// Auth Screens
+import LoginScreen from '../screens/LoginScreen';
+import RegisterScreen from '../screens/RegisterScreen';
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
+
 // Mood & Ritual Screens
 import MoodHistoryScreen from '../screens/MoodHistoryScreen';
 import CreateRitualScreen from '../screens/CreateRitualScreen';
@@ -72,11 +77,35 @@ import AppLockSetupScreen from '../screens/AppLockSetupScreen';
 import { DataSettingsScreen } from '../screens/DataSettingsScreen';
 import { EditProfileScreen } from '../screens/EditProfileScreen';
 
+// Auth Context
+import { useAuth } from '../contexts/AuthContext';
+
 // Icons
 import { Icon } from '../components/Icon';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+const AuthStack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator<MainTabParamList>();
+
+// =============================================================================
+// AUTH NAVIGATOR
+// =============================================================================
+function AuthNavigator() {
+  const { colors } = useTheme();
+  
+  return (
+    <AuthStack.Navigator
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: colors.background },
+      }}
+    >
+      <AuthStack.Screen name="Login" component={LoginScreen} />
+      <AuthStack.Screen name="Register" component={RegisterScreen} />
+      <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+    </AuthStack.Navigator>
+  );
+}
 
 // =============================================================================
 // ANIMATED TAB BAR BUTTON
@@ -255,6 +284,7 @@ function MainTabs() {
 
 export function RootNavigator() {
   const { colors, isDark } = useTheme();
+  const { isAuthenticated, isLoading } = useAuth();
 
   const navigationTheme = {
     dark: isDark,
@@ -273,6 +303,20 @@ export function RootNavigator() {
       heavy: { fontFamily: typography.fontFamily.sansBold, fontWeight: '800' as const },
     },
   };
+
+  // Show loading state while checking auth
+  if (isLoading) {
+    return null; // Or a splash screen component
+  }
+
+  // Show auth screens if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <NavigationContainer theme={navigationTheme}>
+        <AuthNavigator />
+      </NavigationContainer>
+    );
+  }
 
   return (
     <NavigationContainer theme={navigationTheme}>
