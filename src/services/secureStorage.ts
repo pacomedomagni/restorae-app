@@ -86,9 +86,7 @@ export const secureStorage = {
       logger.error(`Failed to retrieve encrypted item ${key}`, error);
       return null;
     }
-  }
-};
-
+  },
 
   /**
    * Remove a value from secure storage

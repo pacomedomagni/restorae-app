@@ -287,7 +287,9 @@ export function MoodProvider({ children }: { children: ReactNode }) {
           setWeeklyGoal(serverGoal);
           await AsyncStorage.setItem(GOAL_KEY, JSON.stringify(serverGoal));
         }
-      } catch (e) {}
+      } catch (goalError) {
+        logger.warn('Failed to sync weekly goal:', goalError);
+      }
       const now = new Date().toISOString();
       setLastSyncedAt(now);
       await AsyncStorage.setItem(LAST_SYNC_KEY, now);

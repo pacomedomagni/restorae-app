@@ -132,7 +132,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     });
     
     return () => unsubscribe();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, syncWithServer]);
 
   // Load local state on mount
   useEffect(() => {
@@ -144,7 +144,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     if (isAuthenticated && !isLoading) {
       syncWithServer();
     }
-  }, [isAuthenticated, isLoading]);
+  }, [isAuthenticated, isLoading, syncWithServer]);
 
   // Periodic re-validation (every hour)
   useEffect(() => {
@@ -159,7 +159,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         clearInterval(validationTimeoutRef.current);
       }
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, syncWithServer]);
 
   const loadLocalState = async () => {
     try {
