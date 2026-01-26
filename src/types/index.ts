@@ -27,6 +27,8 @@ export interface BreathingPattern {
   cycles: number;
   duration: string;
   icon?: string;
+  imageUrl?: string;
+  videoUrl?: string; // Background video loop
   category?: 'calm' | 'focus' | 'energy' | 'sleep' | 'emergency' | 'balance';
   bestFor?: string;
 }
@@ -37,6 +39,8 @@ export interface GroundingExercise {
   name: string;
   description: string;
   duration: string;
+  imageUrl?: string;
+  videoUrl?: string;
   steps: string[];
   category: 'sensory' | 'body' | 'mental';
 }

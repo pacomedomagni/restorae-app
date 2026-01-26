@@ -7,14 +7,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import { useTheme } from '../contexts/ThemeContext';
-import { Text, Button, GlassCard, AmbientBackground, ScreenHeader } from '../components/ui';
+import { Text, Button, GlassCard, AmbientBackground, VideoBackground, ScreenHeader } from '../components/ui';
 import { spacing, layout } from '../theme';
 import { useHaptics } from '../hooks/useHaptics';
 
-export function GroundingScreen() {
+export function GroundingScreen({ route }: any) {
   const { reduceMotion } = useTheme();
   const { notificationSuccess } = useHaptics();
   const [isActive, setIsActive] = useState(false);
+  
+  // Use passed videoUrl or fallback to hardcoded nature loop for "Premium Feel" demo
+  const videoUrl = route?.params?.videoUrl ?? 'https://assets.mixkit.co/videos/preview/mixkit-forest-stream-in-the-sunlight-529-large.mp4';
+
 
   const handleStart = () => {
     setIsActive(true);
@@ -27,7 +31,11 @@ export function GroundingScreen() {
 
   return (
     <View style={styles.container}>
-      <AmbientBackground />
+      {videoUrl ? (
+        <VideoBackground source={{ uri: videoUrl }} />
+      ) : (
+        <AmbientBackground />
+      )}
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.scrollContent}>
           <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(600)}>

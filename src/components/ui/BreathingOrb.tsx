@@ -51,7 +51,7 @@ export function BreathingOrb({
   onTap,
 }: BreathingOrbProps) {
   const { colors, isDark, reduceMotion } = useTheme();
-  const { impactLight } = useHaptics();
+  const { impactLight, breatheIn, breatheOut, stopHaptics } = useHaptics();
 
   // Animation values
   const orbScale = useSharedValue(0.6);
@@ -99,11 +99,13 @@ export function BreathingOrb({
         glowIntensity.value = withTiming(0.3, { duration });
         break;
       case 'inhale':
+        breatheIn(4000); // Trigger premium haptics
         orbScale.value = withTiming(1, { duration: 4000, easing: Easing.inOut(Easing.ease) });
         orbOpacity.value = withTiming(0.85, { duration: 2000 });
         glowIntensity.value = withTiming(0.7, { duration: 3000 });
         break;
       case 'hold':
+        stopHaptics();
         glowIntensity.value = withTiming(0.9, { duration: 1000 });
         // Subtle pulse during hold
         ringScale.value = withRepeat(
@@ -117,6 +119,7 @@ export function BreathingOrb({
         ringOpacity.value = withTiming(0.5, { duration: 500 });
         break;
       case 'exhale':
+        breatheOut(6000); // Trigger premium haptics
         cancelAnimation(ringScale);
         ringOpacity.value = withTiming(0, { duration: 300 });
         orbScale.value = withTiming(0.6, { duration: 6000, easing: Easing.inOut(Easing.ease) });

@@ -113,20 +113,68 @@ class SyncQueueManager {
   async processQueue(executor?: (op: SyncOperation) => Promise<{ success: boolean; serverId?: string }>) {
     if (this.isProcessing || this.queue.length === 0) return;
 
+    // Use legacy executor if provided (during migration or testing)
+    if (executor) {
+       return this.processQueueLegacy(executor);
+    }
+
     const netInfo = await NetInfo.fetch();
     if (!netInfo.isConnected || !netInfo.isInternetReachable) return;
 
     this.isProcessing = true;
 
     try {
-      // Process in order (oldest first)
+      const sortedQueue = [...this.queue].sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+      
+      const batch = sortedQueue.slice(0, 50);
+
+      try {
+        const response = await api.batchSync(batch);
+        
+        if (response.data?.results) {
+           const successIds = response.data.results
+             .filter((r: any) => r.success)
+             .map((r: any) => r.id);
+             
+           const failedIds = response.data.results
+             .filter((r: any) => !r.success)
+             .map((r: any) => r.id);
+             
+           this.queue = this.queue.filter(op => !successIds.includes(op.id));
+           
+           this.queue = this.queue.map(op => {
+             if (failedIds.includes(op.id)) {
+               return { ...op, retryCount: op.retryCount + 1 };
+             }
+             return op;
+           });
+           
+           this.queue = this.queue.filter(op => op.retryCount < MAX_RETRIES);
+           
+           await this.saveQueue();
+        }
+      } catch (error) {
+        logger.error('Batch sync failed:', error);
+      }
+
+    } catch (error) {
+      logger.error('Queue processing error:', error);
+    } finally {
+      this.isProcessing = false;
+      this.notifyListeners();
+    }
+  }
+
+  // Legacy processor for fallback
+  private async processQueueLegacy(executor: (op: SyncOperation) => Promise<{ success: boolean; serverId?: string }>) {
+      try {
       const sortedQueue = [...this.queue].sort(
         (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       );
 
       for (const operation of sortedQueue) {
-        if (!executor) break;
-
         try {
           const result = await executor(operation);
           if (result.success) {
@@ -134,24 +182,19 @@ class SyncQueueManager {
           } else {
             operation.retryCount++;
             if (operation.retryCount >= MAX_RETRIES) {
-              logger.warn(`Sync operation ${operation.id} failed after ${MAX_RETRIES} retries`);
               await this.removeFromQueue(operation.id);
             } else {
               await this.saveQueue();
             }
           }
         } catch (error) {
-          logger.error(`Sync operation ${operation.id} failed:`, error);
-          operation.retryCount++;
-          if (operation.retryCount >= MAX_RETRIES) {
-            await this.removeFromQueue(operation.id);
-          } else {
+            operation.retryCount++;
             await this.saveQueue();
-          }
         }
       }
     } finally {
       this.isProcessing = false;
+      this.notifyListeners();
     }
   }
 

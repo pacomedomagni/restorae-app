@@ -5,6 +5,7 @@
  * Uses expo-av for audio playback
  */
 import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode, useRef, useEffect } from 'react';
+import { Audio } from 'expo-av';
 import { usePreferences } from './PreferencesContext';
 import logger from '../services/logger';
 
@@ -16,8 +17,7 @@ export interface AmbientSound {
   name: string;
   icon: string;
   category: 'nature' | 'ambient' | 'music';
-  // In a real app, this would be the actual audio file path
-  audioFile?: string;
+  uri: string; // Remote URL for streaming
 }
 
 interface AudioState {
@@ -38,19 +38,17 @@ interface AudioContextType extends AudioState {
 }
 
 // =============================================================================
-// AMBIENT SOUNDS DATA
+// AMBIENT SOUNDS DATA (Premium 4K Audio)
 // =============================================================================
 export const AMBIENT_SOUNDS_DATA: AmbientSound[] = [
-  { id: 'gentle-rain', name: 'Gentle Rain', icon: '🌧️', category: 'nature' },
-  { id: 'ocean-waves', name: 'Ocean Waves', icon: '🌊', category: 'nature' },
-  { id: 'forest-morning', name: 'Forest Morning', icon: '🌲', category: 'nature' },
-  { id: 'night-crickets', name: 'Night Crickets', icon: '🦗', category: 'nature' },
-  { id: 'fireplace', name: 'Fireplace', icon: '🔥', category: 'ambient' },
-  { id: 'coffee-shop', name: 'Coffee Shop', icon: '☕', category: 'ambient' },
-  { id: 'library', name: 'Library', icon: '📚', category: 'ambient' },
-  { id: 'white-noise', name: 'White Noise', icon: '📻', category: 'ambient' },
-  { id: 'brown-noise', name: 'Brown Noise', icon: '🟤', category: 'ambient' },
-  { id: 'lo-fi-beats', name: 'Lo-Fi Beats', icon: '🎵', category: 'music' },
+  { id: 'gentle-rain', name: 'Gentle Rain', icon: '🌧️', category: 'nature', uri: 'https://assets.mixkit.co/sfx/preview/mixkit-light-rain-loop-1253.mp3' },
+  { id: 'ocean-waves', name: 'Ocean Waves', icon: '🌊', category: 'nature', uri: 'https://assets.mixkit.co/sfx/preview/mixkit-ocean-waves-loop-1196.mp3' },
+  { id: 'forest-morning', name: 'Forest Morning', icon: '🌲', category: 'nature', uri: 'https://assets.mixkit.co/sfx/preview/mixkit-forest-birds-singing-1212.mp3' },
+  { id: 'night-crickets', name: 'Night Crickets', icon: '🦗', category: 'nature', uri: 'https://assets.mixkit.co/sfx/preview/mixkit-crickets-at-night-loop-2384.mp3' },
+  { id: 'fireplace', name: 'Fireplace', icon: '🔥', category: 'ambient', uri: 'https://assets.mixkit.co/sfx/preview/mixkit-campfire-crackling-1289.mp3' },
+  { id: 'coffee-shop', name: 'Coffee Shop', icon: '☕', category: 'ambient', uri: 'https://assets.mixkit.co/sfx/preview/mixkit-busy-restaurant-ambience-1249.mp3' },
+  { id: 'white-noise', name: 'White Noise', icon: '📻', category: 'ambient', uri: 'https://assets.mixkit.co/sfx/preview/mixkit-radio-static-noise-1279.mp3' },
+  { id: 'lo-fi-beats', name: 'Lo-Fi Beats', icon: '🎵', category: 'music', uri: 'https://assets.mixkit.co/sfx/preview/mixkit-dreamy-vibes-177.mp3' },
 ];
 
 // =============================================================================
@@ -71,140 +69,171 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     isLoading: false,
   });
 
-  // In a real implementation, this would use expo-av Audio.Sound
-  const soundRef = useRef<any>(null);
+  const soundRef = useRef<Audio.Sound | null>(null);
   const fadeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Setup Audio Mode
+  useEffect(() => {
+    async function setupAudio() {
+      try {
+        await Audio.setAudioModeAsync({
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: true,
+          shouldDuckAndroid: true,
+        });
+      } catch (e) {
+        logger.error('Failed to setup audio mode', e);
+      }
+    }
+    setupAudio();
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (fadeIntervalRef.current) {
-        clearInterval(fadeIntervalRef.current);
+      if (fadeIntervalRef.current) clearInterval(fadeIntervalRef.current);
+      if (soundRef.current) {
+        soundRef.current.unloadAsync();
       }
-      // In real app: unload sound
     };
   }, []);
 
   const playSound = useCallback(async (soundId: string) => {
     if (!soundsEnabled) return;
 
+    // Don't restart if already playing
+    if (state.currentSoundId === soundId && state.isPlaying) return;
+
     setState(prev => ({ ...prev, isLoading: true }));
 
     try {
-      // In a real app, load and play the actual audio file
-      // const { sound } = await Audio.Sound.createAsync(require('./sounds/' + soundId + '.mp3'));
-      // soundRef.current = sound;
-      // await sound.playAsync();
+      // Unload previous sound
+      if (soundRef.current) {
+        await fadeOut(500); // Quick fade out current
+        await soundRef.current.unloadAsync();
+        soundRef.current = null;
+      }
 
-      // Simulate loading delay
-      await new Promise(resolve => setTimeout(resolve, 300));
+      const soundData = AMBIENT_SOUNDS_DATA.find(s => s.id === soundId);
+      if (!soundData) throw new Error(`Sound ${soundId} not found`);
 
-      setState(prev => ({
-        ...prev,
-        currentSoundId: soundId,
-        isPlaying: true,
-        isLoading: false,
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: soundData.uri },
+        { 
+          shouldPlay: true, 
+          isLooping: true, 
+          volume: 0, // Start silent for fade in
+        }
+      );
+      
+      soundRef.current = sound;
+      
+      // Update state
+      setState(prev => ({ 
+        ...prev, 
+        currentSoundId: soundId, 
+        isPlaying: true, 
+        isLoading: false 
       }));
 
-      logger.debug(`[Audio] Playing: ${soundId}`);
-    } catch (error) {
-      logger.error('[Audio] Failed to play sound:', error);
-      setState(prev => ({ ...prev, isLoading: false }));
-    }
-  }, [soundsEnabled]);
+      // Fade in to target volume
+      await sound.setVolumeAsync(0); // Ensure 0
+      
+      // Manual fade in
+      let vol = 0;
+      const targetVol = state.volume;
+      const step = targetVol / 10;
+      
+      const interval = setInterval(async () => {
+         vol += step;
+         if (vol >= targetVol) {
+           vol = targetVol;
+           clearInterval(interval);
+         }
+         if (soundRef.current) await soundRef.current.setVolumeAsync(vol);
+      }, 100);
 
-  const pauseSound = useCallback(async () => {
+    } catch (error) {
+      logger.error('Error playing sound', error);
+      setState(prev => ({ ...prev, isLoading: false, isPlaying: false }));
+    }
+  }, [soundsEnabled, state.volume, fadeOut]); // added fadeOut to dep array
+
+  // Helpers
+  const pauseSound = async () => {
+     if (soundRef.current) {
+       await soundRef.current.pauseAsync();
+       setState(prev => ({ ...prev, isPlaying: false }));
+     }
+  };
+
+  const resumeSound = async () => {
+     if (soundRef.current) {
+       await soundRef.current.playAsync();
+       setState(prev => ({ ...prev, isPlaying: true }));
+     }
+  };
+
+  const stopSound = async () => {
+    if (soundRef.current) {
+      await fadeOut(800);
+      await soundRef.current.stopAsync();
+      await soundRef.current.unloadAsync();
+      soundRef.current = null;
+      setState(prev => ({ ...prev, isPlaying: false, currentSoundId: null }));
+    }
+  };
+
+  const setVolume = async (volume: number) => {
+    setState(prev => ({ ...prev, volume }));
+    if (soundRef.current) {
+      await soundRef.current.setVolumeAsync(volume);
+    }
+  };
+
+  const fadeOut = async (duration = 1000) => {
+    if (!soundRef.current) return;
+    
+    // Simple linear fade out
     try {
-      // In real app: await soundRef.current?.pauseAsync();
-      setState(prev => ({ ...prev, isPlaying: false }));
-      logger.debug('[Audio] Paused');
-    } catch (error) {
-      logger.error('[Audio] Failed to pause:', error);
+      const startVol = (await soundRef.current.getStatusAsync() as any).volume || state.volume;
+      const steps = 10;
+      const stepTime = duration / steps;
+      const volStep = startVol / steps;
+
+      let currentVol = startVol;
+      for (let i = 0; i < steps; i++) {
+        currentVol = Math.max(0, currentVol - volStep);
+        if (soundRef.current) await soundRef.current.setVolumeAsync(currentVol);
+        await new Promise(r => setTimeout(r, stepTime));
+      }
+      if (soundRef.current) await soundRef.current.setVolumeAsync(0);
+    } catch (e) {
+      // Ignore errors during fade if unloaded
     }
-  }, []);
+  };
 
-  const resumeSound = useCallback(async () => {
-    if (!soundsEnabled || !state.currentSoundId) return;
+  const fadeIn = async (duration = 1000) => {
+    if (!soundRef.current) return;
+    // Similar to playSound logic but exposed
+    const targetVol = state.volume;
+    const steps = 10;
+    const stepTime = duration / steps;
+    const volStep = targetVol / steps;
 
-    try {
-      // In real app: await soundRef.current?.playAsync();
-      setState(prev => ({ ...prev, isPlaying: true }));
-      logger.debug('[Audio] Resumed');
-    } catch (error) {
-      logger.error('[Audio] Failed to resume:', error);
+    let currentVol = 0;
+    for (let i = 0; i < steps; i++) {
+        currentVol = Math.min(targetVol, currentVol + volStep);
+        if (soundRef.current) await soundRef.current.setVolumeAsync(currentVol);
+        await new Promise(r => setTimeout(r, stepTime));
     }
-  }, [soundsEnabled, state.currentSoundId]);
+  };
 
-  const stopSound = useCallback(async () => {
-    try {
-      // In real app: 
-      // await soundRef.current?.stopAsync();
-      // await soundRef.current?.unloadAsync();
-      // soundRef.current = null;
 
-      setState(prev => ({
-        ...prev,
-        currentSoundId: null,
-        isPlaying: false,
-      }));
-      logger.debug('[Audio] Stopped');
-    } catch (error) {
-      logger.error('[Audio] Failed to stop:', error);
     }
-  }, []);
+  };
 
-  const setVolume = useCallback((volume: number) => {
-    const clampedVolume = Math.max(0, Math.min(1, volume));
-    // In real app: soundRef.current?.setVolumeAsync(clampedVolume);
-    setState(prev => ({ ...prev, volume: clampedVolume }));
-  }, []);
-
-  const fadeOut = useCallback(async (duration = 2000) => {
-    return new Promise<void>((resolve) => {
-      const steps = 20;
-      const stepDuration = duration / steps;
-      const volumeStep = state.volume / steps;
-      let currentVolume = state.volume;
-
-      fadeIntervalRef.current = setInterval(() => {
-        currentVolume -= volumeStep;
-        if (currentVolume <= 0) {
-          clearInterval(fadeIntervalRef.current!);
-          fadeIntervalRef.current = null;
-          stopSound();
-          resolve();
-        } else {
-          setVolume(currentVolume);
-        }
-      }, stepDuration);
-    });
-  }, [state.volume, stopSound, setVolume]);
-
-  const fadeIn = useCallback(async (duration = 2000) => {
-    const targetVolume = 0.7;
-    return new Promise<void>((resolve) => {
-      const steps = 20;
-      const stepDuration = duration / steps;
-      const volumeStep = targetVolume / steps;
-      let currentVolume = 0;
-
-      setVolume(0);
-
-      fadeIntervalRef.current = setInterval(() => {
-        currentVolume += volumeStep;
-        if (currentVolume >= targetVolume) {
-          clearInterval(fadeIntervalRef.current!);
-          fadeIntervalRef.current = null;
-          setVolume(targetVolume);
-          resolve();
-        } else {
-          setVolume(currentVolume);
-        }
-      }, stepDuration);
-    });
-  }, [setVolume]);
-
-  const value = useMemo<AudioContextType>(() => ({
+  const value = useMemo(() => ({
     ...state,
     playSound,
     pauseSound,
@@ -213,7 +242,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     setVolume,
     fadeOut,
     fadeIn,
-  }), [state, playSound, pauseSound, resumeSound, stopSound, setVolume, fadeOut, fadeIn]);
+  }), [state, playSound]);
 
   return (
     <AudioContext.Provider value={value}>
@@ -232,6 +261,7 @@ export function useAudio() {
   }
   return context;
 }
+
 
 // =============================================================================
 // HELPER HOOK - For focus sessions

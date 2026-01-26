@@ -114,6 +114,13 @@ class ApiClient {
     this.setupInterceptors();
   }
 
+  /**
+   * Batch sync offline operations
+   */
+  async batchSync(operations: any[]) {
+    return this.client.post('/sync/batch', { operations });
+  }
+
   setAuthErrorHandler(handler: () => void) {
     this.onAuthError = handler;
   }
