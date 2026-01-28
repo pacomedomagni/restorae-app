@@ -11,7 +11,6 @@ import {
   TouchableOpacity,
   Switch,
   TextInput,
-  Alert,
   Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,7 +20,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAppLock, LockMethod } from '../contexts/AppLockContext';
 import { useBiometrics } from '../hooks/useBiometrics';
 import { useHaptics } from '../hooks/useHaptics';
-import { ScreenHeader, GlassCard, AmbientBackground } from '../components/ui';
+import { ScreenHeader, GlassCard, AmbientBackground, AlertModal, SwipeableModal, Button } from '../components/ui';
 import { spacing, layout } from '../theme';
 
 const PIN_LENGTH = 4;
@@ -47,29 +46,31 @@ export default function AppLockSetupScreen() {
   const [pinInput, setPinInput] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [step, setStep] = useState<'enter' | 'confirm'>('enter');
+  const [showLockMethodModal, setShowLockMethodModal] = useState(false);
+  const [showPinErrorAlert, setShowPinErrorAlert] = useState(false);
 
   const handleToggleLock = async (value: boolean) => {
     await impactLight();
     
     if (value) {
-      // Enable lock - show PIN setup
+      // Enable lock - show method selection
       if (biometricsAvailable) {
-        Alert.alert(
-          'Choose Lock Method',
-          'How would you like to secure your app?',
-          [
-            { text: 'Biometric Only', onPress: () => enableLock('biometric') },
-            { text: 'PIN Only', onPress: () => setShowPinSetup(true) },
-            { text: 'Both', onPress: () => setShowPinSetup(true) },
-            { text: 'Cancel', style: 'cancel' },
-          ]
-        );
+        setShowLockMethodModal(true);
       } else {
         setShowPinSetup(true);
       }
     } else {
       // Disable lock
       await disableLock();
+    }
+  };
+
+  const handleSelectLockMethod = async (method: 'biometric' | 'pin' | 'both') => {
+    setShowLockMethodModal(false);
+    if (method === 'biometric') {
+      await enableLock('biometric');
+    } else {
+      setShowPinSetup(true);
     }
   };
 
@@ -99,7 +100,7 @@ export default function AppLockSetupScreen() {
           setConfirmPin('');
           setStep('enter');
         } else {
-          Alert.alert('PINs Don\'t Match', 'Please try again.');
+          setShowPinErrorAlert(true);
           setPinInput('');
           setConfirmPin('');
           setStep('enter');
@@ -453,6 +454,58 @@ export default function AppLockSetupScreen() {
           <View style={{ height: layout.tabBarHeight }} />
         </View>
       </SafeAreaView>
+
+      {/* Lock Method Selection Modal */}
+      <SwipeableModal
+        visible={showLockMethodModal}
+        onClose={() => setShowLockMethodModal(false)}
+        title="Choose Lock Method"
+        subtitle="How would you like to secure your app?"
+      >
+        <View style={{ gap: spacing[3] }}>
+          <Button
+            variant="primary"
+            size="lg"
+            fullWidth
+            onPress={() => handleSelectLockMethod('biometric')}
+          >
+            {getBiometricLabel()} Only
+          </Button>
+          <Button
+            variant="secondary"
+            size="lg"
+            fullWidth
+            onPress={() => handleSelectLockMethod('pin')}
+          >
+            PIN Only
+          </Button>
+          <Button
+            variant="secondary"
+            size="lg"
+            fullWidth
+            onPress={() => handleSelectLockMethod('both')}
+          >
+            Both
+          </Button>
+          <Button
+            variant="ghost"
+            size="md"
+            fullWidth
+            onPress={() => setShowLockMethodModal(false)}
+          >
+            Cancel
+          </Button>
+        </View>
+      </SwipeableModal>
+
+      {/* PIN Mismatch Alert */}
+      <AlertModal
+        visible={showPinErrorAlert}
+        type="error"
+        title="PINs Don't Match"
+        message="Please try again."
+        onConfirm={() => setShowPinErrorAlert(false)}
+      />
     </View>
   );
 }

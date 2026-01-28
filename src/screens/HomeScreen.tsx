@@ -317,7 +317,6 @@ export function HomeScreen() {
     await new Promise(resolve => setTimeout(resolve, 500));
     setIsRefreshing(false);
   };
-  }, []);
 
   const handleMoodSelect = async (mood: MoodType) => {
     await impactMedium();

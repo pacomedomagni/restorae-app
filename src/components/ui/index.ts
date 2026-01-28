@@ -29,6 +29,7 @@ export {
 export { TabSafeScrollView, TabSafeView } from './TabSafeScrollView';
 export { ErrorBoundary, ErrorState, AsyncErrorWrapper } from './ErrorBoundary';
 export { ExitConfirmationModal } from './ExitConfirmationModal';
+export { AlertModal } from './AlertModal';
 export { SwipeableModal } from './SwipeableModal';
 export { SOSFloatingButton } from './SOSFloatingButton';
 export { CharacterCounter } from './CharacterCounter';

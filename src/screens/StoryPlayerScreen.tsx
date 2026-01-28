@@ -17,6 +17,7 @@ import {
   Image,
   StatusBar,
   ActivityIndicator,
+  BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -44,7 +45,7 @@ import { useHaptics } from '../hooks/useHaptics';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAnalytics, AnalyticsEvents } from '../services/analytics';
 import audioService, { PlaybackState } from '../services/audio';
-import { Text, GlassCard, Button } from '../components/ui';
+import { Text, GlassCard, Button, ExitConfirmationModal } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { spacing, borderRadius } from '../theme';
 import { RootStackParamList } from '../types';
@@ -214,6 +215,7 @@ export function StoryPlayerScreen() {
     sleepTimerRemaining: null,
   });
   const [showSleepTimer, setShowSleepTimer] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   // Animation values
   const pulseScale = useSharedValue(1);
@@ -258,6 +260,19 @@ export function StoryPlayerScreen() {
     }
   }, [playbackState.isPlaying, reduceMotion]);
 
+  // Handle hardware back button (Android)
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (playbackState.isPlaying) {
+        setShowExitConfirm(true);
+        return true; // Prevent default back behavior
+      }
+      return false; // Allow default back behavior if not playing
+    });
+
+    return () => backHandler.remove();
+  }, [playbackState.isPlaying]);
+
   const loadAndPlayStory = async (story: BedtimeStory) => {
     await audioService.play({
       id: story.id,
@@ -296,6 +311,16 @@ export function StoryPlayerScreen() {
       analytics.track(AnalyticsEvents.SLEEP_TIMER_SET, { minutes });
     }
     setShowSleepTimer(false);
+  };
+
+  const handleExitConfirm = async () => {
+    setShowExitConfirm(false);
+    await audioService.stop();
+    navigation.goBack();
+  };
+
+  const handleExitCancel = () => {
+    setShowExitConfirm(false);
   };
 
   const handleClose = async () => {
@@ -379,7 +404,12 @@ export function StoryPlayerScreen() {
           entering={reduceMotion ? undefined : FadeIn.duration(400)}
           style={styles.header}
         >
-          <Pressable onPress={handleClose} hitSlop={12}>
+          <Pressable 
+            onPress={handleClose} 
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Close player"
+          >
             <Icon name="chevron-down" size={28} color="#FFFFFF" />
           </Pressable>
           
@@ -387,7 +417,12 @@ export function StoryPlayerScreen() {
             SLEEP STORY
           </Text>
           
-          <Pressable onPress={() => setShowSleepTimer(true)} hitSlop={12}>
+          <Pressable 
+            onPress={() => setShowSleepTimer(true)} 
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={playbackState.sleepTimerRemaining ? `Sleep timer: ${formatTimerRemaining(playbackState.sleepTimerRemaining)} remaining` : 'Set sleep timer'}
+          >
             <View style={styles.timerButton}>
               <Icon name="moon" size={20} color="#FFFFFF" />
               {playbackState.sleepTimerRemaining && (
@@ -452,7 +487,12 @@ export function StoryPlayerScreen() {
             style={styles.controls}
           >
             {/* Skip back */}
-            <Pressable onPress={() => handleSkip(-15)} style={styles.skipButton}>
+            <Pressable 
+              onPress={() => handleSkip(-15)} 
+              style={styles.skipButton}
+              accessibilityRole="button"
+              accessibilityLabel="Skip back 15 seconds"
+            >
               <Icon name="rotate-ccw" size={24} color="rgba(255,255,255,0.8)" />
               <Text variant="labelSmall" style={{ color: 'rgba(255,255,255,0.6)' }}>
                 15
@@ -460,7 +500,13 @@ export function StoryPlayerScreen() {
             </Pressable>
 
             {/* Play/Pause */}
-            <Pressable onPress={handlePlayPause} style={styles.playButton}>
+            <Pressable 
+              onPress={handlePlayPause} 
+              style={styles.playButton}
+              accessibilityRole="button"
+              accessibilityLabel={playbackState.isPlaying ? 'Pause' : 'Play'}
+              accessibilityState={{ busy: playbackState.isLoading || playbackState.isBuffering }}
+            >
               <View style={styles.playButtonInner}>
                 {playbackState.isLoading || playbackState.isBuffering ? (
                   <View style={styles.bufferingContainer}>
@@ -480,7 +526,12 @@ export function StoryPlayerScreen() {
             </Pressable>
 
             {/* Skip forward */}
-            <Pressable onPress={() => handleSkip(15)} style={styles.skipButton}>
+            <Pressable 
+              onPress={() => handleSkip(15)} 
+              style={styles.skipButton}
+              accessibilityRole="button"
+              accessibilityLabel="Skip forward 15 seconds"
+            >
               <Icon name="rotate-cw" size={24} color="rgba(255,255,255,0.8)" />
               <Text variant="labelSmall" style={{ color: 'rgba(255,255,255,0.6)' }}>
                 15
@@ -493,7 +544,11 @@ export function StoryPlayerScreen() {
             entering={reduceMotion ? undefined : FadeInUp.delay(350).duration(500)}
             style={styles.volumeContainer}
           >
-            <Pressable onPress={() => audioService.toggleMute()}>
+            <Pressable 
+              onPress={() => audioService.toggleMute()}
+              accessibilityRole="button"
+              accessibilityLabel={playbackState.isMuted ? 'Unmute' : 'Mute'}
+            >
               <Icon
                 name={playbackState.isMuted ? 'volume-x' : 'volume-2'}
                 size={20}
@@ -510,6 +565,17 @@ export function StoryPlayerScreen() {
         currentTimer={playbackState.sleepTimerRemaining}
         onSelect={handleSleepTimer}
         onClose={() => setShowSleepTimer(false)}
+      />
+
+      {/* Exit Confirmation Modal */}
+      <ExitConfirmationModal
+        visible={showExitConfirm}
+        title="Leave story?"
+        message="The audio will stop playing. You can always come back and continue."
+        confirmText="Leave"
+        cancelText="Keep listening"
+        onConfirm={handleExitConfirm}
+        onCancel={handleExitCancel}
       />
     </View>
   );

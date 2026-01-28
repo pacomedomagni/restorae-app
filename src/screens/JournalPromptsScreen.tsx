@@ -75,7 +75,12 @@ export function JournalPromptsScreen() {
               key={item.id} 
               entering={reduceMotion ? undefined : FadeInDown.delay(100 + index * 80).duration(400)}
             >
-              <Pressable onPress={() => handlePromptSelect(item.prompt)}>
+              <Pressable 
+                onPress={() => handlePromptSelect(item.prompt)}
+                accessibilityRole="button"
+                accessibilityLabel={`${item.category} prompt: ${item.prompt}`}
+                accessibilityHint="Opens journal entry with this prompt"
+              >
                 <GlassCard variant="interactive" padding="lg">
                   <View style={styles.promptHeader}>
                     <Text style={styles.icon}>{item.icon}</Text>

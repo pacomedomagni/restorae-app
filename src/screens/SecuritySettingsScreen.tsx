@@ -5,7 +5,7 @@
  * biometric lock, and privacy controls.
  */
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, Switch, Alert } from 'react-native';
+import { View, StyleSheet, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -20,6 +20,8 @@ import {
   GlassCard,
   AmbientBackground,
   ScreenHeader,
+  AlertModal,
+  ExitConfirmationModal,
 } from '../components/ui';
 import { spacing, layout, borderRadius, withAlpha } from '../theme';
 import { RootStackParamList } from '../types';
@@ -82,68 +84,79 @@ export function SecuritySettingsScreen() {
   
   const [isUpdating, setIsUpdating] = useState(false);
 
+  // Modal state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    type: 'success' | 'error' | 'info';
+    title: string;
+    message?: string;
+  }>({ visible: false, type: 'info', title: '' });
+  const [showEnableEncryptionConfirm, setShowEnableEncryptionConfirm] = useState(false);
+  const [showDisableEncryptionConfirm, setShowDisableEncryptionConfirm] = useState(false);
+
   const handleEncryptionToggle = useCallback(async (enabled: boolean) => {
     await impactLight();
     
     if (enabled && entries.length > 0) {
-      Alert.alert(
-        'Enable Encryption',
-        `This will encrypt all ${entries.length} existing journal entries. New entries will also be encrypted automatically.\n\nEncrypted entries are stored securely on your device and cannot be read without your device credentials.`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Enable',
-            onPress: async () => {
-              setIsUpdating(true);
-              try {
-                await setEncryptionEnabled(true);
-                await notificationSuccess();
-                Alert.alert('Encryption Enabled', 'Your journal entries are now encrypted.');
-              } catch (error) {
-                Alert.alert('Error', 'Failed to enable encryption. Please try again.');
-              } finally {
-                setIsUpdating(false);
-              }
-            },
-          },
-        ]
-      );
+      setShowEnableEncryptionConfirm(true);
     } else if (!enabled) {
-      Alert.alert(
-        'Disable Encryption',
-        'Are you sure you want to disable encryption? Your journal entries will no longer be encrypted.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Disable',
-            style: 'destructive',
-            onPress: async () => {
-              setIsUpdating(true);
-              try {
-                await setEncryptionEnabled(false);
-              } catch (error) {
-                Alert.alert('Error', 'Failed to disable encryption.');
-              } finally {
-                setIsUpdating(false);
-              }
-            },
-          },
-        ]
-      );
+      setShowDisableEncryptionConfirm(true);
     } else {
       await setEncryptionEnabled(enabled);
     }
-  }, [impactLight, entries.length, setEncryptionEnabled, notificationSuccess]);
+  }, [impactLight, entries.length, setEncryptionEnabled]);
+
+  const performEnableEncryption = useCallback(async () => {
+    setShowEnableEncryptionConfirm(false);
+    setIsUpdating(true);
+    try {
+      await setEncryptionEnabled(true);
+      await notificationSuccess();
+      setAlertConfig({
+        visible: true,
+        type: 'success',
+        title: 'Encryption Enabled',
+        message: 'Your journal entries are now encrypted.',
+      });
+    } catch (error) {
+      setAlertConfig({
+        visible: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to enable encryption. Please try again.',
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  }, [setEncryptionEnabled, notificationSuccess]);
+
+  const performDisableEncryption = useCallback(async () => {
+    setShowDisableEncryptionConfirm(false);
+    setIsUpdating(true);
+    try {
+      await setEncryptionEnabled(false);
+    } catch (error) {
+      setAlertConfig({
+        visible: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to disable encryption.',
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  }, [setEncryptionEnabled]);
 
   const handleBiometricToggle = useCallback(async (enabled: boolean) => {
     await impactLight();
     
     if (enabled && !biometricsAvailable) {
-      Alert.alert(
-        'Biometrics Unavailable',
-        'Your device does not support biometric authentication or it is not set up.',
-        [{ text: 'OK' }]
-      );
+      setAlertConfig({
+        visible: true,
+        type: 'info',
+        title: 'Biometrics Unavailable',
+        message: 'Your device does not support biometric authentication or it is not set up.',
+      });
       return;
     }
     
@@ -153,7 +166,12 @@ export function SecuritySettingsScreen() {
         await notificationSuccess();
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to update biometric settings.');
+      setAlertConfig({
+        visible: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to update biometric settings.',
+      });
     }
   }, [impactLight, biometricsAvailable, setBiometricLockEnabled, notificationSuccess]);
 
@@ -274,6 +292,38 @@ export function SecuritySettingsScreen() {
           </Animated.View>
         </View>
       </SafeAreaView>
+
+      {/* Alert Modal */}
+      <AlertModal
+        visible={alertConfig.visible}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        onConfirm={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+        autoDismissMs={alertConfig.type === 'success' ? 2000 : undefined}
+      />
+
+      {/* Enable Encryption Confirmation */}
+      <ExitConfirmationModal
+        visible={showEnableEncryptionConfirm}
+        title="Enable Encryption"
+        message={`This will encrypt all ${entries.length} existing journal entries. New entries will also be encrypted automatically.\n\nEncrypted entries are stored securely on your device and cannot be read without your device credentials.`}
+        confirmText="Enable"
+        cancelText="Cancel"
+        onConfirm={performEnableEncryption}
+        onCancel={() => setShowEnableEncryptionConfirm(false)}
+      />
+
+      {/* Disable Encryption Confirmation */}
+      <ExitConfirmationModal
+        visible={showDisableEncryptionConfirm}
+        title="Disable Encryption"
+        message="Are you sure you want to disable encryption? Your journal entries will no longer be encrypted."
+        confirmText="Disable"
+        cancelText="Cancel"
+        onConfirm={performDisableEncryption}
+        onCancel={() => setShowDisableEncryptionConfirm(false)}
+      />
     </View>
   );
 }

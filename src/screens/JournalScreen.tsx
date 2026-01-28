@@ -29,6 +29,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useHaptics } from '../hooks/useHaptics';
 import { useTheme } from '../contexts/ThemeContext';
+import { useJournal, JournalEntry as JournalEntryType } from '../contexts/JournalContext';
 import {
   Text,
   GlassCard,
@@ -49,13 +50,6 @@ const PROMPT_CARD_WIDTH = SCREEN_WIDTH - layout.screenPaddingHorizontal * 2 - sp
 // =============================================================================
 // TYPES & DATA
 // =============================================================================
-interface JournalEntry {
-  id: string;
-  date: string;
-  preview: string;
-  mood?: MoodType;
-  wordCount: number;
-}
 
 interface JournalPrompt {
   id: string;
@@ -71,29 +65,34 @@ const PROMPTS: JournalPrompt[] = [
   { id: '5', text: 'Describe your ideal peaceful moment.', category: 'reflection' },
 ];
 
-const MOCK_ENTRIES: JournalEntry[] = [
-  {
-    id: '1',
-    date: 'Today, 2:30 PM',
-    preview: 'I noticed how the afternoon light filtered through the window...',
-    mood: 'calm',
-    wordCount: 156,
-  },
-  {
-    id: '2',
-    date: 'Yesterday',
-    preview: 'Had a challenging conversation but it felt like progress...',
-    mood: 'good',
-    wordCount: 243,
-  },
-  {
-    id: '3',
-    date: 'Jan 18',
-    preview: 'Starting to notice patterns in how I react to stress...',
-    mood: 'anxious',
-    wordCount: 189,
-  },
-];
+// Helper to format date for display
+const formatEntryDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) {
+    return `Today, ${date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+  } else if (diffDays === 1) {
+    return 'Yesterday';
+  } else if (diffDays < 7) {
+    return date.toLocaleDateString([], { weekday: 'long' });
+  } else {
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  }
+};
+
+// Helper to get word count from content
+const getWordCount = (content: string): number => {
+  return content.trim().split(/\s+/).filter(Boolean).length;
+};
+
+// Helper to get preview from content
+const getPreview = (content: string, maxLength: number = 100): string => {
+  if (content.length <= maxLength) return content;
+  return content.substring(0, maxLength).trim() + '...';
+};
 
 // =============================================================================
 // PROMPT CARD (Horizontal Scroll)
@@ -181,7 +180,7 @@ function PromptCard({ prompt, index, onPress }: PromptCardProps) {
 // ENTRY CARD
 // =============================================================================
 interface EntryCardProps {
-  entry: JournalEntry;
+  entry: JournalEntryType;
   index: number;
   onPress: () => void;
 }
@@ -233,6 +232,8 @@ function EntryCard({ entry, index, onPress }: EntryCardProps) {
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={handlePress}
+        accessibilityRole="button"
+        accessibilityLabel={`Journal entry from ${formatEntryDate(entry.createdAt)}${entry.mood ? `, feeling ${entry.mood}` : ''}. ${getWordCount(entry.content)} words. ${getPreview(entry.content, 50)}`}
       >
         <Animated.View style={animatedStyle}>
           <GlassCard variant="subtle" padding="md">
@@ -247,11 +248,11 @@ function EntryCard({ entry, index, onPress }: EntryCardProps) {
                   />
                 )}
                 <Text variant="labelSmall" color="inkMuted">
-                  {entry.date}
+                  {formatEntryDate(entry.createdAt)}
                 </Text>
               </View>
               <Text variant="labelSmall" color="inkFaint">
-                {entry.wordCount} words
+                {getWordCount(entry.content)} words
               </Text>
             </View>
             <Text
@@ -260,7 +261,7 @@ function EntryCard({ entry, index, onPress }: EntryCardProps) {
               numberOfLines={2}
               style={styles.entryPreview}
             >
-              {entry.preview}
+              {getPreview(entry.content)}
             </Text>
           </GlassCard>
         </Animated.View>
@@ -276,34 +277,23 @@ export function JournalScreen() {
   const { colors, reduceMotion } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { impactMedium, impactLight } = useHaptics();
+  const { entries, isLoading, syncWithServer } = useJournal();
 
-  const [entries, setEntries] = useState<JournalEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Load entries function
-  const loadEntries = async (isRefresh = false) => {
-    if (isRefresh) {
-      setIsRefreshing(true);
-      await impactLight();
-    } else {
-      setIsLoading(true);
-    }
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setEntries(MOCK_ENTRIES);
-    setIsLoading(false);
-    setIsRefreshing(false);
-  };
-
-  // Initial load
-  useEffect(() => {
-    loadEntries();
-  }, []);
+  // Get recent entries (limit to 3 for the main screen)
+  const recentEntries = entries.slice(0, 3);
 
   // Pull to refresh handler
-  const handleRefresh = () => {
-    loadEntries(true);
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await impactLight();
+    try {
+      await syncWithServer();
+    } catch (error) {
+      // Silently handle sync errors
+    }
+    setIsRefreshing(false);
   };
 
   const handleNewEntry = async () => {
@@ -315,10 +305,10 @@ export function JournalScreen() {
     navigation.navigate('JournalEntry', { mode: 'prompt', prompt: prompt.text });
   };
 
-  const handleEntryPress = (entry: JournalEntry) => {
+  const handleEntryPress = (entry: JournalEntryType) => {
     navigation.navigate('JournalEntry', { 
       mode: 'view', 
-      entry: { content: entry.preview } 
+      entryId: entry.id 
     });
   };
 
@@ -357,8 +347,10 @@ export function JournalScreen() {
               <Pressable 
                 onPress={() => navigation.navigate('JournalSearch')}
                 style={[styles.searchButton, { backgroundColor: withAlpha(colors.accentPrimary, 0.12) }]}
+                accessibilityRole="button"
+                accessibilityLabel="Search journal entries"
               >
-                <LuxeIcon name="focus" size={22} color={colors.accentPrimary} />
+                <Text style={{ fontSize: 18 }}>🔍</Text>
               </Pressable>
             </View>
           </Animated.View>
@@ -459,8 +451,8 @@ export function JournalScreen() {
                   <SkeletonJournalEntry />
                   <SkeletonJournalEntry />
                 </>
-              ) : entries.length > 0 ? (
-                entries.map((entry, index) => (
+              ) : recentEntries.length > 0 ? (
+                recentEntries.map((entry, index) => (
                   <EntryCard
                     key={entry.id}
                     entry={entry}

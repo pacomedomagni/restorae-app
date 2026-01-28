@@ -2,7 +2,7 @@
  * JournalEntryScreen - Consistent UI with encryption support
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, TextInput, Switch, Alert, Pressable, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, StyleSheet, TextInput, Switch, Pressable, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useNavigation, useRoute, RouteProp, NavigationProp } from '@react-navigation/native';
@@ -11,7 +11,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useTheme } from '../contexts/ThemeContext';
 import { useJournal } from '../contexts/JournalContext';
-import { Text, Button, GlassCard, AmbientBackground, ScreenHeader } from '../components/ui';
+import { Text, Button, GlassCard, AmbientBackground, ScreenHeader, AlertModal, ExitConfirmationModal } from '../components/ui';
 import { spacing, layout, withAlpha } from '../theme';
 import logger from '../services/logger';
 import { useHaptics } from '../hooks/useHaptics';
@@ -43,6 +43,10 @@ export function JournalEntryScreen() {
   const [encrypted, setEncrypted] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const palette = colors;
+
+  // Modal state
+  const [showSaveError, setShowSaveError] = useState(false);
+  const [showEncryptConfirm, setShowEncryptConfirm] = useState(false);
   
   // Auto-save key
   const DRAFT_KEY = '@restorae/journal_draft';
@@ -141,7 +145,7 @@ export function JournalEntryScreen() {
       }
     } catch (error) {
       logger.debug('Failed to save entry', { error: error instanceof Error ? error.message : String(error) });
-      Alert.alert('Save Failed', 'Please try again.');
+      setShowSaveError(true);
     } finally {
       setIsSaving(false);
     }
@@ -164,28 +168,21 @@ export function JournalEntryScreen() {
     await impactLight();
 
     if (!encrypted && biometricsAvailable) {
-      Alert.alert(
-        'Encrypt Entry',
-        'This entry will be secured with biometric authentication. You\'ll need to authenticate to view it later.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Encrypt',
-            onPress: async () => {
-              const success = await authenticate();
-              if (success) {
-                setEncrypted(true);
-                await notificationSuccess();
-              }
-            },
-          },
-        ]
-      );
+      setShowEncryptConfirm(true);
       return;
     }
 
     setEncrypted(!encrypted);
-  }, [encrypted, biometricsAvailable, authenticate, impactLight, notificationSuccess]);
+  }, [encrypted, biometricsAvailable, impactLight]);
+
+  const performEncryption = useCallback(async () => {
+    setShowEncryptConfirm(false);
+    const success = await authenticate();
+    if (success) {
+      setEncrypted(true);
+      await notificationSuccess();
+    }
+  }, [authenticate, notificationSuccess]);
   return (
     <View style={styles.container}>
       <AmbientBackground />
@@ -291,6 +288,27 @@ export function JournalEntryScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      {/* Save Error Alert */}
+      <AlertModal
+        visible={showSaveError}
+        type="error"
+        title="Save Failed"
+        message="Unable to save your journal entry. Please try again."
+        confirmText="OK"
+        onConfirm={() => setShowSaveError(false)}
+      />
+
+      {/* Encryption Confirmation */}
+      <ExitConfirmationModal
+        visible={showEncryptConfirm}
+        title="Enable Encryption"
+        message="This entry will be secured with biometric authentication. You'll need to verify your identity to view it later."
+        confirmText="Enable"
+        cancelText="Cancel"
+        onConfirm={performEncryption}
+        onCancel={() => setShowEncryptConfirm(false)}
+      />
     </View>
   );
 }

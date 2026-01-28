@@ -10,7 +10,6 @@ import {
   StyleSheet,
   Pressable,
   TextInput,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -34,6 +33,8 @@ import {
   GlassCard,
   AmbientBackground,
   TabSafeScrollView,
+  AlertModal,
+  ExitConfirmationModal,
 } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { spacing, borderRadius, layout, withAlpha } from '../theme';
@@ -160,6 +161,17 @@ export function EditProfileScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
+  // Modal state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    type: 'success' | 'error';
+    title: string;
+    message?: string;
+  }>({ visible: false, type: 'success', title: '' });
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showFinalDeleteConfirm, setShowFinalDeleteConfirm] = useState(false);
+
   // Load saved profile data
   React.useEffect(() => {
     loadProfileData();
@@ -186,10 +198,20 @@ export function EditProfileScreen() {
       await AsyncStorage.setItem(STORAGE_KEYS.USER_NAME, name);
       await AsyncStorage.setItem(STORAGE_KEYS.USER_EMAIL, email);
       setHasChanges(false);
-      Alert.alert('Profile Updated', 'Your profile has been saved successfully.');
+      setAlertConfig({
+        visible: true,
+        type: 'success',
+        title: 'Profile Updated',
+        message: 'Your profile has been saved successfully.',
+      });
     } catch (error) {
       logger.error('Error saving profile:', error);
-      Alert.alert('Error', 'Failed to save profile. Please try again.');
+      setAlertConfig({
+        visible: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to save profile. Please try again.',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -207,88 +229,71 @@ export function EditProfileScreen() {
 
   const handleLogout = useCallback(async () => {
     await notificationError();
-    
-    Alert.alert(
-      'Log Out',
-      'Are you sure you want to log out? Your local data will be preserved.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Log Out',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // Clear session-related data but preserve user content
-              await AsyncStorage.removeItem(STORAGE_KEYS.USER_NAME);
-              await AsyncStorage.removeItem(STORAGE_KEYS.USER_EMAIL);
-              
-              // Navigate to onboarding
-              navigation.reset({
-                index: 0,
-                routes: [{ name: 'Onboarding' }],
-              });
-            } catch (error) {
-              logger.error('Error logging out:', error);
-              Alert.alert('Error', 'Failed to log out. Please try again.');
-            }
-          },
-        },
-      ]
-    );
-  }, [navigation, notificationError]);
+    setShowLogoutConfirm(true);
+  }, [notificationError]);
+
+  const performLogout = useCallback(async () => {
+    setShowLogoutConfirm(false);
+    try {
+      // Clear session-related data but preserve user content
+      await AsyncStorage.removeItem(STORAGE_KEYS.USER_NAME);
+      await AsyncStorage.removeItem(STORAGE_KEYS.USER_EMAIL);
+      
+      // Navigate to onboarding
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Onboarding' }],
+      });
+    } catch (error) {
+      logger.error('Error logging out:', error);
+      setAlertConfig({
+        visible: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to log out. Please try again.',
+      });
+    }
+  }, [navigation]);
 
   const handleDeleteAccount = useCallback(async () => {
     await notificationError();
+    setShowDeleteConfirm(true);
+  }, [notificationError]);
 
-    Alert.alert(
-      'Delete Account',
-      'This will permanently delete all your data including mood history, journal entries, and custom rituals. This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete Everything',
-          style: 'destructive',
-          onPress: () => {
-            // Second confirmation for safety
-            Alert.alert(
-              'Are you absolutely sure?',
-              'All your wellness data will be permanently erased.',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Yes, Delete All',
-                  style: 'destructive',
-                  onPress: async () => {
-                    try {
-                      setIsLoading(true);
-                      
-                      // Clear all data from contexts
-                      await clearMoodEntries?.();
-                      await clearJournalEntries?.();
-                      
-                      // Clear all AsyncStorage (includes rituals, preferences, etc.)
-                      await AsyncStorage.clear();
-                      
-                      // Navigate to onboarding
-                      navigation.reset({
-                        index: 0,
-                        routes: [{ name: 'Onboarding' }],
-                      });
-                    } catch (error) {
-                      logger.error('Error deleting account:', error);
-                      Alert.alert('Error', 'Failed to delete account. Please try again.');
-                    } finally {
-                      setIsLoading(false);
-                    }
-                  },
-                },
-              ]
-            );
-          },
-        },
-      ]
-    );
-  }, [navigation, notificationError, clearMoodEntries, clearJournalEntries]);
+  const handleFirstDeleteConfirm = useCallback(() => {
+    setShowDeleteConfirm(false);
+    setShowFinalDeleteConfirm(true);
+  }, []);
+
+  const performDeleteAccount = useCallback(async () => {
+    setShowFinalDeleteConfirm(false);
+    try {
+      setIsLoading(true);
+      
+      // Clear all data from contexts
+      await clearMoodEntries?.();
+      await clearJournalEntries?.();
+      
+      // Clear all AsyncStorage (includes rituals, preferences, etc.)
+      await AsyncStorage.clear();
+      
+      // Navigate to onboarding
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Onboarding' }],
+      });
+    } catch (error) {
+      logger.error('Error deleting account:', error);
+      setAlertConfig({
+        visible: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to delete account. Please try again.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [navigation, clearMoodEntries, clearJournalEntries]);
 
   const handleExportData = useCallback(async () => {
     await impactLight();
@@ -461,6 +466,49 @@ export function EditProfileScreen() {
           </TabSafeScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
+
+      {/* Alert Modal for success/error messages */}
+      <AlertModal
+        visible={alertConfig.visible}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        onConfirm={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+        autoDismissMs={alertConfig.type === 'success' ? 2000 : undefined}
+      />
+
+      {/* Logout Confirmation */}
+      <ExitConfirmationModal
+        visible={showLogoutConfirm}
+        title="Log Out"
+        message="Are you sure you want to log out? Your local data will be preserved."
+        confirmText="Log Out"
+        cancelText="Cancel"
+        onConfirm={performLogout}
+        onCancel={() => setShowLogoutConfirm(false)}
+      />
+
+      {/* Delete Account - First Confirmation */}
+      <ExitConfirmationModal
+        visible={showDeleteConfirm}
+        title="Delete Account"
+        message="This will permanently delete all your data including mood history, journal entries, and custom rituals. This action cannot be undone."
+        confirmText="Delete Everything"
+        cancelText="Cancel"
+        onConfirm={handleFirstDeleteConfirm}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
+
+      {/* Delete Account - Final Confirmation */}
+      <ExitConfirmationModal
+        visible={showFinalDeleteConfirm}
+        title="Are you absolutely sure?"
+        message="All your wellness data will be permanently erased."
+        confirmText="Yes, Delete All"
+        cancelText="Cancel"
+        onConfirm={performDeleteAccount}
+        onCancel={() => setShowFinalDeleteConfirm(false)}
+      />
     </View>
   );
 }

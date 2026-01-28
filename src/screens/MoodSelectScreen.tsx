@@ -52,7 +52,12 @@ export function MoodSelectScreen() {
                 entering={reduceMotion ? undefined : FadeInDown.delay(100 + index * 50).duration(400)}
                 style={styles.moodItem}
               >
-                <Pressable onPress={() => handleMoodSelect(mood.id)}>
+                <Pressable 
+                  onPress={() => handleMoodSelect(mood.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${mood.label} mood`}
+                  accessibilityHint="Selects this mood and continues to check-in"
+                >
                   <GlassCard variant="interactive" padding="md">
                     <View style={styles.moodContent}>
                       <Text style={styles.moodEmoji}>{mood.emoji}</Text>

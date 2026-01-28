@@ -10,7 +10,6 @@ import {
   ScrollView,
   TextInput,
   Pressable,
-  Alert,
 } from 'react-native';
 import logger from '../services/logger';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -33,6 +32,7 @@ import {
   ScreenHeader,
   Button,
   PremiumButton,
+  AlertModal,
 } from '../components/ui';
 import { spacing, layout, borderRadius, withAlpha } from '../theme';
 import { useHaptics } from '../hooks/useHaptics';
@@ -206,6 +206,14 @@ export function CreateRitualScreen() {
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
   const [selectedIcon, setSelectedIcon] = useState(ICONS[0]);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Alert modal state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    type: 'error' | 'success';
+    title: string;
+    message?: string;
+  }>({ visible: false, type: 'error', title: '' });
 
   const totalDuration = steps.reduce((sum, s) => sum + s.duration, 0);
 
@@ -243,11 +251,21 @@ export function CreateRitualScreen() {
 
   const handleSave = useCallback(async () => {
     if (!name.trim()) {
-      Alert.alert('Name Required', 'Please give your ritual a name.');
+      setAlertConfig({
+        visible: true,
+        type: 'error',
+        title: 'Name Required',
+        message: 'Please give your ritual a name.',
+      });
       return;
     }
     if (steps.length === 0) {
-      Alert.alert('Steps Required', 'Please add at least one step to your ritual.');
+      setAlertConfig({
+        visible: true,
+        type: 'error',
+        title: 'Steps Required',
+        message: 'Please add at least one step to your ritual.',
+      });
       return;
     }
 
@@ -276,7 +294,12 @@ export function CreateRitualScreen() {
       navigation.goBack();
     } catch (error) {
       logger.error('Failed to save ritual:', error);
-      Alert.alert('Error', 'Failed to save ritual. Please try again.');
+      setAlertConfig({
+        visible: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to save ritual. Please try again.',
+      });
     } finally {
       setIsSaving(false);
     }
@@ -481,6 +504,15 @@ export function CreateRitualScreen() {
           <View style={{ height: layout.tabBarHeight }} />
         </ScrollView>
       </SafeAreaView>
+
+      {/* Alert Modal */}
+      <AlertModal
+        visible={alertConfig.visible}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        onConfirm={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+      />
     </View>
   );
 }

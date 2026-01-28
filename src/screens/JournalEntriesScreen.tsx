@@ -116,6 +116,9 @@ export function JournalEntriesScreen() {
                 >
                   <Pressable 
                     onPress={() => navigation.navigate('JournalEntry', { mode: 'view', entryId: entry.id })}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${entry.title || 'Untitled Entry'}. ${formatDate(new Date(entry.createdAt))}`}
+                    accessibilityHint="Opens this journal entry"
                   >
                     <GlassCard variant="interactive" padding="lg">
                       <View style={styles.entryHeader}>

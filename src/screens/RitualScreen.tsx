@@ -71,7 +71,13 @@ export function RitualScreen() {
               key={ritual.id} 
               entering={reduceMotion ? undefined : FadeInDown.delay(100 + index * 100).duration(400)}
             >
-              <Pressable onPress={() => toggleRitual(ritual.id)}>
+              <Pressable 
+                onPress={() => toggleRitual(ritual.id)}
+                accessibilityRole="checkbox"
+                accessibilityLabel={`${ritual.title} at ${ritual.time}`}
+                accessibilityHint={ritual.completed ? 'Tap to mark as incomplete' : 'Tap to mark as complete'}
+                accessibilityState={{ checked: ritual.completed }}
+              >
                 <GlassCard 
                   variant={ritual.completed ? 'elevated' : 'default'} 
                   padding="lg"

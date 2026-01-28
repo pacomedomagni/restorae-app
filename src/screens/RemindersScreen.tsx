@@ -2,12 +2,12 @@
  * RemindersScreen - Consistent UI
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, Switch, Pressable, Alert } from 'react-native';
+import { View, StyleSheet, Switch, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import { useTheme } from '../contexts/ThemeContext';
-import { Text, Button, GlassCard, AmbientBackground, ScreenHeader } from '../components/ui';
+import { Text, Button, GlassCard, AmbientBackground, ScreenHeader, AlertModal } from '../components/ui';
 import { spacing, layout } from '../theme';
 import { useHaptics } from '../hooks/useHaptics';
 import { useNotifications } from '../hooks/useNotifications';
@@ -43,6 +43,12 @@ export function RemindersScreen() {
 
   const [reminders, setReminders] = useState<Reminder[]>(DEFAULT_REMINDERS);
   const [loading, setLoading] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    type: 'info' | 'error';
+    title: string;
+    message?: string;
+  }>({ visible: false, type: 'info', title: '' });
 
   // Sync with scheduled notifications on mount
   useEffect(() => {
@@ -74,11 +80,12 @@ export function RemindersScreen() {
       if (!hasPermission) {
         const granted = await requestPermission();
         if (!granted) {
-          Alert.alert(
-            'Notifications Disabled',
-            'Please enable notifications in your device settings to use reminders.',
-            [{ text: 'OK' }]
-          );
+          setAlertConfig({
+            visible: true,
+            type: 'info',
+            title: 'Notifications Disabled',
+            message: 'Please enable notifications in your device settings to use reminders.',
+          });
           setLoading(false);
           return;
         }
@@ -114,7 +121,12 @@ export function RemindersScreen() {
         await notificationSuccess();
       } catch (error) {
         logger.error('Error scheduling reminder:', error);
-        Alert.alert('Error', 'Failed to schedule reminder. Please try again.');
+        setAlertConfig({
+          visible: true,
+          type: 'error',
+          title: 'Error',
+          message: 'Failed to schedule reminder. Please try again.',
+        });
         setLoading(false);
         return;
       }
@@ -201,6 +213,15 @@ export function RemindersScreen() {
           <View style={{ height: layout.tabBarHeight }} />
         </View>
       </SafeAreaView>
+
+      {/* Alert Modal */}
+      <AlertModal
+        visible={alertConfig.visible}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        onConfirm={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+      />
     </View>
   );
 }

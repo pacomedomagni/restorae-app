@@ -4,7 +4,7 @@
  * Screen for managing user data - export, delete, and storage info
  */
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, Alert, Share, ScrollView, Pressable } from 'react-native';
+import { View, StyleSheet, Share, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
@@ -17,6 +17,8 @@ import {
   GlassCard, 
   AmbientBackground, 
   ScreenHeader,
+  AlertModal,
+  ExitConfirmationModal,
 } from '../components/ui';
 import { spacing, layout, borderRadius } from '../theme';
 
@@ -92,6 +94,16 @@ export function DataSettingsScreen() {
   const [exportingAll, setExportingAll] = useState(false);
   const [deletingJournal, setDeletingJournal] = useState(false);
   const [deletingAll, setDeletingAll] = useState(false);
+
+  // Modal state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    type: 'success' | 'error';
+    title: string;
+    message?: string;
+  }>({ visible: false, type: 'success', title: '' });
+  const [showDeleteJournalConfirm, setShowDeleteJournalConfirm] = useState(false);
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
   
   // Calculate storage usage (approximate)
   const journalCount = entries.length;
@@ -111,7 +123,12 @@ export function DataSettingsScreen() {
       });
       haptics.notificationSuccess();
     } catch (error) {
-      Alert.alert('Export Failed', 'Could not export journal entries. Please try again.');
+      setAlertConfig({
+        visible: true,
+        type: 'error',
+        title: 'Export Failed',
+        message: 'Could not export journal entries. Please try again.',
+      });
       haptics.notificationError();
     } finally {
       setExportingJournal(false);
@@ -141,7 +158,12 @@ export function DataSettingsScreen() {
       });
       haptics.notificationSuccess();
     } catch (error) {
-      Alert.alert('Export Failed', 'Could not export data. Please try again.');
+      setAlertConfig({
+        visible: true,
+        type: 'error',
+        title: 'Export Failed',
+        message: 'Could not export data. Please try again.',
+      });
       haptics.notificationError();
     } finally {
       setExportingAll(false);
@@ -151,60 +173,64 @@ export function DataSettingsScreen() {
   // Delete journal entries
   const handleDeleteJournal = useCallback(() => {
     haptics.impactMedium();
-    Alert.alert(
-      'Delete Journal Entries',
-      `Are you sure you want to delete all ${journalCount} journal entries? This action cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            setDeletingJournal(true);
-            try {
-              await clearAllEntries();
-              haptics.notificationSuccess();
-              Alert.alert('Deleted', 'All journal entries have been deleted.');
-            } catch (error) {
-              haptics.notificationError();
-              Alert.alert('Error', 'Could not delete entries. Please try again.');
-            } finally {
-              setDeletingJournal(false);
-            }
-          },
-        },
-      ]
-    );
-  }, [journalCount, clearAllEntries, haptics]);
+    setShowDeleteJournalConfirm(true);
+  }, [haptics]);
+
+  const performDeleteJournal = useCallback(async () => {
+    setShowDeleteJournalConfirm(false);
+    setDeletingJournal(true);
+    try {
+      await clearAllEntries();
+      haptics.notificationSuccess();
+      setAlertConfig({
+        visible: true,
+        type: 'success',
+        title: 'Deleted',
+        message: 'All journal entries have been deleted.',
+      });
+    } catch (error) {
+      haptics.notificationError();
+      setAlertConfig({
+        visible: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Could not delete entries. Please try again.',
+      });
+    } finally {
+      setDeletingJournal(false);
+    }
+  }, [clearAllEntries, haptics]);
   
   // Delete all data
   const handleDeleteAll = useCallback(() => {
     haptics.impactMedium();
-    Alert.alert(
-      'Delete All Data',
-      'Are you sure you want to delete ALL your data? This includes journal entries, mood history, and preferences. This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete Everything',
-          style: 'destructive',
-          onPress: async () => {
-            setDeletingAll(true);
-            try {
-              await clearAllEntries();
-              await clearMoodEntries();
-              haptics.notificationSuccess();
-              Alert.alert('Deleted', 'All your data has been deleted.');
-            } catch (error) {
-              haptics.notificationError();
-              Alert.alert('Error', 'Could not delete data. Please try again.');
-            } finally {
-              setDeletingAll(false);
-            }
-          },
-        },
-      ]
-    );
+    setShowDeleteAllConfirm(true);
+  }, [haptics]);
+
+  const performDeleteAll = useCallback(async () => {
+    setShowDeleteAllConfirm(false);
+    setDeletingAll(true);
+    try {
+      await clearAllEntries();
+      await clearMoodEntries();
+      haptics.notificationSuccess();
+      setAlertConfig({
+        visible: true,
+        type: 'success',
+        title: 'Deleted',
+        message: 'All your data has been deleted.',
+      });
+    } catch (error) {
+      haptics.notificationError();
+      setAlertConfig({
+        visible: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Could not delete data. Please try again.',
+      });
+    } finally {
+      setDeletingAll(false);
+    }
   }, [clearAllEntries, clearMoodEntries, haptics]);
 
   return (
@@ -297,6 +323,38 @@ export function DataSettingsScreen() {
           <View style={{ height: layout.tabBarHeight }} />
         </ScrollView>
       </SafeAreaView>
+
+      {/* Alert Modal */}
+      <AlertModal
+        visible={alertConfig.visible}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        onConfirm={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+        autoDismissMs={alertConfig.type === 'success' ? 2000 : undefined}
+      />
+
+      {/* Delete Journal Confirmation */}
+      <ExitConfirmationModal
+        visible={showDeleteJournalConfirm}
+        title="Delete Journal Entries"
+        message={`Are you sure you want to delete all ${journalCount} journal entries? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={performDeleteJournal}
+        onCancel={() => setShowDeleteJournalConfirm(false)}
+      />
+
+      {/* Delete All Data Confirmation */}
+      <ExitConfirmationModal
+        visible={showDeleteAllConfirm}
+        title="Delete All Data"
+        message="Are you sure you want to delete ALL your data? This includes journal entries, mood history, and preferences. This action cannot be undone."
+        confirmText="Delete Everything"
+        cancelText="Cancel"
+        onConfirm={performDeleteAll}
+        onCancel={() => setShowDeleteAllConfirm(false)}
+      />
     </View>
   );
 }

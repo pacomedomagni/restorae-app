@@ -431,7 +431,13 @@ function PersonalizationStep({
           <Text variant="labelSmall" color="inkFaint" style={styles.goalsLabel}>
             WHAT BRINGS YOU HERE?
           </Text>
-          <Pressable onPress={onSkipGoals} hitSlop={8}>
+          <Pressable 
+            onPress={onSkipGoals} 
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Skip goal selection"
+            accessibilityHint="Continue without selecting wellness goals"
+          >
             <Text variant="labelSmall" style={{ color: colors.accentPrimary }}>
               Skip for now
             </Text>
@@ -447,6 +453,10 @@ function PersonalizationStep({
               >
                 <Pressable
                   onPress={() => handleGoalPress(goal.id)}
+                  accessibilityRole="checkbox"
+                  accessibilityLabel={`${goal.label}. ${goal.description}`}
+                  accessibilityHint={isSelected ? 'Tap to deselect this goal' : 'Tap to select this goal'}
+                  accessibilityState={{ checked: isSelected }}
                   style={[
                     styles.goalCard,
                     {
@@ -663,7 +673,13 @@ export function OnboardingScreen() {
           </PremiumButton>
 
           {step > 0 && step < totalSteps - 1 && (
-            <Pressable onPress={handleSkip} style={styles.skipButton}>
+            <Pressable 
+              onPress={handleSkip} 
+              style={styles.skipButton}
+              accessibilityRole="button"
+              accessibilityLabel="Skip setup"
+              accessibilityHint="Skip remaining setup steps and go to home"
+            >
               <Text variant="labelMedium" color="inkMuted">
                 Skip setup
               </Text>
