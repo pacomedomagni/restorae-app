@@ -38,11 +38,13 @@ import {
   AmbientBackground,
   PremiumButton,
   ExitConfirmationModal,
+  AmbientSoundPicker,
 } from '../../components/ui';
 import { spacing, layout, withAlpha, borderRadius } from '../../theme';
 import { RootStackParamList } from '../../types';
 import { useHaptics } from '../../hooks/useHaptics';
 import { useSessionPersistence } from '../../hooks/useSessionPersistence';
+import { useSessionAudio } from '../../hooks/useSessionAudio';
 import { getSessionById, FOCUS_SESSIONS, AMBIENT_SOUNDS } from '../../data';
 import { navigationHelpers } from '../../services/navigationHelpers';
 
@@ -185,6 +187,10 @@ export function FocusSessionScreen() {
 
   const sessionId = route.params?.sessionId ?? 'deep-work';
   const session = getSessionById(sessionId) || FOCUS_SESSIONS[0];
+  
+  // Get time-aware recommended sound
+  const { getRecommendedSoundId } = useSessionAudio();
+  const recommendedSound = getRecommendedSoundId('focus');
 
   const [phase, setPhase] = useState<SessionPhase>('ready');
   const [isPaused, setIsPaused] = useState(false);
@@ -192,6 +198,9 @@ export function FocusSessionScreen() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [sessionStartTime] = useState<number>(Date.now());
+  const [selectedSoundId, setSelectedSoundId] = useState<string | null>(
+    session.defaultSound || recommendedSound
+  );
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const totalTime = session.duration * 60;
@@ -271,11 +280,11 @@ export function FocusSessionScreen() {
     await impactMedium();
     setPhase('focusing');
     setIsPlaying(true);
-    // Start ambient audio if session has a default sound
-    if (session.defaultSound) {
-      await playSound(session.defaultSound);
+    // Start ambient audio with selected sound
+    if (selectedSoundId) {
+      await playSound(selectedSoundId);
     }
-  }, [impactMedium, playSound, session.defaultSound]);
+  }, [impactMedium, playSound, selectedSoundId]);
 
   const handlePause = useCallback(async () => {
     await impactLight();
@@ -284,12 +293,12 @@ export function FocusSessionScreen() {
       // Pause or resume audio
       if (newPaused) {
         pauseSound();
-      } else if (session.defaultSound) {
-        playSound(session.defaultSound);
+      } else if (selectedSoundId) {
+        playSound(selectedSoundId);
       }
       return newPaused;
     });
-  }, [impactLight, pauseSound, playSound, session.defaultSound]);
+  }, [impactLight, pauseSound, playSound, selectedSoundId]);
 
   const handleClose = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -398,11 +407,19 @@ export function FocusSessionScreen() {
                   </Text>
                   <View style={styles.sessionInfo}>
                     <Text variant="labelMedium" color="inkFaint">
-                      {session.duration === 0 ? 'Open' : `${session.duration} min`}{session.defaultSound ? ` • ${session.defaultSound.replace(/-/g, ' ')}` : ''}
+                      {session.duration === 0 ? 'Open' : `${session.duration} min`}
                     </Text>
                   </View>
                 </View>
               </GlassCard>
+
+              {/* Ambient Sound Selection */}
+              <AmbientSoundPicker
+                selectedSoundId={selectedSoundId}
+                onSoundSelect={setSelectedSoundId}
+                mode="compact"
+                style={styles.soundPicker}
+              />
 
               {session.purpose && (
                 <View style={styles.techniqueContainer}>
@@ -617,6 +634,9 @@ const styles = StyleSheet.create({
   completeText: {
     marginTop: spacing[4],
     lineHeight: 24,
+  },
+  soundPicker: {
+    marginTop: spacing[4],
   },
   footer: {
     paddingHorizontal: layout.screenPaddingHorizontal,

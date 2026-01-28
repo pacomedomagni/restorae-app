@@ -8,7 +8,24 @@ export { AmbientBackground } from './AmbientBackground';
 export { MoodOrb } from './MoodOrb';
 export { BreathingOrb } from './BreathingOrb';
 export { EmptyState } from './EmptyState';
-export { Skeleton, SkeletonCard, SkeletonText, SkeletonMoodOrb, SkeletonJournalEntry, SkeletonMoodRow, SkeletonStatCard, SkeletonRitualCard } from './Skeleton';
+export { 
+  Skeleton, 
+  SkeletonCard, 
+  SkeletonText, 
+  SkeletonMoodOrb, 
+  SkeletonJournalEntry, 
+  SkeletonMoodRow, 
+  SkeletonStatCard, 
+  SkeletonRitualCard,
+  // New comprehensive skeletons
+  SkeletonMoodEntry,
+  SkeletonToolCard,
+  SkeletonActivityRings,
+  SkeletonWeeklyActivity,
+  SkeletonAchievement,
+  SkeletonStoryCard,
+  SkeletonPremiumCard,
+} from './Skeleton';
 export { TabSafeScrollView, TabSafeView } from './TabSafeScrollView';
 export { ErrorBoundary, ErrorState, AsyncErrorWrapper } from './ErrorBoundary';
 export { ExitConfirmationModal } from './ExitConfirmationModal';
@@ -41,6 +58,9 @@ export {
   StaggerChild,
   GlowPulse,
 } from './Microinteractions';
+
+// Audio components
+export { AmbientSoundPicker } from './AmbientSoundPicker';
 
 // Network status
 export { OfflineBanner, ConnectionStatus } from './OfflineBanner';

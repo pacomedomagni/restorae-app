@@ -46,6 +46,10 @@ import {
   AmbientBackground,
   ScreenHeader,
   TabSafeScrollView,
+  EmptyState,
+  SkeletonActivityRings,
+  SkeletonWeeklyActivity,
+  SkeletonAchievement,
 } from '../components/ui';
 import { spacing, borderRadius, withAlpha } from '../theme';
 import { gamification, Achievement, UserLevel, StreakData } from '../services/gamification';
@@ -371,11 +375,28 @@ function StatCard({ label, value, subtitle, icon, color, index }: StatCardProps)
 function AchievementsShowcase() {
   const { colors, reduceMotion } = useTheme();
   const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const unlocked = gamification.getAchievements();
     setAchievements(unlocked.slice(0, 6)); // Show latest 6
+    setIsLoading(false);
   }, []);
+
+  if (isLoading) {
+    return (
+      <GlassCard variant="elevated" padding="lg">
+        <Text variant="labelSmall" color="inkFaint" style={styles.cardLabel}>
+          ACHIEVEMENTS
+        </Text>
+        <View style={styles.achievementGrid}>
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <SkeletonAchievement key={i} />
+          ))}
+        </View>
+      </GlassCard>
+    );
+  }
 
   if (achievements.length === 0) {
     return (
@@ -386,12 +407,11 @@ function AchievementsShowcase() {
           <Text variant="labelSmall" color="inkFaint" style={styles.cardLabel}>
             ACHIEVEMENTS
           </Text>
-          <View style={styles.emptyAchievements}>
-            <Text style={styles.emptyIcon}>🏆</Text>
-            <Text variant="bodyMedium" color="inkMuted" style={styles.emptyText}>
-              Complete activities to unlock achievements
-            </Text>
-          </View>
+          <EmptyState
+            icon="🏆"
+            title="No achievements yet"
+            message="Complete activities to unlock achievements and track your wellness journey"
+          />
         </GlassCard>
       </Animated.View>
     );

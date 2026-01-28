@@ -36,6 +36,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useHaptics } from '../hooks/useHaptics';
+import { useTimeAwareContent } from '../hooks/useTimeAwareContent';
 import { useTheme } from '../contexts/ThemeContext';
 import {
   Text,
@@ -304,6 +305,9 @@ export function HomeScreen() {
     recommendations.initialize();
   }, [loadUserData]);
 
+  // Use time-aware content for personalization
+  const timeContent = useTimeAwareContent(userName);
+
   // Pull to refresh handler
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -313,21 +317,6 @@ export function HomeScreen() {
     await new Promise(resolve => setTimeout(resolve, 500));
     setIsRefreshing(false);
   };
-
-  // Time-based greeting
-  const getGreeting = useCallback(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
-  }, []);
-
-  // Time-based background variant
-  const getBackgroundVariant = useCallback(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'morning' as const;
-    if (hour < 17) return 'calm' as const;
-    return 'evening' as const;
   }, []);
 
   const handleMoodSelect = async (mood: MoodType) => {
@@ -396,7 +385,7 @@ export function HomeScreen() {
   return (
     <View style={styles.container}>
       {/* Living ambient background */}
-      <AmbientBackground variant={getBackgroundVariant()} intensity="normal" />
+      <AmbientBackground variant={timeContent.backgroundVariant} intensity="normal" />
 
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <TabSafeScrollView
@@ -413,11 +402,13 @@ export function HomeScreen() {
             <View style={styles.greetingRow}>
               <View>
                 <Text variant="labelSmall" color="inkFaint" style={styles.eyebrow}>
-                  RESTORAE
+                  {timeContent.emoji} RESTORAE
                 </Text>
                 <Text variant="headlineLarge" color="ink">
-                  {getGreeting()}
-                  {userName ? `, ${userName}` : ''}
+                  {timeContent.greeting}
+                </Text>
+                <Text variant="bodySmall" color="inkMuted" style={{ marginTop: 4 }}>
+                  {timeContent.message.subheadline}
                 </Text>
               </View>
             </View>

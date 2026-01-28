@@ -201,6 +201,181 @@ export function SkeletonRitualCard({ style }: SkeletonRitualCardProps) {
   );
 }
 
+// =============================================================================
+// ADDITIONAL SKELETONS FOR COMPREHENSIVE COVERAGE
+// =============================================================================
+
+/**
+ * Skeleton for mood history entries
+ */
+export function SkeletonMoodEntry() {
+  const { colors } = useTheme();
+  
+  return (
+    <View
+      style={[
+        styles.moodEntry,
+        { backgroundColor: withAlpha(colors.canvasElevated, 0.5) },
+      ]}
+    >
+      <View style={styles.moodEntryLeft}>
+        <Skeleton width={40} height={40} radius="full" />
+        <View style={styles.moodEntryText}>
+          <Skeleton width={80} height={14} />
+          <Skeleton width={60} height={12} style={styles.mt1} />
+        </View>
+      </View>
+      <Skeleton width={50} height={20} radius="md" />
+    </View>
+  );
+}
+
+/**
+ * Skeleton for tool/exercise cards
+ */
+export function SkeletonToolCard() {
+  const { colors } = useTheme();
+  
+  return (
+    <View
+      style={[
+        styles.toolCard,
+        { backgroundColor: withAlpha(colors.canvasElevated, 0.5) },
+      ]}
+    >
+      <Skeleton width={44} height={44} radius="lg" />
+      <View style={styles.toolContent}>
+        <Skeleton width="70%" height={16} />
+        <Skeleton width="50%" height={12} style={styles.mt1} />
+      </View>
+      <Skeleton width={16} height={16} radius="sm" />
+    </View>
+  );
+}
+
+/**
+ * Skeleton for progress activity rings
+ */
+export function SkeletonActivityRings() {
+  return (
+    <View style={styles.activityRingsContainer}>
+      <Skeleton width={160} height={160} radius="full" />
+      <View style={styles.ringsLegend}>
+        {[1, 2, 3].map((i) => (
+          <View key={i} style={styles.legendRow}>
+            <Skeleton width={12} height={12} radius="full" />
+            <Skeleton width={80} height={12} style={styles.ml2} />
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Skeleton for weekly activity grid
+ */
+export function SkeletonWeeklyActivity() {
+  const { colors } = useTheme();
+  
+  return (
+    <View
+      style={[
+        styles.weeklyContainer,
+        { backgroundColor: withAlpha(colors.canvasElevated, 0.5) },
+      ]}
+    >
+      <Skeleton width={120} height={16} style={styles.mb3} />
+      <View style={styles.weekDays}>
+        {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+          <View key={i} style={styles.weekDay}>
+            <Skeleton width={32} height={32} radius="md" />
+            <Skeleton width={20} height={10} radius="sm" style={styles.mt1} />
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Skeleton for achievement cards
+ */
+export function SkeletonAchievement() {
+  const { colors } = useTheme();
+  
+  return (
+    <View
+      style={[
+        styles.achievementCard,
+        { backgroundColor: withAlpha(colors.canvasElevated, 0.5) },
+      ]}
+    >
+      <Skeleton width={56} height={56} radius="full" />
+      <Skeleton width={70} height={12} radius="sm" style={styles.mt2} />
+    </View>
+  );
+}
+
+/**
+ * Skeleton for story cards
+ */
+export function SkeletonStoryCard() {
+  const { colors } = useTheme();
+  
+  return (
+    <View
+      style={[
+        styles.storyCard,
+        { backgroundColor: withAlpha(colors.canvasElevated, 0.5) },
+      ]}
+    >
+      <Skeleton width="100%" height={120} radius="lg" />
+      <View style={styles.storyContent}>
+        <Skeleton width="80%" height={16} style={styles.mt2} />
+        <Skeleton width="60%" height={12} style={styles.mt1} />
+        <View style={styles.storyMeta}>
+          <Skeleton width={60} height={10} radius="sm" />
+          <Skeleton width={40} height={10} radius="sm" />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Skeleton for subscription/premium cards
+ */
+export function SkeletonPremiumCard() {
+  const { colors } = useTheme();
+  
+  return (
+    <View
+      style={[
+        styles.premiumCard,
+        { backgroundColor: withAlpha(colors.canvasElevated, 0.5) },
+      ]}
+    >
+      <View style={styles.premiumHeader}>
+        <Skeleton width={40} height={40} radius="full" />
+        <View style={styles.premiumTitle}>
+          <Skeleton width={100} height={18} />
+          <Skeleton width={140} height={12} style={styles.mt1} />
+        </View>
+      </View>
+      <View style={styles.premiumFeatures}>
+        {[1, 2, 3].map((i) => (
+          <View key={i} style={styles.premiumFeature}>
+            <Skeleton width={20} height={20} radius="full" />
+            <Skeleton width="80%" height={14} style={styles.ml2} />
+          </View>
+        ))}
+      </View>
+      <Skeleton width="100%" height={48} radius="lg" style={styles.mt3} />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   skeleton: {},
   card: {
@@ -250,10 +425,111 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: spacing[3],
   },
+  // New skeleton styles
+  moodEntry: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: spacing[4],
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing[3],
+  },
+  moodEntryLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  moodEntryText: {
+    marginLeft: spacing[3],
+  },
+  toolCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing[4],
+    borderRadius: borderRadius.lg,
+    marginBottom: spacing[3],
+  },
+  toolContent: {
+    flex: 1,
+    marginLeft: spacing[3],
+  },
+  activityRingsContainer: {
+    alignItems: 'center',
+    padding: spacing[4],
+  },
+  ringsLegend: {
+    marginTop: spacing[4],
+  },
+  legendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing[2],
+  },
+  weeklyContainer: {
+    padding: spacing[4],
+    borderRadius: borderRadius.lg,
+  },
+  weekDays: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  weekDay: {
+    alignItems: 'center',
+  },
+  achievementCard: {
+    alignItems: 'center',
+    padding: spacing[3],
+    borderRadius: borderRadius.lg,
+    width: 90,
+  },
+  storyCard: {
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+    width: 200,
+  },
+  storyContent: {
+    padding: spacing[3],
+  },
+  storyMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: spacing[2],
+  },
+  premiumCard: {
+    padding: spacing[5],
+    borderRadius: borderRadius.xl,
+  },
+  premiumHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  premiumTitle: {
+    marginLeft: spacing[3],
+  },
+  premiumFeatures: {
+    marginTop: spacing[4],
+  },
+  premiumFeature: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing[2],
+  },
+  // Spacing utilities
   mb2: {
     marginBottom: spacing[2],
   },
+  mb3: {
+    marginBottom: spacing[3],
+  },
+  mt1: {
+    marginTop: spacing[1],
+  },
   mt2: {
     marginTop: spacing[2],
+  },
+  mt3: {
+    marginTop: spacing[3],
+  },
+  ml2: {
+    marginLeft: spacing[2],
   },
 });

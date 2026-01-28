@@ -303,14 +303,14 @@ interface StreakCelebrationProps {
 
 export function StreakCelebration({ visible, streakCount, onClose }: StreakCelebrationProps) {
   const { colors } = useTheme();
-  const { notificationSuccess } = useHaptics();
+  const { milestone } = useHaptics();
   const scale = useSharedValue(0);
   const fireScale = useSharedValue(1);
   const numberScale = useSharedValue(0);
 
   useEffect(() => {
     if (visible) {
-      notificationSuccess();
+      milestone(); // Enhanced haptic pattern for streak milestones
       
       scale.value = withSpring(1, { damping: 12, stiffness: 200 });
       numberScale.value = withDelay(200, withSpring(1, { damping: 8, stiffness: 150 }));
@@ -409,7 +409,7 @@ interface AchievementUnlockProps {
 
 export function AchievementUnlock({ visible, achievement, onClose }: AchievementUnlockProps) {
   const { colors } = useTheme();
-  const { notificationSuccess } = useHaptics();
+  const { celebration } = useHaptics();
   const containerScale = useSharedValue(0);
   const badgeRotate = useSharedValue(0);
   const shimmer = useSharedValue(0);
@@ -424,7 +424,7 @@ export function AchievementUnlock({ visible, achievement, onClose }: Achievement
 
   useEffect(() => {
     if (visible && achievement) {
-      notificationSuccess();
+      celebration(); // Full celebration haptic burst for achievement unlock
       
       containerScale.value = withSpring(1, { damping: 10, stiffness: 150 });
       
@@ -517,14 +517,14 @@ interface LevelUpProps {
 
 export function LevelUp({ visible, newLevel, onClose }: LevelUpProps) {
   const { colors } = useTheme();
-  const { notificationSuccess } = useHaptics();
+  const { celebration } = useHaptics();
   const scale = useSharedValue(0);
   const starRotate = useSharedValue(0);
   const glowPulse = useSharedValue(0);
 
   useEffect(() => {
     if (visible && newLevel) {
-      notificationSuccess();
+      celebration(); // Full celebration haptic burst for level up
       
       scale.value = withSpring(1, { damping: 8, stiffness: 120 });
       
@@ -627,14 +627,14 @@ export function SessionComplete({
   onClose,
 }: SessionCompleteProps) {
   const { colors } = useTheme();
-  const { notificationSuccess } = useHaptics();
+  const { milestone } = useHaptics();
   const scale = useSharedValue(0);
   const checkScale = useSharedValue(0);
   const statsOpacity = useSharedValue(0);
 
   useEffect(() => {
     if (visible) {
-      notificationSuccess();
+      milestone(); // Satisfying milestone haptic for session completion
       
       scale.value = withSpring(1, { damping: 12, stiffness: 180 });
       checkScale.value = withDelay(200, withSpring(1, { damping: 8, stiffness: 150 }));

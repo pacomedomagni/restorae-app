@@ -29,6 +29,10 @@ import {
   AmbientBackground,
   ScreenHeader,
   MoodOrb,
+  EmptyState,
+  SkeletonMoodEntry,
+  SkeletonWeeklyActivity,
+  SkeletonStatCard,
 } from '../components/ui';
 import { spacing, layout, borderRadius, withAlpha } from '../theme';
 import { useHaptics } from '../hooks/useHaptics';
@@ -264,6 +268,13 @@ export function MoodHistoryScreen() {
 
   const [timeFilter, setTimeFilter] = useState<'week' | 'month' | 'all'>('week');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Simulate initial data load
+  React.useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Pull-to-refresh handler
   const handleRefresh = useCallback(async () => {
@@ -415,20 +426,21 @@ export function MoodHistoryScreen() {
 
           {/* Entry List */}
           <View style={styles.entriesList}>
-            {filteredEntries.length === 0 ? (
-              <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(400)}>
-                <GlassCard variant="subtle" padding="xl">
-                  <View style={styles.emptyState}>
-                    <Text style={styles.emptyIcon}>📝</Text>
-                    <Text variant="headlineSmall" color="ink" align="center">
-                      No entries yet
-                    </Text>
-                    <Text variant="bodyMedium" color="inkMuted" align="center">
-                      Start tracking your mood to see your history here
-                    </Text>
-                  </View>
-                </GlassCard>
-              </Animated.View>
+            {isLoading ? (
+              // Loading skeletons
+              <>
+                <SkeletonMoodEntry />
+                <SkeletonMoodEntry />
+                <SkeletonMoodEntry />
+              </>
+            ) : filteredEntries.length === 0 ? (
+              <EmptyState
+                icon="journal"
+                title="No mood entries yet"
+                description="Start tracking your mood to see your emotional journey here. It only takes a moment."
+                encouragement="Your feelings matter"
+                variant="card"
+              />
             ) : (
               filteredEntries.slice(0, 20).map((entry, index) => (
                 <MoodEntryCard key={entry.id} entry={entry} index={index} />
