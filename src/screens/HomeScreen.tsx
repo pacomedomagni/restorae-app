@@ -2,14 +2,16 @@
  * HomeScreen
  * 
  * Main home experience with mood selection, quick actions,
- * and personalized greetings based on time of day.
+ * personalized recommendations, gamification, and celebrations.
  * 
- * UX Improvements:
- * - Progressive disclosure for mood selection (4 primary + expand)
- * - Improved visual hierarchy (mood selection more prominent)
- * - Reduced cognitive load for anxious users
+ * Premium UX Features:
+ * - Streak & level display (gamification)
+ * - Personalized "For You" recommendations
+ * - Progressive disclosure for mood selection
+ * - Session completion celebrations
+ * - Time-aware greetings and content
  */
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -17,7 +19,7 @@ import {
   Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Animated, {
   useSharedValue,
@@ -44,11 +46,19 @@ import {
   ScreenHeader,
   TabSafeScrollView,
   SOSFloatingButton,
+  ForYouSection,
+  StreakBanner,
+  StreakCelebration,
+  AchievementUnlock,
+  LevelUp,
+  SessionComplete,
 } from '../components/ui';
 import { LuxeIcon } from '../components/LuxeIcon';
 import { Icon } from '../components/Icon';
 import { spacing, borderRadius, layout, withAlpha } from '../theme';
 import { RootStackParamList, MoodType } from '../types';
+import { gamification, Achievement, UserLevel } from '../services/gamification';
+import { recommendations } from '../services/recommendations';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -208,12 +218,25 @@ function QuickActionCard({ action, index, onPress }: QuickActionCardProps) {
 export function HomeScreen() {
   const { colors, isDark, reduceMotion } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { impactMedium, impactLight } = useHaptics();
+  const { impactMedium, impactLight, notificationSuccess } = useHaptics();
 
   const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
   const [userName, setUserName] = useState<string>('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showAllMoods, setShowAllMoods] = useState(false);
+
+  // Celebration states
+  const [showStreakCelebration, setShowStreakCelebration] = useState(false);
+  const [celebrationStreak, setCelebrationStreak] = useState(0);
+  const [showAchievement, setShowAchievement] = useState(false);
+  const [unlockedAchievement, setUnlockedAchievement] = useState<Achievement | null>(null);
+  const [showLevelUp, setShowLevelUp] = useState(false);
+  const [newLevel, setNewLevel] = useState<UserLevel | null>(null);
+  const [showSessionComplete, setShowSessionComplete] = useState(false);
+  const [sessionXP, setSessionXP] = useState(0);
+
+  // Track if we just returned from a session
+  const lastSessionRef = useRef<string | null>(null);
 
   // Load user preferences
   const loadUserData = useCallback(async () => {
@@ -221,8 +244,64 @@ export function HomeScreen() {
     if (name) setUserName(name);
   }, []);
 
+  // Check for pending celebrations when screen focuses
+  useFocusEffect(
+    useCallback(() => {
+      const checkPendingCelebrations = async () => {
+        const pendingStreak = await AsyncStorage.getItem('@restorae:pending_streak_celebration');
+        const pendingAchievement = await AsyncStorage.getItem('@restorae:pending_achievement');
+        const pendingLevelUp = await AsyncStorage.getItem('@restorae:pending_levelup');
+        const pendingSessionXP = await AsyncStorage.getItem('@restorae:pending_session_xp');
+
+        // Show streak celebration
+        if (pendingStreak) {
+          const streakDays = parseInt(pendingStreak, 10);
+          if (streakDays > 0 && [3, 7, 14, 30, 60, 100, 365].includes(streakDays)) {
+            setCelebrationStreak(streakDays);
+            setShowStreakCelebration(true);
+            await notificationSuccess();
+          }
+          await AsyncStorage.removeItem('@restorae:pending_streak_celebration');
+        }
+
+        // Show achievement unlock
+        if (pendingAchievement) {
+          const achievement = JSON.parse(pendingAchievement) as Achievement;
+          setUnlockedAchievement(achievement);
+          setShowAchievement(true);
+          await notificationSuccess();
+          await AsyncStorage.removeItem('@restorae:pending_achievement');
+        }
+
+        // Show level up
+        if (pendingLevelUp) {
+          const level = JSON.parse(pendingLevelUp) as UserLevel;
+          setNewLevel(level);
+          setShowLevelUp(true);
+          await notificationSuccess();
+          await AsyncStorage.removeItem('@restorae:pending_levelup');
+        }
+
+        // Show session complete
+        if (pendingSessionXP) {
+          const xp = parseInt(pendingSessionXP, 10);
+          if (xp > 0) {
+            setSessionXP(xp);
+            setShowSessionComplete(true);
+          }
+          await AsyncStorage.removeItem('@restorae:pending_session_xp');
+        }
+      };
+
+      checkPendingCelebrations();
+    }, [])
+  );
+
   useEffect(() => {
     loadUserData();
+    // Initialize services
+    gamification.initialize();
+    recommendations.initialize();
   }, [loadUserData]);
 
   // Pull to refresh handler
@@ -255,6 +334,9 @@ export function HomeScreen() {
     await impactMedium();
     setSelectedMood(mood);
     
+    // Record mood for personalization learning
+    recommendations.recordMood(mood);
+    
     // Brief visual confirmation before navigation (user can see selection)
     await AsyncStorage.setItem('@restorae/last_mood', mood);
     // Allow user to see their selection before navigating
@@ -285,6 +367,27 @@ export function HomeScreen() {
   const handleSos = async () => {
     await impactMedium();
     navigation.navigate('SOSSelect');
+  };
+
+  // Handle celebration dismissals
+  const handleStreakCelebrationDismiss = () => {
+    setShowStreakCelebration(false);
+    setCelebrationStreak(0);
+  };
+
+  const handleAchievementDismiss = () => {
+    setShowAchievement(false);
+    setUnlockedAchievement(null);
+  };
+
+  const handleLevelUpDismiss = () => {
+    setShowLevelUp(false);
+    setNewLevel(null);
+  };
+
+  const handleSessionCompleteDismiss = () => {
+    setShowSessionComplete(false);
+    setSessionXP(0);
   };
 
   // Moods to display based on expansion state
@@ -319,6 +422,11 @@ export function HomeScreen() {
               </View>
             </View>
           </Animated.View>
+
+          {/* Streak & Level Banner */}
+          <View style={styles.streakBannerContainer}>
+            <StreakBanner />
+          </View>
 
           {/* Mood Selection - PRIMARY FOCUS */}
           <Animated.View
@@ -422,6 +530,9 @@ export function HomeScreen() {
             </GlassCard>
           </Animated.View>
 
+          {/* Personalized For You Section */}
+          <ForYouSection currentMood={selectedMood ?? undefined} userName={userName} />
+
           {/* Quick Actions */}
           <View style={styles.quickActionsSection}>
             <Animated.View
@@ -448,6 +559,36 @@ export function HomeScreen() {
 
       {/* Persistent SOS FAB */}
       <SOSFloatingButton />
+
+      {/* Celebration Overlays */}
+      <StreakCelebration
+        visible={showStreakCelebration}
+        streakDays={celebrationStreak}
+        onDismiss={handleStreakCelebrationDismiss}
+      />
+      
+      {unlockedAchievement && (
+        <AchievementUnlock
+          visible={showAchievement}
+          achievement={unlockedAchievement}
+          onDismiss={handleAchievementDismiss}
+        />
+      )}
+      
+      {newLevel && (
+        <LevelUp
+          visible={showLevelUp}
+          level={newLevel}
+          onDismiss={handleLevelUpDismiss}
+        />
+      )}
+      
+      <SessionComplete
+        visible={showSessionComplete}
+        xpEarned={sessionXP}
+        streakDays={gamification.getStreak().currentStreak}
+        onDismiss={handleSessionCompleteDismiss}
+      />
     </View>
   );
 }
@@ -481,6 +622,9 @@ const styles = StyleSheet.create({
   eyebrow: {
     marginBottom: spacing[1],
     letterSpacing: 2,
+  },
+  streakBannerContainer: {
+    marginBottom: spacing[4],
   },
   moodSection: {
     marginBottom: spacing[6],

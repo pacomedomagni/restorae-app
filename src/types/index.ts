@@ -150,6 +150,10 @@ export type RootStackParamList = {
   SOSSession: { presetId?: string };
   SituationalSelect: undefined;
   SituationalSession: { guideId?: string };
+  // Stories & Sleep
+  Stories: undefined;
+  StoryPlayer: { storyId: string };
+  // Settings
   Settings: undefined;
   Subscription: undefined;
   Paywall: { feature?: string; featureName?: string };
@@ -171,6 +175,7 @@ export type RootStackParamList = {
     note?: string; 
   };
   MoodHistory: undefined;
+  Progress: undefined;
   ToolsMore: undefined;
   QuickReset: undefined;
   Ritual: { type?: 'morning' | 'evening'; ritualId?: string };
@@ -187,6 +192,7 @@ export type RootStackParamList = {
 export type MainTabParamList = {
   HomeTab: undefined;
   ToolsTab: undefined;
+  StoriesTab: undefined;
   JournalTab: undefined;
   ProfileTab: undefined;
 };

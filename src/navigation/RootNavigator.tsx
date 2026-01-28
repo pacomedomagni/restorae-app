@@ -58,6 +58,13 @@ import { SituationalSessionScreen } from '../screens/tools/SituationalSessionScr
 import { MorningRitualScreen } from '../screens/tools/MorningRitualScreen';
 import { EveningRitualScreen } from '../screens/tools/EveningRitualScreen';
 
+// Stories Screens
+import { StoriesScreen } from '../screens/StoriesScreen';
+import { StoryPlayerScreen } from '../screens/StoryPlayerScreen';
+
+// Progress Screen
+import { ProgressScreen } from '../screens/ProgressScreen';
+
 // Subscription & Paywall Screens
 import { SubscriptionScreen } from '../screens/SubscriptionScreen';
 import { PaywallScreen } from '../screens/PaywallScreen';
@@ -215,10 +222,10 @@ function MainTabs() {
         tabBarActiveTintColor: colors.accentPrimary,
         tabBarInactiveTintColor: colors.inkFaint,
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontFamily: typography.fontFamily.sansMedium,
           marginTop: spacing[1],
-          letterSpacing: 0.3,
+          letterSpacing: 0.2,
         },
       }}
     >
@@ -230,7 +237,7 @@ function MainTabs() {
           tabBarAccessibilityLabel: 'Home tab - Your daily wellness hub',
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.tabIconContainer, focused && { backgroundColor: withAlpha(color, 0.12) }]}>
-              <Icon name="home" size={24} color={color} />
+              <Icon name="home" size={22} color={color} />
             </View>
           ),
         }}
@@ -244,7 +251,21 @@ function MainTabs() {
           tabBarAccessibilityLabel: 'Tools tab - Breathing, grounding, and focus exercises',
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.tabIconContainer, focused && { backgroundColor: withAlpha(color, 0.12) }]}>
-              <Icon name="tools" size={24} color={color} />
+              <Icon name="tools" size={22} color={color} />
+            </View>
+          ),
+        }}
+        listeners={{ tabPress: impactLight }}
+      />
+      <Tab.Screen
+        name="StoriesTab"
+        component={StoriesScreen}
+        options={{
+          tabBarLabel: 'Stories',
+          tabBarAccessibilityLabel: 'Stories tab - Sleep stories and soundscapes',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[styles.tabIconContainer, focused && { backgroundColor: withAlpha(color, 0.12) }]}>
+              <Icon name="stories" size={22} color={color} />
             </View>
           ),
         }}
@@ -258,7 +279,7 @@ function MainTabs() {
           tabBarAccessibilityLabel: 'Journal tab - Write and reflect',
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.tabIconContainer, focused && { backgroundColor: withAlpha(color, 0.12) }]}>
-              <Icon name="journal-tab" size={24} color={color} />
+              <Icon name="journal-tab" size={22} color={color} />
             </View>
           ),
         }}
@@ -272,7 +293,7 @@ function MainTabs() {
           tabBarAccessibilityLabel: 'Profile tab - Settings and account',
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.tabIconContainer, focused && { backgroundColor: withAlpha(color, 0.12) }]}>
-              <Icon name="profile" size={24} color={color} />
+              <Icon name="profile" size={22} color={color} />
             </View>
           ),
         }}
@@ -538,6 +559,21 @@ export function RootNavigator() {
           }} 
         />
         
+        {/* Stories & Sleep */}
+        <Stack.Screen 
+          name="Stories" 
+          component={StoriesScreen} 
+          options={{ animation: 'slide_from_right' }} 
+        />
+        <Stack.Screen 
+          name="StoryPlayer" 
+          component={StoryPlayerScreen} 
+          options={{ 
+            animation: 'slide_from_bottom',
+            presentation: 'fullScreenModal',
+          }} 
+        />
+        
         {/* Subscription & Paywall */}
         <Stack.Screen 
           name="Subscription" 
@@ -557,6 +593,13 @@ export function RootNavigator() {
         <Stack.Screen 
           name="MoodHistory" 
           component={MoodHistoryScreen} 
+          options={{ animation: 'slide_from_right' }} 
+        />
+        
+        {/* Progress Dashboard */}
+        <Stack.Screen 
+          name="Progress" 
+          component={ProgressScreen} 
           options={{ animation: 'slide_from_right' }} 
         />
         

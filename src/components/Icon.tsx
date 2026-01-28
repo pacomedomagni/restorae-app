@@ -26,6 +26,7 @@ type IconName =
   | 'tools'
   | 'journal-tab'
   | 'profile'
+  | 'stories'
   | 'back'
   | 'settings'
   | 'history'
@@ -439,6 +440,29 @@ export const Icon: React.FC<IconProps> = ({ name, size = 24, color }) => {
           strokeWidth={strokeWide}
           strokeLinecap="round"
           fill="none"
+        />
+      </Svg>
+    ),
+
+    // Stories - Moon with stars (sleep/bedtime stories)
+    stories: (
+      <Svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+        {/* Moon crescent */}
+        <Path
+          d="M22 6C17 6 12 10 12 16C12 22 17 26 22 26C22 26 18 24 18 16C18 8 22 6 22 6Z"
+          stroke={stroke}
+          strokeWidth={strokeWide}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+        {/* Stars */}
+        <Circle cx="8" cy="8" r="1.5" fill={stroke} />
+        <Circle cx="24" cy="12" r="1" fill={stroke} />
+        <Circle cx="6" cy="18" r="1" fill={stroke} />
+        <Path
+          d="M26 20L27 18L28 20L30 21L28 22L27 24L26 22L24 21L26 20Z"
+          fill={stroke}
         />
       </Svg>
     ),

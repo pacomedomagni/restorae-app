@@ -18,3 +18,26 @@ export { CharacterCounter } from './CharacterCounter';
 export { OptionalBadge } from './OptionalBadge';
 export type { MoodType } from './MoodOrb';
 export * from './VideoBackground';
+
+// Premium engagement components
+export { ForYouSection } from './ForYouSection';
+export { StreakBanner } from './StreakBanner';
+export { 
+  Confetti, 
+  ParticleBurst, 
+  StreakCelebration, 
+  AchievementUnlock, 
+  LevelUp, 
+  SessionComplete 
+} from './Celebrations';
+
+// Premium microinteractions
+export {
+  Ripple,
+  Shimmer,
+  BreathingRefreshIndicator,
+  PressScale,
+  FloatingLabel,
+  StaggerChild,
+  GlowPulse,
+} from './Microinteractions';
