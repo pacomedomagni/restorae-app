@@ -42,3 +42,7 @@ export type {
   TimeOfDay, 
   DayOfWeek 
 } from './RitualsContext';
+
+// Coach Marks (first-time user guidance)
+export { CoachMarkProvider, useCoachMarks, COACH_MARKS } from './CoachMarkContext';
+export type { CoachMarkId, CoachMark } from './CoachMarkContext';

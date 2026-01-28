@@ -36,8 +36,10 @@ import Animated, {
 } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useHaptics } from '../hooks/useHaptics';
+import { useUISounds } from '../hooks/useUISounds';
 import { useTimeAwareContent } from '../hooks/useTimeAwareContent';
 import { useTheme } from '../contexts/ThemeContext';
+import { useCoachMarks } from '../contexts/CoachMarkContext';
 import {
   Text,
   GlassCard,
@@ -53,13 +55,15 @@ import {
   AchievementUnlock,
   LevelUp,
   SessionComplete,
+  CoachMarkOverlay,
+  GestureHint,
 } from '../components/ui';
 import { LuxeIcon } from '../components/LuxeIcon';
 import { Icon } from '../components/Icon';
 import { spacing, borderRadius, layout, withAlpha } from '../theme';
 import { RootStackParamList, MoodType } from '../types';
 import { gamification, Achievement, UserLevel } from '../services/gamification';
-import { recommendations } from '../services/recommendations';
+import { recommendations } from '../services/smartRecommendations';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -220,11 +224,18 @@ export function HomeScreen() {
   const { colors, isDark, reduceMotion } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { impactMedium, impactLight, notificationSuccess } = useHaptics();
+  const { playTap, playSuccess, playTransition } = useUISounds();
+  const { shouldShowCoachMark, markAsShown, COACH_MARKS } = useCoachMarks();
 
   const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
   const [userName, setUserName] = useState<string>('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showAllMoods, setShowAllMoods] = useState(false);
+
+  // Coach mark states
+  const [showForYouCoachMark, setShowForYouCoachMark] = useState(false);
+  const [showQuickActionsCoachMark, setShowQuickActionsCoachMark] = useState(false);
+  const [showMoodCoachMark, setShowMoodCoachMark] = useState(false);
 
   // Celebration states
   const [showStreakCelebration, setShowStreakCelebration] = useState(false);
@@ -303,7 +314,20 @@ export function HomeScreen() {
     // Initialize services
     gamification.initialize();
     recommendations.initialize();
-  }, [loadUserData]);
+
+    // Check for coach marks after brief delay to let screen render
+    const timer = setTimeout(() => {
+      if (shouldShowCoachMark('home_mood_select')) {
+        setShowMoodCoachMark(true);
+      } else if (shouldShowCoachMark('home_for_you')) {
+        setShowForYouCoachMark(true);
+      } else if (shouldShowCoachMark('home_quick_actions')) {
+        setShowQuickActionsCoachMark(true);
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [loadUserData, shouldShowCoachMark]);
 
   // Use time-aware content for personalization
   const timeContent = useTimeAwareContent(userName);
@@ -320,6 +344,7 @@ export function HomeScreen() {
 
   const handleMoodSelect = async (mood: MoodType) => {
     await impactMedium();
+    playTap();
     setSelectedMood(mood);
     
     // Record mood for personalization learning
@@ -328,6 +353,7 @@ export function HomeScreen() {
     // Brief visual confirmation before navigation (user can see selection)
     await AsyncStorage.setItem('@restorae/last_mood', mood);
     // Allow user to see their selection before navigating
+    playTransition();
     setTimeout(() => {
       navigation.navigate('MoodCheckin', { mood });
     }, 400);
@@ -335,15 +361,19 @@ export function HomeScreen() {
 
   const handleToggleShowAllMoods = async () => {
     await impactLight();
+    playTap();
     setShowAllMoods(!showAllMoods);
   };
 
   const handleQuickAction = (route: keyof RootStackParamList) => {
+    playTap();
+    playTransition();
     navigation.navigate(route as any);
   };
 
   const handleStartRitual = async () => {
     await impactMedium();
+    playSuccess();
     const hour = new Date().getHours();
     if (hour < 17) {
       navigation.navigate('MorningRitual');
@@ -578,6 +608,49 @@ export function HomeScreen() {
         xpEarned={sessionXP}
         streakDays={gamification.getStreak().currentStreak}
         onDismiss={handleSessionCompleteDismiss}
+      />
+
+      {/* Coach Mark Overlays - First-time user guidance */}
+      <CoachMarkOverlay
+        visible={showMoodCoachMark}
+        coachMark={COACH_MARKS.home_mood_select}
+        onDismiss={() => {
+          markAsShown('home_mood_select');
+          setShowMoodCoachMark(false);
+          // Chain to next coach mark
+          setTimeout(() => {
+            if (shouldShowCoachMark('home_for_you')) {
+              setShowForYouCoachMark(true);
+            }
+          }, 500);
+        }}
+        position="center"
+      />
+
+      <CoachMarkOverlay
+        visible={showForYouCoachMark}
+        coachMark={COACH_MARKS.home_for_you}
+        onDismiss={() => {
+          markAsShown('home_for_you');
+          setShowForYouCoachMark(false);
+          // Chain to next coach mark
+          setTimeout(() => {
+            if (shouldShowCoachMark('home_quick_actions')) {
+              setShowQuickActionsCoachMark(true);
+            }
+          }, 500);
+        }}
+        position="center"
+      />
+
+      <CoachMarkOverlay
+        visible={showQuickActionsCoachMark}
+        coachMark={COACH_MARKS.home_quick_actions}
+        onDismiss={() => {
+          markAsShown('home_quick_actions');
+          setShowQuickActionsCoachMark(false);
+        }}
+        position="center"
       />
     </View>
   );

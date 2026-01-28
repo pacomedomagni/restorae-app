@@ -315,14 +315,14 @@ export function SubscriptionScreen() {
               <View style={styles.plansGrid}>
                 <PlanCard
                   title="Monthly"
-                  price="$4.99"
+                  price="$5.99"
                   period="month"
                   onPress={handleUpgradeMonthly}
                 />
                 
                 <PlanCard
                   title="Annual"
-                  price="$29.99"
+                  price="$35.99"
                   period="year"
                   savings="Save 50%"
                   isPopular
@@ -331,7 +331,7 @@ export function SubscriptionScreen() {
                 
                 <PlanCard
                   title="Lifetime"
-                  price="$79.99"
+                  price="$99.99"
                   period="once"
                   savings="Best value"
                   onPress={handleUpgradeLifetime}

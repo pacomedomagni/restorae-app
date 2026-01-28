@@ -44,7 +44,7 @@ import {
 import { LuxeIcon } from '../components/LuxeIcon';
 import { spacing, borderRadius, layout, withAlpha } from '../theme';
 import { gamification, Achievement, ActivityType } from '../services/gamification';
-import { recommendations } from '../services/recommendations';
+import { recommendations } from '../services/smartRecommendations';
 import { activityLogger, ActivityCategory } from '../services/activityLogger';
 import { analytics, AnalyticsEvents } from '../services/analytics';
 import { RootStackParamList, MoodType } from '../types';

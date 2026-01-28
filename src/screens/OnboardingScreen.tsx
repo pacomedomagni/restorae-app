@@ -254,15 +254,41 @@ function WelcomeStep() {
         entering={reduceMotion ? undefined : FadeInUp.delay(700).duration(500)}
         style={styles.welcomeFeatures}
       >
-        <View style={styles.featurePill}>
-          <Text variant="labelSmall" style={{ color: colors.accentPrimary }}>
-            ✨ 100+ mindful exercises
-          </Text>
+        <View style={styles.featureRow}>
+          <View style={styles.featurePill}>
+            <Text variant="labelSmall" style={{ color: colors.accentPrimary }}>
+              🧘 15+ breathing patterns
+            </Text>
+          </View>
+          <View style={styles.featurePill}>
+            <Text variant="labelSmall" style={{ color: colors.accentWarm }}>
+              🌙 Sleep stories
+            </Text>
+          </View>
         </View>
-        <View style={styles.featurePill}>
-          <Text variant="labelSmall" style={{ color: colors.accentCalm }}>
-            🔒 Completely private
-          </Text>
+        <View style={styles.featureRow}>
+          <View style={styles.featurePill}>
+            <Text variant="labelSmall" style={{ color: colors.accentCalm }}>
+              🎯 Focus sessions
+            </Text>
+          </View>
+          <View style={styles.featurePill}>
+            <Text variant="labelSmall" style={{ color: colors.accentPrimary }}>
+              ✨ For You picks
+            </Text>
+          </View>
+        </View>
+        <View style={styles.featureRow}>
+          <View style={styles.featurePill}>
+            <Text variant="labelSmall" style={{ color: colors.inkMuted }}>
+              🔒 100% private
+            </Text>
+          </View>
+          <View style={styles.featurePill}>
+            <Text variant="labelSmall" style={{ color: colors.accentWarm }}>
+              📴 Works offline
+            </Text>
+          </View>
         </View>
       </Animated.View>
     </View>
@@ -347,8 +373,8 @@ function BreathingPreviewStep() {
       >
         <GlassCard variant="subtle" padding="md">
           <Text variant="bodySmall" color="inkMuted" align="center">
-            💡 This is just a preview of what Restorae offers.{'\n'}
-            You'll find many more breathing patterns inside.
+            💡 This is just one of 15+ breathing patterns.{'\n'}
+            Plus focus timers, bedtime stories & more inside.
           </Text>
         </GlassCard>
       </Animated.View>
@@ -529,9 +555,10 @@ function ReadyStep({ name }: { name: string }) {
         style={styles.readyPromises}
       >
         {[
-          { icon: '🌿', text: 'Start with a 2-min breathing exercise' },
-          { icon: '📝', text: 'Track your mood in seconds' },
-          { icon: '✨', text: 'Discover tools that work for you' },
+          { icon: '✨', text: 'Personalized "For You" recommendations' },
+          { icon: '🔥', text: 'Build your wellness streak' },
+          { icon: '📝', text: 'Journal & track your mood' },
+          { icon: '🆘', text: 'SOS tools for tough moments' },
         ].map((item, index) => (
           <Animated.View
             key={index}
@@ -765,16 +792,20 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   welcomeFeatures: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: spacing[3],
+    alignItems: 'center',
+    gap: spacing[2],
     marginTop: spacing[8],
   },
+  featureRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing[2],
+  },
   featurePill: {
-    paddingHorizontal: spacing[4],
+    paddingHorizontal: spacing[3],
     paddingVertical: spacing[2],
     borderRadius: borderRadius.full,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
 
   // Breathing step

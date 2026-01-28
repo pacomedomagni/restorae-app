@@ -65,3 +65,35 @@ export { AmbientSoundPicker } from './AmbientSoundPicker';
 
 // Network status
 export { OfflineBanner, ConnectionStatus } from './OfflineBanner';
+
+// Coach marks & tooltips
+export { CoachMarkTooltip, CoachMarkOverlay, InlineCoachMark } from './CoachMark';
+
+// Context menu
+export { ContextMenu, useContextMenu } from './ContextMenu';
+export type { ContextMenuItem, ContextMenuProps } from './ContextMenu';
+
+// Gesture hints
+export { GestureHint } from './GestureHint';
+export type { GestureType } from './GestureHint';
+
+// Pull to refresh with breathing orb
+export { 
+  PullToRefreshScrollView, 
+  BreathingRefreshIndicator as PullToRefreshIndicator,
+  usePullToRefresh,
+} from './PullToRefresh';
+
+// Shared element transitions
+export {
+  SharedElement,
+  SharedImage,
+  SharedText,
+  SharedTransitionProvider,
+  useSharedTransition,
+  createSharedTransition,
+  sharedTransitions,
+  SharedTags,
+  createSharedTag,
+} from './SharedTransition';
+

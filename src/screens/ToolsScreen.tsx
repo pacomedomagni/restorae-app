@@ -27,13 +27,18 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { useHaptics } from '../hooks/useHaptics';
+import { useUISounds } from '../hooks/useUISounds';
 import { useTheme } from '../contexts/ThemeContext';
+import { useCoachMarks } from '../contexts/CoachMarkContext';
 import {
   Text,
   GlassCard,
   AmbientBackground,
   Button,
   TabSafeScrollView,
+  ContextMenu,
+  CoachMarkOverlay,
+  GestureHint,
 } from '../components/ui';
 import { LuxeIcon } from '../components/LuxeIcon';
 import { spacing, borderRadius, layout, withAlpha } from '../theme';
@@ -204,12 +209,14 @@ interface ToolCardProps {
   tool: Tool;
   index: number;
   onPress: () => void;
+  onLongPress?: () => void;
   compact?: boolean;
 }
 
-function ToolCard({ tool, index, onPress, compact = false }: ToolCardProps) {
+function ToolCard({ tool, index, onPress, onLongPress, compact = false }: ToolCardProps) {
   const { colors, reduceMotion } = useTheme();
-  const { impactLight } = useHaptics();
+  const { impactLight, impactMedium } = useHaptics();
+  const { playTap } = useUISounds();
   const scale = useSharedValue(1);
 
   const toneColor =
@@ -229,7 +236,15 @@ function ToolCard({ tool, index, onPress, compact = false }: ToolCardProps) {
 
   const handlePress = async () => {
     await impactLight();
+    playTap();
     onPress();
+  };
+
+  const handleLongPress = async () => {
+    if (onLongPress) {
+      await impactMedium();
+      onLongPress();
+    }
   };
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -252,9 +267,11 @@ function ToolCard({ tool, index, onPress, compact = false }: ToolCardProps) {
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={handlePress}
+        onLongPress={handleLongPress}
+        delayLongPress={400}
         accessibilityRole="button"
         accessibilityLabel={`${tool.name}. ${tool.description}. ${tool.duration}`}
-        accessibilityHint="Opens the tool details"
+        accessibilityHint="Opens the tool details. Long press for more options."
       >
         <Animated.View style={animatedStyle}>
           <GlassCard
@@ -522,7 +539,26 @@ function QuickStartCard({ item, onPress }: QuickStartCardProps) {
 export function ToolsScreen() {
   const { colors, reduceMotion } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { playTap, playTransition } = useUISounds();
+  const { shouldShowCoachMark, markAsShown, COACH_MARKS } = useCoachMarks();
+  
   const [activeCategory, setActiveCategory] = useState<ToolCategory>('all');
+  const [contextMenuTool, setContextMenuTool] = useState<Tool | null>(null);
+  const [showContextMenu, setShowContextMenu] = useState(false);
+  const [showToolsCoachMark, setShowToolsCoachMark] = useState(false);
+  const [showLongPressHint, setShowLongPressHint] = useState(false);
+
+  // Check for coach marks on mount
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      if (shouldShowCoachMark('tools_browse')) {
+        setShowToolsCoachMark(true);
+      } else if (shouldShowCoachMark('tools_long_press')) {
+        setShowLongPressHint(true);
+      }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [shouldShowCoachMark]);
 
   const featuredTool = TOOLS.find((t) => t.featured);
   const filteredTools = TOOLS.filter(
@@ -533,24 +569,37 @@ export function ToolsScreen() {
 
   const handleToolPress = useCallback(
     (tool: Tool) => {
+      playTransition();
       if (tool.routeParams) {
         navigation.navigate(tool.route as any, tool.routeParams);
       } else {
         navigation.navigate(tool.route as any);
       }
     },
-    [navigation]
+    [navigation, playTransition]
   );
+
+  const handleToolLongPress = useCallback((tool: Tool) => {
+    setContextMenuTool(tool);
+    setShowContextMenu(true);
+  }, []);
+
+  const handleContextMenuClose = useCallback(() => {
+    setShowContextMenu(false);
+    setContextMenuTool(null);
+  }, []);
 
   const handleQuickStart = useCallback(
     (item: QuickStartItem) => {
+      playTap();
+      playTransition();
       if (item.routeParams) {
         navigation.navigate(item.route as any, item.routeParams);
       } else {
         navigation.navigate(item.route as any);
       }
     },
-    [navigation]
+    [navigation, playTap, playTransition]
   );
 
   return (
@@ -638,11 +687,74 @@ export function ToolsScreen() {
                 index={index}
                 compact
                 onPress={() => handleToolPress(tool)}
+                onLongPress={() => handleToolLongPress(tool)}
               />
             ))}
           </View>
         </TabSafeScrollView>
       </SafeAreaView>
+
+      {/* Long Press Gesture Hint - shows once */}
+      <GestureHint
+        visible={showLongPressHint}
+        gesture="long-press"
+        label="Long press for options"
+        onDismiss={() => {
+          markAsShown('tools_long_press');
+          setShowLongPressHint(false);
+        }}
+        position={{ top: 350, left: '50%' }}
+      />
+
+      {/* Context Menu for Tool Actions */}
+      <ContextMenu
+        visible={showContextMenu}
+        onClose={handleContextMenuClose}
+        items={[
+          {
+            label: 'Start Now',
+            icon: 'play',
+            onPress: () => {
+              if (contextMenuTool) handleToolPress(contextMenuTool);
+            },
+          },
+          {
+            label: 'Add to Favorites',
+            icon: 'heart',
+            onPress: () => {
+              // TODO: Implement favorites
+              handleContextMenuClose();
+            },
+          },
+          {
+            label: 'Set Reminder',
+            icon: 'bell',
+            onPress: () => {
+              // TODO: Implement reminders
+              handleContextMenuClose();
+            },
+          },
+        ]}
+        title={contextMenuTool?.name}
+        subtitle={contextMenuTool?.description}
+      />
+
+      {/* Coach Mark Overlay */}
+      <CoachMarkOverlay
+        visible={showToolsCoachMark}
+        coachMark={COACH_MARKS.tools_browse}
+        onDismiss={() => {
+          markAsShown('tools_browse');
+          setShowToolsCoachMark(false);
+          // Chain to long press hint
+          setTimeout(() => {
+            if (shouldShowCoachMark('tools_long_press')) {
+              setShowLongPressHint(true);
+            }
+          }, 500);
+        }}
+        position="center"
+      />
     </View>
   );
 }

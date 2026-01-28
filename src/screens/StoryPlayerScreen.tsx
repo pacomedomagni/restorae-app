@@ -42,10 +42,12 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useKeepAwake } from 'expo-keep-awake';
 
 import { useHaptics } from '../hooks/useHaptics';
+import { useUISounds } from '../hooks/useUISounds';
 import { useTheme } from '../contexts/ThemeContext';
+import { useCoachMarks } from '../contexts/CoachMarkContext';
 import { useAnalytics, AnalyticsEvents } from '../services/analytics';
 import audioService, { PlaybackState } from '../services/audio';
-import { Text, GlassCard, Button, ExitConfirmationModal } from '../components/ui';
+import { Text, GlassCard, Button, ExitConfirmationModal, CoachMarkOverlay, GestureHint } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { spacing, borderRadius } from '../theme';
 import { RootStackParamList } from '../types';
@@ -196,6 +198,8 @@ export function StoryPlayerScreen() {
   
   const { colors, reduceMotion, isDark } = useTheme();
   const { impactMedium, impactLight } = useHaptics();
+  const { playTap, playToggle, playSuccess } = useUISounds();
+  const { shouldShowCoachMark, markAsShown, COACH_MARKS } = useCoachMarks();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'StoryPlayer'>>();
   const analytics = useAnalytics();
@@ -216,6 +220,8 @@ export function StoryPlayerScreen() {
   });
   const [showSleepTimer, setShowSleepTimer] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [showStoryCoachMark, setShowStoryCoachMark] = useState(false);
+  const [showScrubHint, setShowScrubHint] = useState(false);
 
   // Animation values
   const pulseScale = useSharedValue(1);
@@ -226,6 +232,18 @@ export function StoryPlayerScreen() {
     const unsubscribe = audioService.subscribe(setPlaybackState);
     return () => unsubscribe();
   }, []);
+
+  // Check for coach marks after loading
+  useEffect(() => {
+    if (!playbackState.isLoading && story) {
+      const timer = setTimeout(() => {
+        if (shouldShowCoachMark('stories_sleep_timer')) {
+          setShowStoryCoachMark(true);
+        }
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [playbackState.isLoading, story, shouldShowCoachMark]);
 
   // Load story on mount
   useEffect(() => {
@@ -287,11 +305,13 @@ export function StoryPlayerScreen() {
 
   const handlePlayPause = async () => {
     await impactMedium();
+    playToggle();
     await audioService.togglePlayPause();
   };
 
   const handleSkip = async (seconds: number) => {
     await impactLight();
+    playTap();
     await audioService.skip(seconds);
   };
 
@@ -300,6 +320,7 @@ export function StoryPlayerScreen() {
   };
 
   const handleSleepTimer = (minutes: number) => {
+    playTap();
     if (minutes === 0) {
       audioService.clearSleepTimer();
     } else if (minutes === -1) {
@@ -576,6 +597,35 @@ export function StoryPlayerScreen() {
         cancelText="Keep listening"
         onConfirm={handleExitConfirm}
         onCancel={handleExitCancel}
+      />
+
+      {/* Coach Mark - Sleep timer feature */}
+      <CoachMarkOverlay
+        visible={showStoryCoachMark}
+        coachMark={COACH_MARKS.stories_sleep_timer}
+        onDismiss={() => {
+          markAsShown('stories_sleep_timer');
+          setShowStoryCoachMark(false);
+          // Show scrub hint next
+          setTimeout(() => {
+            if (shouldShowCoachMark('stories_scrub')) {
+              setShowScrubHint(true);
+            }
+          }, 500);
+        }}
+        position="center"
+      />
+
+      {/* Gesture hint for scrubbing */}
+      <GestureHint
+        visible={showScrubHint}
+        gesture="swipe-left"
+        label="Drag progress bar to scrub"
+        onDismiss={() => {
+          markAsShown('stories_scrub');
+          setShowScrubHint(false);
+        }}
+        position={{ bottom: 200, left: '50%' }}
       />
     </View>
   );

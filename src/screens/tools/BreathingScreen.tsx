@@ -32,6 +32,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useTheme } from '../../contexts/ThemeContext';
+import { useCoachMarks } from '../../contexts/CoachMarkContext';
 import { 
   Text, 
   AmbientBackground,
@@ -39,11 +40,13 @@ import {
   GlassCard,
   PremiumButton,
   ExitConfirmationModal,
+  CoachMarkOverlay,
 } from '../../components/ui';
 import { Icon } from '../../components/Icon';
 import { spacing, borderRadius, layout, withAlpha } from '../../theme';
 import { RootStackParamList, BreathingPattern } from '../../types';
 import { useHaptics } from '../../hooks/useHaptics';
+import { useUISounds } from '../../hooks/useUISounds';
 import { useSessionPersistence } from '../../hooks/useSessionPersistence';
 import { getPatternById, BREATHING_PATTERNS } from '../../data';
 import { navigationHelpers } from '../../services/navigationHelpers';
@@ -65,6 +68,8 @@ export function BreathingScreen() {
   useKeepAwake();
   const { colors, reduceMotion } = useTheme();
   const { impactLight, impactMedium, notificationSuccess } = useHaptics();
+  const { playTap, playSuccess, playComplete } = useUISounds();
+  const { shouldShowCoachMark, markAsShown, COACH_MARKS } = useCoachMarks();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'Breathing'>>();
 
@@ -78,7 +83,18 @@ export function BreathingScreen() {
   const [isRunning, setIsRunning] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
+  const [showTapCoachMark, setShowTapCoachMark] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Check for coach marks on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (shouldShowCoachMark('breathing_tap')) {
+        setShowTapCoachMark(true);
+      }
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [shouldShowCoachMark]);
 
   // Session persistence for app backgrounding
   const { saveState, clearState } = useSessionPersistence({
@@ -187,6 +203,7 @@ export function BreathingScreen() {
     setIsRunning(true);
     setSessionStartTime(Date.now());
     await impactMedium();
+    playTap();
     runBreathCycle(1);
   };
 
@@ -212,6 +229,7 @@ export function BreathingScreen() {
     
     // Clear saved session state
     clearState();
+    playComplete();
     
     const duration = sessionStartTime 
       ? navigationHelpers.calculateSessionDuration(sessionStartTime)
@@ -376,6 +394,17 @@ export function BreathingScreen() {
         cancelText="Keep breathing"
         onConfirm={handleExitConfirm}
         onCancel={handleExitCancel}
+      />
+
+      {/* Coach Mark - Tap to pause */}
+      <CoachMarkOverlay
+        visible={showTapCoachMark}
+        coachMark={COACH_MARKS.breathing_tap}
+        onDismiss={() => {
+          markAsShown('breathing_tap');
+          setShowTapCoachMark(false);
+        }}
+        position="center"
       />
     </View>
   );

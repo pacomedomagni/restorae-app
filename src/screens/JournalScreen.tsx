@@ -28,7 +28,9 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { useHaptics } from '../hooks/useHaptics';
+import { useUISounds } from '../hooks/useUISounds';
 import { useTheme } from '../contexts/ThemeContext';
+import { useCoachMarks } from '../contexts/CoachMarkContext';
 import { useJournal, JournalEntry as JournalEntryType } from '../contexts/JournalContext';
 import {
   Text,
@@ -39,6 +41,9 @@ import {
   TabSafeScrollView,
   SkeletonJournalEntry,
   EmptyState,
+  PullToRefreshScrollView,
+  CoachMarkOverlay,
+  GestureHint,
 } from '../components/ui';
 import { LuxeIcon } from '../components/LuxeIcon';
 import { spacing, borderRadius, layout, withAlpha } from '../theme';
@@ -277,9 +282,23 @@ export function JournalScreen() {
   const { colors, reduceMotion } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { impactMedium, impactLight } = useHaptics();
+  const { playTap, playSuccess, playTransition } = useUISounds();
+  const { shouldShowCoachMark, markAsShown, COACH_MARKS } = useCoachMarks();
   const { entries, isLoading, syncWithServer } = useJournal();
 
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showJournalCoachMark, setShowJournalCoachMark] = useState(false);
+  const [showSwipeHint, setShowSwipeHint] = useState(false);
+
+  // Check for coach marks on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (shouldShowCoachMark('journal_private')) {
+        setShowJournalCoachMark(true);
+      }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [shouldShowCoachMark]);
 
   // Get recent entries (limit to 3 for the main screen)
   const recentEntries = entries.slice(0, 3);
@@ -290,6 +309,7 @@ export function JournalScreen() {
     await impactLight();
     try {
       await syncWithServer();
+      playSuccess();
     } catch (error) {
       // Silently handle sync errors
     }
@@ -298,14 +318,19 @@ export function JournalScreen() {
 
   const handleNewEntry = async () => {
     await impactMedium();
+    playTap();
+    playTransition();
     navigation.navigate('JournalEntry', { mode: 'new' });
   };
 
   const handlePromptPress = async (prompt: JournalPrompt) => {
+    playTap();
+    playTransition();
     navigation.navigate('JournalEntry', { mode: 'prompt', prompt: prompt.text });
   };
 
   const handleEntryPress = (entry: JournalEntryType) => {
+    playTap();
     navigation.navigate('JournalEntry', { 
       mode: 'view', 
       entryId: entry.id 
@@ -313,6 +338,7 @@ export function JournalScreen() {
   };
 
   const handleViewAll = () => {
+    playTap();
     navigation.navigate('JournalEntries');
   };
 
@@ -481,6 +507,35 @@ export function JournalScreen() {
           </View>
         </TabSafeScrollView>
       </SafeAreaView>
+
+      {/* Coach Mark Overlay */}
+      <CoachMarkOverlay
+        visible={showJournalCoachMark}
+        coachMark={COACH_MARKS.journal_private}
+        onDismiss={() => {
+          markAsShown('journal_private');
+          setShowJournalCoachMark(false);
+          // Show swipe hint for entry management
+          setTimeout(() => {
+            if (recentEntries.length > 0 && shouldShowCoachMark('journal_swipe')) {
+              setShowSwipeHint(true);
+            }
+          }, 500);
+        }}
+        position="center"
+      />
+
+      {/* Swipe Gesture Hint */}
+      <GestureHint
+        visible={showSwipeHint}
+        gesture="swipe-left"
+        label="Swipe to delete entries"
+        onDismiss={() => {
+          markAsShown('journal_swipe');
+          setShowSwipeHint(false);
+        }}
+        position={{ top: 400, left: '50%' }}
+      />
     </View>
   );
 }

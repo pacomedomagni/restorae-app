@@ -19,7 +19,7 @@ import { useHaptics } from '../hooks/useHaptics';
 import { Text, Button, GlassCard, AmbientBackground, MoodOrb, Confetti } from '../components/ui';
 import { spacing, layout, withAlpha } from '../theme';
 import { gamification, Achievement } from '../services/gamification';
-import { recommendations } from '../services/recommendations';
+import { recommendations } from '../services/smartRecommendations';
 import { activityLogger } from '../services/activityLogger';
 import { analytics, AnalyticsEvents } from '../services/analytics';
 import type { RootStackParamList, MoodType } from '../types';

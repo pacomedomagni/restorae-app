@@ -32,6 +32,7 @@ import Animated, {
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAudio } from '../../contexts/AudioContext';
+import { useCoachMarks } from '../../contexts/CoachMarkContext';
 import {
   Text,
   GlassCard,
@@ -39,10 +40,12 @@ import {
   PremiumButton,
   ExitConfirmationModal,
   AmbientSoundPicker,
+  CoachMarkOverlay,
 } from '../../components/ui';
 import { spacing, layout, withAlpha, borderRadius } from '../../theme';
 import { RootStackParamList } from '../../types';
 import { useHaptics } from '../../hooks/useHaptics';
+import { useUISounds } from '../../hooks/useUISounds';
 import { useSessionPersistence } from '../../hooks/useSessionPersistence';
 import { useSessionAudio } from '../../hooks/useSessionAudio';
 import { getSessionById, FOCUS_SESSIONS, AMBIENT_SOUNDS } from '../../data';
@@ -181,6 +184,8 @@ export function FocusSessionScreen() {
   useKeepAwake();
   const { colors, reduceMotion } = useTheme();
   const { impactLight, impactMedium, notificationSuccess } = useHaptics();
+  const { playTap, playSuccess, playToggle, playComplete } = useUISounds();
+  const { shouldShowCoachMark, markAsShown, COACH_MARKS } = useCoachMarks();
   const { playSound, pauseSound, stopSound, isPlaying: audioIsPlaying } = useAudio();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'FocusSession'>>();
@@ -201,11 +206,22 @@ export function FocusSessionScreen() {
   const [selectedSoundId, setSelectedSoundId] = useState<string | null>(
     session.defaultSound || recommendedSound
   );
+  const [showFocusCoachMark, setShowFocusCoachMark] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const totalTime = session.duration * 60;
   const progress = 1 - (timeRemaining / totalTime);
   const isSessionActive = phase === 'focusing';
+
+  // Check for coach marks on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (shouldShowCoachMark('focus_timer')) {
+        setShowFocusCoachMark(true);
+      }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [shouldShowCoachMark]);
 
   // Session persistence for app backgrounding
   const { saveState, clearState } = useSessionPersistence({
@@ -264,6 +280,7 @@ export function FocusSessionScreen() {
             clearInterval(timerRef.current!);
             setPhase('complete');
             notificationSuccess();
+            playComplete();
             return 0;
           }
           return prev - 1;
@@ -274,7 +291,7 @@ export function FocusSessionScreen() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [phase, isPaused, notificationSuccess]);
+  }, [phase, isPaused, notificationSuccess, playComplete]);
 
   const handleStart = useCallback(async () => {
     await impactMedium();
@@ -288,6 +305,7 @@ export function FocusSessionScreen() {
 
   const handlePause = useCallback(async () => {
     await impactLight();
+    playToggle();
     setIsPaused(prev => {
       const newPaused = !prev;
       // Pause or resume audio
@@ -298,7 +316,7 @@ export function FocusSessionScreen() {
       }
       return newPaused;
     });
-  }, [impactLight, pauseSound, playSound, selectedSoundId]);
+  }, [impactLight, pauseSound, playSound, selectedSoundId, playToggle]);
 
   const handleClose = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -312,6 +330,7 @@ export function FocusSessionScreen() {
     
     // Clear saved session state
     clearState();
+    playSuccess();
     
     const duration = session.duration * 60; // Total session duration
     
@@ -320,7 +339,7 @@ export function FocusSessionScreen() {
       sessionName: session.name,
       duration,
     });
-  }, [navigation, stopSound, session, clearState]);
+  }, [navigation, stopSound, session, clearState, playSuccess]);
 
   const handleCloseAttempt = useCallback(() => {
     if (isSessionActive) {
@@ -525,6 +544,17 @@ export function FocusSessionScreen() {
         cancelText="Keep focusing"
         onConfirm={handleExitConfirm}
         onCancel={handleExitCancel}
+      />
+
+      {/* Coach Mark - Focus timer explanation */}
+      <CoachMarkOverlay
+        visible={showFocusCoachMark}
+        coachMark={COACH_MARKS.focus_timer}
+        onDismiss={() => {
+          markAsShown('focus_timer');
+          setShowFocusCoachMark(false);
+        }}
+        position="center"
       />
     </View>
   );

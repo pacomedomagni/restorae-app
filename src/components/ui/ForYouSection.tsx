@@ -37,7 +37,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Text, GlassCard, Skeleton, SkeletonCard } from '../ui';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useHaptics } from '../../hooks/useHaptics';
-import { recommendations, Recommendation } from '../../services/recommendations';
+import { recommendations, Recommendation } from '../../services/smartRecommendations';
 import { spacing, borderRadius, withAlpha } from '../../theme';
 import { RootStackParamList, MoodType } from '../../types';
 

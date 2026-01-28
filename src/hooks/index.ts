@@ -7,6 +7,9 @@
 // Haptic feedback
 export { useHaptics, type HapticPattern } from './useHaptics';
 
+// UI Sound effects
+export { useUISounds, type UISoundType } from './useUISounds';
+
 // Biometric authentication
 export { useBiometrics, getBiometricName, type BiometricType } from './useBiometrics';
 
@@ -47,3 +50,4 @@ export { useNetworkStatus } from './useNetworkStatus';
 
 // Session persistence
 export { useSessionPersistence } from './useSessionPersistence';
+

@@ -30,8 +30,9 @@ import { MoodProvider } from './src/contexts/MoodContext';
 import { AppLockProvider } from './src/contexts/AppLockContext';
 import { RitualsProvider } from './src/contexts/RitualsContext';
 import { AuthProvider } from './src/contexts/AuthContext';
+import { CoachMarkProvider } from './src/contexts/CoachMarkContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
-import { ErrorBoundary } from './src/components/ui';
+import { ErrorBoundary, SharedTransitionProvider } from './src/components/ui';
 
 // Initialize Sentry for crash reporting
 initializeSentry();
@@ -94,12 +95,16 @@ export default function App() {
                     <MoodProvider>
                       <RitualsProvider>
                         <AppLockProvider>
-                          <ErrorBoundary
-                            errorTitle="Something went wrong"
-                            errorDescription="Restorae encountered an unexpected error. Please restart the app."
-                          >
-                            <AppContent />
-                          </ErrorBoundary>
+                          <CoachMarkProvider>
+                            <SharedTransitionProvider>
+                              <ErrorBoundary
+                                errorTitle="Something went wrong"
+                                errorDescription="Restorae encountered an unexpected error. Please restart the app."
+                              >
+                                <AppContent />
+                              </ErrorBoundary>
+                            </SharedTransitionProvider>
+                          </CoachMarkProvider>
                         </AppLockProvider>
                       </RitualsProvider>
                     </MoodProvider>

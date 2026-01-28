@@ -26,7 +26,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Circle as SvgCircle } from 'react-native-svg';
 import { useHaptics } from '../hooks/useHaptics';
+import { useUISounds } from '../hooks/useUISounds';
 import { useTheme } from '../contexts/ThemeContext';
+import { useCoachMarks } from '../contexts/CoachMarkContext';
 import {
   Text,
   GlassCard,
@@ -34,6 +36,7 @@ import {
   Skeleton,
   SkeletonCard,
   TabSafeScrollView,
+  CoachMarkOverlay,
 } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { spacing, borderRadius, layout, withAlpha } from '../theme';
@@ -317,10 +320,13 @@ function SettingRow({ setting, index, onPress }: SettingRowProps) {
 export function ProfileScreen() {
   const { colors, reduceMotion } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { playTap, playTransition } = useUISounds();
+  const { shouldShowCoachMark, markAsShown, COACH_MARKS } = useCoachMarks();
 
   const [userName, setUserName] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState<StatData[]>([]);
+  const [showProfileCoachMark, setShowProfileCoachMark] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -337,11 +343,24 @@ export function ProfileScreen() {
         { label: 'Minutes', value: '234', sublabel: 'total time', color: 'calm' },
       ]);
       setIsLoading(false);
+
+      // Check for coach marks
+      setTimeout(() => {
+        if (shouldShowCoachMark('profile_customize')) {
+          setShowProfileCoachMark(true);
+        }
+      }, 1000);
     };
     loadData();
-  }, []);
+  }, [shouldShowCoachMark]);
 
   const weeklyProgress = 0.68; // 68% of weekly goal
+
+  const handleSettingPress = (route: keyof RootStackParamList) => {
+    playTap();
+    playTransition();
+    navigation.navigate(route as any);
+  };
 
   return (
     <View style={styles.container}>
@@ -465,7 +484,7 @@ export function ProfileScreen() {
                   key={setting.id}
                   setting={setting}
                   index={index}
-                  onPress={() => navigation.navigate(setting.route as any)}
+                  onPress={() => handleSettingPress(setting.route)}
                 />
               ))}
             </View>
@@ -488,6 +507,17 @@ export function ProfileScreen() {
         </Animated.View>
         </TabSafeScrollView>
       </SafeAreaView>
+
+      {/* Coach Mark - Profile customization */}
+      <CoachMarkOverlay
+        visible={showProfileCoachMark}
+        coachMark={COACH_MARKS.profile_customize}
+        onDismiss={() => {
+          markAsShown('profile_customize');
+          setShowProfileCoachMark(false);
+        }}
+        position="center"
+      />
     </View>
   );
 }// =============================================================================
