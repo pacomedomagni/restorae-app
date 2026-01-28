@@ -2,7 +2,7 @@
   "expo": {
     "name": "Restorae",
     "slug": "restorae",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "scheme": "restorae",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,11 +16,17 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.restorae.app",
-      "associatedDomains": ["applinks:restorae.app", "applinks:www.restorae.app"],
+      "associatedDomains": [
+        "applinks:restorae.app",
+        "applinks:www.restorae.app",
+        "applinks:restorae.app",
+        "applinks:www.restorae.app"
+      ],
       "infoPlist": {
         "NSFaceIDUsageDescription": "Use Face ID to unlock your private journal entries",
         "NSCameraUsageDescription": "Take photos for your journal entries",
-        "NSPhotoLibraryUsageDescription": "Add photos to your journal entries"
+        "NSPhotoLibraryUsageDescription": "Add photos to your journal entries",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -45,7 +51,10 @@
               "pathPrefix": "/"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -67,14 +76,8 @@
           "organization": "your-org",
           "project": "restorae-app"
         }
-      ],
-      "react-native-purchases"
+      ]
     ],
-    "extra": {
-      "eas": {
-        "projectId": "your-eas-project-id"
-      }
-    },
     "hooks": {
       "postPublish": [
         {
@@ -85,6 +88,11 @@
           }
         }
       ]
+    },
+    "extra": {
+      "eas": {
+        "projectId": "191c8042-422f-4876-a782-cfac0fea3e93"
+      }
     }
   }
 }
