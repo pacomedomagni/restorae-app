@@ -69,26 +69,8 @@
           "icon": "./assets/notification-icon.png",
           "color": "#8B7355"
         }
-      ],
-      [
-        "@sentry/react-native/expo",
-        {
-          "organization": "your-org",
-          "project": "restorae-app"
-        }
       ]
     ],
-    "hooks": {
-      "postPublish": [
-        {
-          "file": "@sentry/react-native/expo",
-          "config": {
-            "organization": "your-org",
-            "project": "restorae-app"
-          }
-        }
-      ]
-    },
     "extra": {
       "eas": {
         "projectId": "191c8042-422f-4876-a782-cfac0fea3e93"
