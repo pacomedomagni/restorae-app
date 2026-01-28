@@ -197,6 +197,7 @@ export type RootStackParamList = {
   AppLock: undefined;
   AppLockSetup: undefined;
   DataSettings: undefined;
+  SecuritySettings: undefined;
 };
 
 export type MainTabParamList = {

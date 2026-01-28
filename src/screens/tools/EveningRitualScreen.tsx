@@ -36,6 +36,7 @@ import { spacing, layout, withAlpha, borderRadius } from '../../theme';
 import { useHaptics } from '../../hooks/useHaptics';
 import { EVENING_RITUALS, getEveningRitualForMood } from '../../data';
 import { MoodType } from '../../types';
+import { navigationHelpers } from '../../services/navigationHelpers';
 
 // =============================================================================
 // TYPES
@@ -162,6 +163,7 @@ export function EveningRitualScreen() {
   const [ritual, setRitual] = useState(EVENING_RITUALS[0]);
   const [currentStep, setCurrentStep] = useState(0);
   const [countdown, setCountdown] = useState(0);
+  const [sessionStartTime, setSessionStartTime] = useState<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const totalSteps = ritual.steps.length;
@@ -201,6 +203,7 @@ export function EveningRitualScreen() {
     setSelectedMood(mood);
     const selectedRitual = getEveningRitualForMood(mood);
     setRitual(selectedRitual);
+    setSessionStartTime(Date.now());
     setPhase('ritual');
   }, [impactMedium]);
 
@@ -208,12 +211,21 @@ export function EveningRitualScreen() {
     await impactLight();
 
     if (isLastStep) {
-      setPhase('complete');
-      await notificationSuccess();
+      if (timerRef.current) clearInterval(timerRef.current);
+      const duration = sessionStartTime 
+        ? navigationHelpers.calculateSessionDuration(sessionStartTime)
+        : totalSteps * 30; // fallback: ~30s per step
+
+      navigationHelpers.navigateToSessionComplete(navigation as any, {
+        sessionType: 'ritual',
+        sessionName: `Evening Ritual: ${ritual.name}`,
+        duration,
+        steps: totalSteps,
+      });
     } else {
       setCurrentStep(prev => prev + 1);
     }
-  }, [isLastStep, impactLight, notificationSuccess]);
+  }, [isLastStep, impactLight, sessionStartTime, totalSteps, ritual.name, navigation]);
 
   const handleClose = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);

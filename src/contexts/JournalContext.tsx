@@ -360,10 +360,43 @@ export function JournalProvider({ children }: { children: ReactNode }) {
     if (!entry) return '';
     return entry.isEncrypted ? decryptContent(entry.content, id) : entry.content;
   }, [state.entries]);
+  
   const setEncryptionEnabled = useCallback(async (enabled: boolean) => {
     setState(prev => ({ ...prev, encryptionEnabled: enabled }));
     await saveSettings({ encryptionEnabled: enabled, biometricLockEnabled: state.biometricLockEnabled });
-  }, [state.biometricLockEnabled]);
+    
+    // Encrypt or decrypt existing entries
+    if (enabled) {
+      // Encrypt all unencrypted entries
+      const updatedEntries = await Promise.all(
+        state.entries.map(async (entry) => {
+          if (!entry.isEncrypted) {
+            const encryptedContent = await encryptContent(entry.content, entry.id);
+            return { ...entry, content: encryptedContent, isEncrypted: true };
+          }
+          return entry;
+        })
+      );
+      setState(prev => ({ ...prev, entries: updatedEntries }));
+      await saveEntries(updatedEntries);
+    } else {
+      // Decrypt all encrypted entries
+      const updatedEntries = await Promise.all(
+        state.entries.map(async (entry) => {
+          if (entry.isEncrypted) {
+            const decryptedContent = await decryptContent(entry.content, entry.id);
+            // Delete the encrypted content from SecureStore
+            await deleteEncryptedContent(entry.id);
+            return { ...entry, content: decryptedContent, isEncrypted: false };
+          }
+          return entry;
+        })
+      );
+      setState(prev => ({ ...prev, entries: updatedEntries }));
+      await saveEntries(updatedEntries);
+    }
+  }, [state.biometricLockEnabled, state.entries]);
+  
   const setBiometricLockEnabled = useCallback(async (enabled: boolean) => {
     setState(prev => ({ ...prev, biometricLockEnabled: enabled }));
     await saveSettings({ encryptionEnabled: state.encryptionEnabled, biometricLockEnabled: enabled });

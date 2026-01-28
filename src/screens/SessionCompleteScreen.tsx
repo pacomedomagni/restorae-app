@@ -45,6 +45,8 @@ import { LuxeIcon } from '../components/LuxeIcon';
 import { spacing, borderRadius, layout, withAlpha } from '../theme';
 import { gamification, Achievement, ActivityType } from '../services/gamification';
 import { recommendations } from '../services/recommendations';
+import { activityLogger, ActivityCategory } from '../services/activityLogger';
+import { analytics, AnalyticsEvents } from '../services/analytics';
 import { RootStackParamList, MoodType } from '../types';
 
 // =============================================================================
@@ -383,6 +385,46 @@ export function SessionCompleteScreen() {
 
       const activityType = activityMap[sessionType];
       const durationMinutes = duration ? Math.round(duration / 60) : 0;
+
+      // Log activity to backend
+      const categoryMap: Record<SessionType, ActivityCategory> = {
+        breathing: 'breathing',
+        grounding: 'grounding',
+        reset: 'reset',
+        focus: 'focus',
+        journal: 'journal',
+        story: 'story',
+        ritual: 'ritual',
+        mood: 'mood',
+      };
+
+      await activityLogger.logActivity({
+        category: categoryMap[sessionType],
+        activityId: sessionName || sessionType,
+        activityName: sessionName || sessionType,
+        startedAt: Date.now() - (duration || 0) * 1000,
+        durationSeconds: duration || 0,
+        completed: true,
+        metadata: {
+          cycles,
+          steps,
+          wordCount,
+          mood,
+        },
+      });
+
+      // Track analytics event for session completion
+      analytics.track(AnalyticsEvents.TOOL_COMPLETED, {
+        sessionType,
+        sessionName: sessionName || sessionType,
+        durationSeconds: duration || 0,
+        durationMinutes,
+        cycles,
+        steps,
+        wordCount,
+        mood,
+        xpEarned,
+      });
 
       // Record activity (awards XP, updates streaks, checks achievements)
       const result = await gamification.recordActivity(

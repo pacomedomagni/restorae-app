@@ -20,6 +20,8 @@ import { Text, Button, GlassCard, AmbientBackground, MoodOrb, Confetti } from '.
 import { spacing, layout, withAlpha } from '../theme';
 import { gamification, Achievement } from '../services/gamification';
 import { recommendations } from '../services/recommendations';
+import { activityLogger } from '../services/activityLogger';
+import { analytics, AnalyticsEvents } from '../services/analytics';
 import type { RootStackParamList, MoodType } from '../types';
 
 const MOOD_DATA: Record<MoodType, { message: string; suggestion: string; tool: string; toolRoute: keyof RootStackParamList }> = {
@@ -96,11 +98,29 @@ export function MoodResultScreen() {
   // Record mood check-in and award XP
   useEffect(() => {
     const processMoodCheckin = async () => {
-      // Record the activity
+      // Record the activity for gamification
       const result = await gamification.recordActivity('mood', 0, { mood, hasNote: !!note });
       
       // Record mood for recommendations
       recommendations.recordMood(mood);
+
+      // Log activity to backend
+      await activityLogger.logActivity({
+        category: 'mood',
+        activityId: 'mood-checkin',
+        activityName: 'Mood Check-in',
+        startedAt: Date.now(),
+        durationSeconds: 0,
+        completed: true,
+        metadata: { mood, hasNote: !!note },
+      });
+
+      // Track analytics
+      analytics.track(AnalyticsEvents.MOOD_CHECKIN_COMPLETED, {
+        mood,
+        hasNote: !!note,
+        xpEarned: result.xpEarned,
+      });
 
       setXpEarned(result.xpEarned);
       

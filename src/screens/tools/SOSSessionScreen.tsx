@@ -34,6 +34,7 @@ import { spacing, layout, withAlpha } from '../../theme';
 import { RootStackParamList } from '../../types';
 import { useHaptics } from '../../hooks/useHaptics';
 import { SOS_PRESETS, type SOSPhase } from '../../data';
+import { navigationHelpers } from '../../services/navigationHelpers';
 
 // =============================================================================
 // TYPES
@@ -154,6 +155,7 @@ export function SOSSessionScreen() {
   const [currentPhaseIndex, setCurrentPhaseIndex] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [sessionStartTime] = useState<number>(Date.now());
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const currentPhase = phases[currentPhaseIndex];
@@ -188,13 +190,20 @@ export function SOSSessionScreen() {
     await impactLight();
 
     if (isLastPhase) {
-      setIsComplete(true);
-      await notificationSuccess();
+      if (timerRef.current) clearInterval(timerRef.current);
+      const duration = navigationHelpers.calculateSessionDuration(sessionStartTime);
+
+      navigationHelpers.navigateToSessionComplete(navigation as any, {
+        sessionType: 'breathing', // SOS maps to breathing for gamification
+        sessionName: `SOS: ${preset.name}`,
+        duration,
+        steps: phases.length,
+      });
     } else {
       setCurrentPhaseIndex(prev => prev + 1);
       await impactMedium();
     }
-  }, [isLastPhase, impactLight, impactMedium, notificationSuccess]);
+  }, [isLastPhase, impactLight, impactMedium, sessionStartTime, preset.name, phases.length, navigation]);
 
   const handleClose = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);

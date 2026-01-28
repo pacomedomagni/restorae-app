@@ -17,6 +17,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '../contexts/ThemeContext';
 import { useRituals, RitualStep } from '../contexts/RitualsContext';
 import { useHaptics } from '../hooks/useHaptics';
+import { navigationHelpers } from '../services/navigationHelpers';
 import type { RootStackParamList } from '../types';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -136,11 +137,11 @@ export default function CustomRitualSessionScreen() {
       totalSteps,
     });
 
-    navigation.replace('MoodResult', {
-      moodId: 'great',
-      moodLabel: 'Ritual Complete',
-      factors: [],
-      notes: '',
+    navigationHelpers.navigateToSessionComplete(navigation as any, {
+      sessionType: 'ritual',
+      sessionName: ritual.title,
+      duration,
+      steps: completedSteps.length + 1,
     });
   }, [ritual, completedSteps, totalSteps, sessionStartTime, navigation, notificationSuccess, completeRitual]);
 

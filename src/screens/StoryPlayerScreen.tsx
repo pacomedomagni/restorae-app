@@ -44,7 +44,6 @@ import { useHaptics } from '../hooks/useHaptics';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAnalytics, AnalyticsEvents } from '../services/analytics';
 import audioService, { PlaybackState } from '../services/audio';
-import * as gamification from '../services/gamification';
 import { Text, GlassCard, Button } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { spacing, borderRadius } from '../theme';
@@ -195,7 +194,7 @@ export function StoryPlayerScreen() {
   useKeepAwake();
   
   const { colors, reduceMotion, isDark } = useTheme();
-  const { impactMedium, impactLight, notificationSuccess } = useHaptics();
+  const { impactMedium, impactLight } = useHaptics();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'StoryPlayer'>>();
   const analytics = useAnalytics();
@@ -303,7 +302,7 @@ export function StoryPlayerScreen() {
     // Track if story was completed (>90% listened)
     if (playbackState.duration > 0) {
       const percentListened = playbackState.position / playbackState.duration;
-      const durationMinutes = Math.round(playbackState.position / 60);
+      const durationSeconds = Math.round(playbackState.position / 1000);
       
       if (percentListened >= 0.9) {
         analytics.track(AnalyticsEvents.STORY_COMPLETED, {
@@ -311,28 +310,14 @@ export function StoryPlayerScreen() {
           duration: playbackState.duration,
         });
         
-        // Award XP for completing the story
-        try {
-          const result = await gamification.recordActivity('story', durationMinutes, {
-            storyId: story?.id,
-            storyName: story?.title,
-            percentCompleted: Math.round(percentListened * 100),
-          });
-          
-          if (result.xpEarned > 0) {
-            notificationSuccess();
-          }
-          
-          // Navigate to session complete screen for the celebration
-          navigation.replace('SessionComplete', {
-            sessionType: 'story',
-            sessionName: story?.title || 'Sleep Story',
-            duration: durationMinutes,
-          });
-          return;
-        } catch (error) {
-          console.error('Error recording story completion:', error);
-        }
+        // Navigate to session complete screen for the celebration
+        // (SessionCompleteScreen handles gamification, activity logging, etc.)
+        navigation.replace('SessionComplete', {
+          sessionType: 'story',
+          sessionName: story?.title || 'Sleep Story',
+          duration: durationSeconds,
+        });
+        return;
       } else {
         analytics.track(AnalyticsEvents.STORY_PAUSED, {
           storyId: story?.id,

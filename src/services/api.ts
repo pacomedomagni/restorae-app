@@ -733,6 +733,54 @@ class ApiClient {
   }
 
   // =========================================================================
+  // ACTIVITY LOGGING ENDPOINTS
+  // =========================================================================
+
+  async logActivity(data: {
+    category: string;
+    activityType: string;
+    activityId?: string;
+    duration: number;
+    completed: boolean;
+    metadata?: Record<string, any>;
+    timestamp: string;
+  }) {
+    const response = await this.client.post('/activities/log', data);
+    return response.data;
+  }
+
+  async logActivitiesBatch(activities: Array<{
+    category: string;
+    activityType: string;
+    activityId?: string;
+    duration: number;
+    completed: boolean;
+    metadata?: Record<string, any>;
+    timestamp: string;
+  }>) {
+    const response = await this.client.post('/activities/log/batch', { activities });
+    return response.data;
+  }
+
+  async getActivityStats(startDate?: string, endDate?: string) {
+    const response = await this.client.get('/activities/stats', {
+      params: { startDate, endDate }
+    });
+    return response.data;
+  }
+
+  async getActivityHistory(params?: {
+    category?: string;
+    limit?: number;
+    offset?: number;
+    startDate?: string;
+    endDate?: string;
+  }) {
+    const response = await this.client.get('/activities/history', { params });
+    return response.data;
+  }
+
+  // =========================================================================
   // FEEDBACK ENDPOINTS
   // =========================================================================
 

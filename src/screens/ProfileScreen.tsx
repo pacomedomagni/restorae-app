@@ -53,7 +53,7 @@ interface SettingItem {
   id: string;
   label: string;
   description: string;
-  icon: 'profile' | 'history' | 'subscription' | 'settings' | 'lock' | 'data' | 'privacy' | 'support';
+  icon: 'profile' | 'history' | 'subscription' | 'settings' | 'lock' | 'data' | 'privacy' | 'support' | 'security';
   route: keyof RootStackParamList;
 }
 
@@ -87,11 +87,11 @@ const SETTINGS: SettingItem[] = [
     route: 'Preferences',
   },
   {
-    id: 'app-lock',
-    label: 'App Lock',
-    description: 'PIN & biometric security',
+    id: 'security',
+    label: 'Security & Privacy',
+    description: 'Journal encryption & biometric lock',
     icon: 'lock',
-    route: 'AppLockSetup',
+    route: 'SecuritySettings',
   },
   {
     id: 'data',

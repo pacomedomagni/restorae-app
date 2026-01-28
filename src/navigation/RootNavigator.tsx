@@ -86,6 +86,7 @@ import JournalSearchScreen from '../screens/JournalSearchScreen';
 import AppLockScreen from '../screens/AppLockScreen';
 import AppLockSetupScreen from '../screens/AppLockSetupScreen';
 import { DataSettingsScreen } from '../screens/DataSettingsScreen';
+import { SecuritySettingsScreen } from '../screens/SecuritySettingsScreen';
 import { EditProfileScreen } from '../screens/EditProfileScreen';
 
 // Auth Context
@@ -661,6 +662,11 @@ export function RootNavigator() {
         <Stack.Screen
           name="DataSettings"
           component={DataSettingsScreen}
+          options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+          name="SecuritySettings"
+          component={SecuritySettingsScreen}
           options={{ animation: 'slide_from_right' }}
         />
         </Stack.Navigator>
