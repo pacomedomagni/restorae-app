@@ -229,10 +229,6 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     }
   };
 
-
-    }
-  };
-
   const value = useMemo(() => ({
     ...state,
     playSound,
