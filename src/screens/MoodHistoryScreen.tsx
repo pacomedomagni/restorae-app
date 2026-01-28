@@ -10,6 +10,7 @@ import {
   ScrollView,
   Pressable,
   Dimensions,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -262,6 +263,16 @@ export function MoodHistoryScreen() {
   const { impactLight } = useHaptics();
 
   const [timeFilter, setTimeFilter] = useState<'week' | 'month' | 'all'>('week');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Pull-to-refresh handler
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    // Simulate refresh - in real app would re-fetch mood data
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setIsRefreshing(false);
+    impactLight();
+  }, [impactLight]);
 
   const filteredEntries = useMemo(() => {
     const now = new Date();
@@ -296,6 +307,14 @@ export function MoodHistoryScreen() {
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              tintColor={colors.accentPrimary}
+              colors={[colors.accentPrimary]}
+            />
+          }
         >
           <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(400)}>
             <ScreenHeader
@@ -378,6 +397,9 @@ export function MoodHistoryScreen() {
                       styles.filterTab,
                       timeFilter === filter && { backgroundColor: withAlpha(colors.accentPrimary, 0.15) },
                     ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Show ${filter === 'week' ? 'last 7 days' : filter === 'month' ? 'last 30 days' : 'all entries'}`}
+                    accessibilityState={{ selected: timeFilter === filter }}
                   >
                     <Text
                       variant="labelSmall"

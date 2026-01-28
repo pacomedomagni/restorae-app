@@ -11,6 +11,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useHaptics } from '../hooks/useHaptics';
 import { withAlpha } from '../theme';
+import { ErrorBoundary } from '../components/ui';
 
 import { useTheme } from '../contexts/ThemeContext';
 import { RootStackParamList, MainTabParamList } from '../types';
@@ -64,6 +65,9 @@ import { StoryPlayerScreen } from '../screens/StoryPlayerScreen';
 
 // Progress Screen
 import { ProgressScreen } from '../screens/ProgressScreen';
+
+// Session Complete Screen
+import { SessionCompleteScreen } from '../screens/SessionCompleteScreen';
 
 // Subscription & Paywall Screens
 import { SubscriptionScreen } from '../screens/SubscriptionScreen';
@@ -340,17 +344,21 @@ export function RootNavigator() {
   }
 
   return (
-    <NavigationContainer theme={navigationTheme}>
-      <Stack.Navigator
-        screenOptions={{
-          headerShown: false,
-          animation: 'fade',
-          contentStyle: {
-            backgroundColor: colors.canvas,
-          },
-        }}
-      >
-        <Stack.Screen name="Main" component={MainTabs} />
+    <ErrorBoundary
+      errorTitle="Something went wrong"
+      errorDescription="The app encountered an unexpected error. Please restart and try again."
+    >
+      <NavigationContainer theme={navigationTheme}>
+        <Stack.Navigator
+          screenOptions={{
+            headerShown: false,
+            animation: 'fade',
+            contentStyle: {
+              backgroundColor: colors.canvas,
+            },
+          }}
+        >
+          <Stack.Screen name="Main" component={MainTabs} />
         <Stack.Screen 
           name="Onboarding" 
           component={OnboardingScreen}
@@ -603,6 +611,17 @@ export function RootNavigator() {
           options={{ animation: 'slide_from_right' }} 
         />
         
+        {/* Session Complete - Unified completion screen */}
+        <Stack.Screen 
+          name="SessionComplete" 
+          component={SessionCompleteScreen} 
+          options={{ 
+            animation: 'slide_from_bottom',
+            presentation: 'fullScreenModal',
+            gestureEnabled: false,
+          }} 
+        />
+        
         {/* Custom Rituals */}
         <Stack.Screen 
           name="CreateRitual" 
@@ -644,8 +663,9 @@ export function RootNavigator() {
           component={DataSettingsScreen}
           options={{ animation: 'slide_from_right' }}
         />
-      </Stack.Navigator>
-    </NavigationContainer>
+        </Stack.Navigator>
+      </NavigationContainer>
+    </ErrorBoundary>
   );
 }
 

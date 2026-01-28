@@ -16,9 +16,11 @@ import {
   Dimensions,
   Image,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import Animated, {
@@ -42,11 +44,13 @@ import { useHaptics } from '../hooks/useHaptics';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAnalytics, AnalyticsEvents } from '../services/analytics';
 import audioService, { PlaybackState } from '../services/audio';
+import * as gamification from '../services/gamification';
 import { Text, GlassCard, Button } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { spacing, borderRadius } from '../theme';
 import { RootStackParamList } from '../types';
 import { getStoryById, formatDuration, SLEEP_TIMER_OPTIONS, BedtimeStory } from '../data/bedtimeStories';
+import { navigationHelpers } from '../services/navigationHelpers';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -192,7 +196,7 @@ export function StoryPlayerScreen() {
   
   const { colors, reduceMotion, isDark } = useTheme();
   const { impactMedium, impactLight, notificationSuccess } = useHaptics();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'StoryPlayer'>>();
   const analytics = useAnalytics();
 
@@ -299,11 +303,36 @@ export function StoryPlayerScreen() {
     // Track if story was completed (>90% listened)
     if (playbackState.duration > 0) {
       const percentListened = playbackState.position / playbackState.duration;
+      const durationMinutes = Math.round(playbackState.position / 60);
+      
       if (percentListened >= 0.9) {
         analytics.track(AnalyticsEvents.STORY_COMPLETED, {
           storyId: story?.id,
           duration: playbackState.duration,
         });
+        
+        // Award XP for completing the story
+        try {
+          const result = await gamification.recordActivity('story', durationMinutes, {
+            storyId: story?.id,
+            storyName: story?.title,
+            percentCompleted: Math.round(percentListened * 100),
+          });
+          
+          if (result.xpEarned > 0) {
+            notificationSuccess();
+          }
+          
+          // Navigate to session complete screen for the celebration
+          navigation.replace('SessionComplete', {
+            sessionType: 'story',
+            sessionName: story?.title || 'Sleep Story',
+            duration: durationMinutes,
+          });
+          return;
+        } catch (error) {
+          console.error('Error recording story completion:', error);
+        }
       } else {
         analytics.track(AnalyticsEvents.STORY_PAUSED, {
           storyId: story?.id,
@@ -449,7 +478,12 @@ export function StoryPlayerScreen() {
             <Pressable onPress={handlePlayPause} style={styles.playButton}>
               <View style={styles.playButtonInner}>
                 {playbackState.isLoading || playbackState.isBuffering ? (
-                  <Text variant="bodyMedium" style={{ color: '#FFFFFF' }}>...</Text>
+                  <View style={styles.bufferingContainer}>
+                    <ActivityIndicator size="large" color="#FFFFFF" />
+                    <Text variant="labelSmall" style={styles.bufferingText}>
+                      {playbackState.isLoading ? 'Loading...' : 'Buffering...'}
+                    </Text>
+                  </View>
                 ) : (
                   <Icon
                     name={playbackState.isPlaying ? 'pause' : 'play'}
@@ -615,6 +649,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.3)',
+  },
+  bufferingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bufferingText: {
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: spacing[1],
+    fontSize: 10,
   },
   volumeContainer: {
     alignItems: 'center',

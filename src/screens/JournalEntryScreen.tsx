@@ -6,6 +6,7 @@ import { View, StyleSheet, TextInput, Switch, Alert, Pressable, KeyboardAvoiding
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useNavigation, useRoute, RouteProp, NavigationProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useTheme } from '../contexts/ThemeContext';
@@ -15,6 +16,7 @@ import { spacing, layout, withAlpha } from '../theme';
 import logger from '../services/logger';
 import { useHaptics } from '../hooks/useHaptics';
 import { useBiometrics } from '../hooks/useBiometrics';
+import { navigationHelpers } from '../services/navigationHelpers';
 import type { RootStackParamList } from '../types';
 
 type JournalEntryRouteParams = {
@@ -25,7 +27,7 @@ type JournalEntryRouteParams = {
 
 export function JournalEntryScreen() {
   const { reduceMotion, colors } = useTheme();
-  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<{ params: JournalEntryRouteParams }, 'params'>>();
   const { notificationSuccess, impactLight } = useHaptics();
   const { createEntry, updateEntry, entries } = useJournal();
@@ -112,6 +114,8 @@ export function JournalEntryScreen() {
           content: content.trim(),
           prompt: prompt ?? undefined,
         });
+        await notificationSuccess();
+        navigation.goBack();
       } else {
         await createEntry({
           title: title.trim() || undefined,
@@ -120,15 +124,21 @@ export function JournalEntryScreen() {
           isEncrypted: encrypted,
           isLocked: encrypted,
         });
+
+        if (mode === 'new') {
+          await AsyncStorage.removeItem(DRAFT_KEY);
+        }
+
+        // Calculate word count for stats
+        const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
+
+        // Navigate to completion screen for new entries
+        navigationHelpers.navigateToSessionComplete(navigation, {
+          sessionType: 'journal',
+          sessionName: title.trim() || 'Journal Entry',
+          wordCount,
+        });
       }
-
-      await notificationSuccess();
-
-      if (mode === 'new') {
-        await AsyncStorage.removeItem(DRAFT_KEY);
-      }
-
-      navigation.goBack();
     } catch (error) {
       logger.debug('Failed to save entry', { error: error instanceof Error ? error.message : String(error) });
       Alert.alert('Save Failed', 'Please try again.');

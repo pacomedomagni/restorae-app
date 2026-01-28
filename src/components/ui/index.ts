@@ -41,3 +41,6 @@ export {
   StaggerChild,
   GlowPulse,
 } from './Microinteractions';
+
+// Network status
+export { OfflineBanner, ConnectionStatus } from './OfflineBanner';

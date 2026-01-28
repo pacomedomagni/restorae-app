@@ -5,6 +5,7 @@
  * 
  * UX Improvements:
  * - Exit confirmation when session is in progress
+ * - Session state persistence on app background
  */
 import React, { useState, useEffect, useRef } from 'react';
 import {
@@ -15,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -34,7 +36,9 @@ import {
 import { spacing, layout } from '../../theme';
 import { RootStackParamList } from '../../types';
 import { useHaptics } from '../../hooks/useHaptics';
+import { useSessionPersistence } from '../../hooks/useSessionPersistence';
 import { getTechniqueById, GROUNDING_TECHNIQUES } from '../../data';
+import { navigationHelpers } from '../../services/navigationHelpers';
 
 // =============================================================================
 // MAIN SCREEN
@@ -42,7 +46,7 @@ import { getTechniqueById, GROUNDING_TECHNIQUES } from '../../data';
 export function GroundingSessionScreen() {
   const { colors, reduceMotion } = useTheme();
   const { impactLight, impactMedium, notificationSuccess } = useHaptics();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'GroundingSession'>>();
 
   const techniqueId = route.params?.techniqueId ?? '5-4-3-2-1';
@@ -52,11 +56,37 @@ export function GroundingSessionScreen() {
   const [isComplete, setIsComplete] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [sessionStartTime, setSessionStartTime] = useState<number>(Date.now());
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const totalSteps = technique.steps.length;
   const isLastStep = currentStep === totalSteps - 1;
   const isSessionActive = currentStep > 0 && !isComplete;
+
+  // Session persistence for app backgrounding
+  const { saveState, clearState } = useSessionPersistence({
+    sessionType: 'grounding',
+    sessionId: techniqueId,
+    enabled: isSessionActive,
+    onRestore: (savedState) => {
+      if (savedState.customData) {
+        setCurrentStep(savedState.customData.currentStep || 0);
+        setSessionStartTime(savedState.startTime);
+      }
+    },
+  });
+
+  // Save state when step changes
+  useEffect(() => {
+    if (isSessionActive) {
+      saveState({
+        phase: `step-${currentStep}`,
+        progress: currentStep / totalSteps,
+        startTime: sessionStartTime,
+        customData: { currentStep },
+      });
+    }
+  }, [currentStep, isSessionActive, totalSteps, sessionStartTime, saveState]);
 
   // Handle hardware back button on Android
   useEffect(() => {
@@ -114,6 +144,8 @@ export function GroundingSessionScreen() {
   const handleCloseAttempt = () => {
     if (isSessionActive) {
       setShowExitConfirm(true);
+    } else if (isComplete) {
+      handleSessionComplete();
     } else {
       handleClose();
     }
@@ -122,6 +154,22 @@ export function GroundingSessionScreen() {
   const handleClose = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     navigation.goBack();
+  };
+
+  const handleSessionComplete = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    
+    // Clear saved session state
+    clearState();
+    
+    const duration = navigationHelpers.calculateSessionDuration(sessionStartTime);
+    
+    navigationHelpers.navigateToSessionComplete(navigation, {
+      sessionType: 'grounding',
+      sessionName: technique.name,
+      duration,
+      steps: totalSteps,
+    });
   };
 
   const handleExitConfirm = () => {
@@ -149,7 +197,14 @@ export function GroundingSessionScreen() {
           entering={reduceMotion ? undefined : FadeIn.duration(400)}
           style={styles.header}
         >
-          <Pressable onPress={handleCloseAttempt} style={styles.closeButton} hitSlop={12}>
+          <Pressable 
+            onPress={handleCloseAttempt} 
+            style={styles.closeButton} 
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            accessibilityHint={isSessionActive ? "Shows exit confirmation" : "Returns to previous screen"}
+          >
             <Text variant="bodyMedium" color="ink">Close</Text>
           </Pressable>
 
@@ -245,14 +300,17 @@ export function GroundingSessionScreen() {
                 variant="glow"
                 size="lg"
                 fullWidth
-                onPress={handleClose}
+                onPress={handleSessionComplete}
               >
-                Done
+                Complete Session
               </PremiumButton>
               <Pressable
                 onPress={handleRestart}
                 style={styles.againButton}
                 hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Practice again"
+                accessibilityHint="Restarts the grounding exercise"
               >
                 <Text variant="labelLarge" color="inkMuted">
                   Practice again

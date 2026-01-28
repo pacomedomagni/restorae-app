@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -29,6 +30,7 @@ import { spacing, layout } from '../../theme';
 import { RootStackParamList } from '../../types';
 import { useHaptics } from '../../hooks/useHaptics';
 import { getExerciseById, RESET_EXERCISES } from '../../data';
+import { navigationHelpers } from '../../services/navigationHelpers';
 
 // =============================================================================
 // MAIN SCREEN
@@ -36,7 +38,7 @@ import { getExerciseById, RESET_EXERCISES } from '../../data';
 export function ResetSessionScreen() {
   const { colors, reduceMotion } = useTheme();
   const { impactLight, impactMedium, notificationSuccess } = useHaptics();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'ResetSession'>>();
 
   const exerciseId = route.params?.exerciseId ?? 'shoulder-drop';
@@ -45,6 +47,7 @@ export function ResetSessionScreen() {
   const [currentStep, setCurrentStep] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [sessionStartTime] = useState<number>(Date.now());
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const totalSteps = exercise.steps.length;
@@ -96,6 +99,19 @@ export function ResetSessionScreen() {
   const handleClose = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     navigation.goBack();
+  };
+
+  const handleSessionComplete = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    
+    const duration = navigationHelpers.calculateSessionDuration(sessionStartTime);
+    
+    navigationHelpers.navigateToSessionComplete(navigation, {
+      sessionType: 'reset',
+      sessionName: exercise.name,
+      duration,
+      steps: totalSteps,
+    });
   };
 
   const handleRestart = async () => {
@@ -215,9 +231,9 @@ export function ResetSessionScreen() {
                 size="lg"
                 fullWidth
                 tone="warm"
-                onPress={handleClose}
+                onPress={handleSessionComplete}
               >
-                Done
+                Complete Session
               </PremiumButton>
               <Pressable
                 onPress={handleRestart}

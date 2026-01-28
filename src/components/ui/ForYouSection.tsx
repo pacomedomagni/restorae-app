@@ -34,7 +34,7 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Text, GlassCard } from '../ui';
+import { Text, GlassCard, Skeleton, SkeletonCard } from '../ui';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useHaptics } from '../../hooks/useHaptics';
 import { recommendations, Recommendation } from '../../services/recommendations';
@@ -48,6 +48,40 @@ import { RootStackParamList, MoodType } from '../../types';
 interface ForYouSectionProps {
   currentMood?: MoodType;
   userName?: string;
+}
+
+// =============================================================================
+// SKELETON COMPONENTS
+// =============================================================================
+
+function SkeletonRecommendationCard({ index }: { index: number }) {
+  return (
+    <Animated.View
+      entering={FadeIn.delay(index * 100).duration(300)}
+      style={[styles.cardWrapper, { marginLeft: index === 0 ? 0 : spacing[3] }]}
+    >
+      <View style={styles.skeletonCard}>
+        <Skeleton width="100%" height={80} style={{ marginBottom: spacing[3] }} />
+        <Skeleton width="70%" height={16} style={{ marginBottom: spacing[2] }} />
+        <Skeleton width="90%" height={12} style={{ marginBottom: spacing[2] }} />
+        <Skeleton width="50%" height={10} />
+      </View>
+    </Animated.View>
+  );
+}
+
+function SkeletonInsightCard() {
+  return (
+    <View style={styles.insightWrapper}>
+      <View style={styles.skeletonInsight}>
+        <Skeleton width={40} height={40} style={{ borderRadius: 20 }} />
+        <View style={{ flex: 1, marginLeft: spacing[3] }}>
+          <Skeleton width="60%" height={14} style={{ marginBottom: spacing[2] }} />
+          <Skeleton width="90%" height={12} />
+        </View>
+      </View>
+    </View>
+  );
 }
 
 // =============================================================================
@@ -255,12 +289,15 @@ export function ForYouSection({ currentMood, userName }: ForYouSectionProps) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [recs, setRecs] = useState<Recommendation[]>([]);
   const [greeting, setGreeting] = useState<{ greeting: string; subtitle: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Initialize recommendations
+    setIsLoading(true);
     recommendations.initialize().then(() => {
       setRecs(recommendations.getForYouItems(currentMood));
       setGreeting(recommendations.getGreeting(userName));
+      setIsLoading(false);
     });
   }, [currentMood, userName]);
 
@@ -271,6 +308,22 @@ export function ForYouSection({ currentMood, userName }: ForYouSectionProps) {
     // Navigate to the recommended content
     navigation.navigate(rec.route as any, rec.routeParams);
   };
+
+  // Render loading skeletons
+  const renderSkeletons = () => (
+    <>
+      <SkeletonInsightCard />
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.carouselContent}
+      >
+        {[0, 1, 2].map((i) => (
+          <SkeletonRecommendationCard key={i} index={i} />
+        ))}
+      </ScrollView>
+    </>
+  );
 
   return (
     <View style={styles.container}>
@@ -289,27 +342,33 @@ export function ForYouSection({ currentMood, userName }: ForYouSectionProps) {
         </View>
       </Animated.View>
 
-      {/* Daily Insight */}
-      <DailyInsightCard />
+      {isLoading ? (
+        renderSkeletons()
+      ) : (
+        <>
+          {/* Daily Insight */}
+          <DailyInsightCard />
 
-      {/* Recommendations Carousel */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.carouselContent}
-        decelerationRate="fast"
-        snapToInterval={170}
-        snapToAlignment="start"
-      >
-        {recs.map((rec, index) => (
-          <RecommendationCard
-            key={rec.id}
-            recommendation={rec}
-            index={index}
-            onPress={() => handleRecommendationPress(rec)}
-          />
-        ))}
-      </ScrollView>
+          {/* Recommendations Carousel */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.carouselContent}
+            decelerationRate="fast"
+            snapToInterval={170}
+            snapToAlignment="start"
+          >
+            {recs.map((rec, index) => (
+              <RecommendationCard
+                key={rec.id}
+                recommendation={rec}
+                index={index}
+                onPress={() => handleRecommendationPress(rec)}
+              />
+            ))}
+          </ScrollView>
+        </>
+      )}
     </View>
   );
 }
@@ -403,6 +462,20 @@ const styles = StyleSheet.create({
   insightBody: {
     marginTop: spacing[1],
     lineHeight: 20,
+  },
+  // Skeleton styles
+  skeletonCard: {
+    width: 160,
+    padding: spacing[4],
+    borderRadius: borderRadius.xl,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  skeletonInsight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing[4],
+    borderRadius: borderRadius.xl,
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
 });
 

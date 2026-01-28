@@ -3,7 +3,7 @@
  * 
  * Modal paywall shown when users try to access premium content
  */
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -98,16 +98,29 @@ export function PaywallScreen() {
   const { colors, reduceMotion } = useTheme();
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<{ params: PaywallRouteParams }, 'params'>>();
-  const { impactMedium, notificationSuccess } = useHaptics();
+  const { impactMedium, notificationSuccess, notificationError } = useHaptics();
   const { startTrial, upgradeToPremium, isTrialing } = useSubscription();
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const featureName = route.params?.featureName || 'this feature';
 
   const handleStartTrial = async () => {
-    await impactMedium();
-    await startTrial();
-    await notificationSuccess();
-    navigation.goBack();
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      await impactMedium();
+      await startTrial();
+      await notificationSuccess();
+      navigation.goBack();
+    } catch (err: any) {
+      await notificationError();
+      setError(err.message || 'Unable to start trial. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleUpgrade = async () => {
@@ -132,6 +145,9 @@ export function PaywallScreen() {
           <Pressable
             onPress={handleClose}
             style={[styles.closeCircle, { backgroundColor: withAlpha(colors.canvasElevated, 0.8) }]}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            accessibilityHint="Returns to previous screen"
           >
             <Text style={styles.closeText}>✕</Text>
           </Pressable>
@@ -178,6 +194,18 @@ export function PaywallScreen() {
             entering={reduceMotion ? undefined : SlideInDown.delay(400).duration(500)}
             style={styles.ctaContainer}
           >
+            {/* Error Message */}
+            {error && (
+              <Animated.View 
+                entering={FadeIn.duration(300)}
+                style={[styles.errorBanner, { backgroundColor: withAlpha(colors.statusError, 0.1) }]}
+              >
+                <Text variant="bodyMedium" style={{ color: colors.statusError }} align="center">
+                  {error}
+                </Text>
+              </Animated.View>
+            )}
+
             {!isTrialing && (
               <PremiumButton
                 variant="glow"
@@ -185,8 +213,9 @@ export function PaywallScreen() {
                 fullWidth
                 tone="warm"
                 onPress={handleStartTrial}
+                disabled={isLoading}
               >
-                Start 7-Day Free Trial
+                {isLoading ? 'Starting Trial...' : 'Start 7-Day Free Trial'}
               </PremiumButton>
             )}
             
@@ -195,6 +224,7 @@ export function PaywallScreen() {
               size="lg"
               fullWidth
               onPress={handleUpgrade}
+              disabled={isLoading}
             >
               {isTrialing ? 'Upgrade Now' : 'View Plans'}
             </PremiumButton>
@@ -299,6 +329,12 @@ const styles = StyleSheet.create({
   ctaContainer: {
     gap: spacing[3],
     paddingTop: spacing[2],
+  },
+  errorBanner: {
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
+    borderRadius: borderRadius.md,
+    marginBottom: spacing[2],
   },
   termsText: {
     marginTop: spacing[2],

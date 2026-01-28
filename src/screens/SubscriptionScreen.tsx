@@ -3,7 +3,7 @@
  * 
  * Displays current subscription status and upgrade options
  */
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -87,6 +87,9 @@ function PlanCard({ title, price, period, savings, isPopular, isCurrentPlan, onP
       onPressOut={handlePressOut}
       onPress={handlePress}
       disabled={isCurrentPlan}
+      accessibilityRole="button"
+      accessibilityLabel={`${title} plan at ${price} per ${period}${savings ? `, ${savings}` : ''}${isCurrentPlan ? ', current plan' : ''}`}
+      accessibilityState={{ selected: isCurrentPlan, disabled: isCurrentPlan }}
     >
       <Animated.View style={animatedStyle}>
         <GlassCard 
@@ -134,7 +137,7 @@ function PlanCard({ title, price, period, savings, isPopular, isCurrentPlan, onP
 export function SubscriptionScreen() {
   const { colors, reduceMotion } = useTheme();
   const navigation = useNavigation();
-  const { impactMedium, notificationSuccess } = useHaptics();
+  const { impactMedium, notificationSuccess, notificationError } = useHaptics();
   const {
     tier,
     isPremium,
@@ -147,30 +150,70 @@ export function SubscriptionScreen() {
     restorePurchases,
   } = useSubscription();
 
+  const [isLoading, setIsLoading] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
   const handleStartTrial = async () => {
-    await impactMedium();
-    await startTrial();
-    await notificationSuccess();
-    navigation.goBack();
+    setIsLoading('trial');
+    setError(null);
+    try {
+      await impactMedium();
+      await startTrial();
+      await notificationSuccess();
+      navigation.goBack();
+    } catch (err: any) {
+      await notificationError();
+      setError(err.message || 'Unable to start trial. Please try again.');
+    } finally {
+      setIsLoading(null);
+    }
   };
 
   const handleUpgradeMonthly = async () => {
-    await impactMedium();
-    await upgradeToPremium();
-    await notificationSuccess();
-    navigation.goBack();
+    setIsLoading('monthly');
+    setError(null);
+    try {
+      await impactMedium();
+      await upgradeToPremium();
+      await notificationSuccess();
+      navigation.goBack();
+    } catch (err: any) {
+      await notificationError();
+      setError(err.message || 'Purchase failed. Please try again.');
+    } finally {
+      setIsLoading(null);
+    }
   };
 
   const handleUpgradeLifetime = async () => {
-    await impactMedium();
-    await upgradeToLifetime();
-    await notificationSuccess();
-    navigation.goBack();
+    setIsLoading('lifetime');
+    setError(null);
+    try {
+      await impactMedium();
+      await upgradeToLifetime();
+      await notificationSuccess();
+      navigation.goBack();
+    } catch (err: any) {
+      await notificationError();
+      setError(err.message || 'Purchase failed. Please try again.');
+    } finally {
+      setIsLoading(null);
+    }
   };
 
   const handleRestore = async () => {
-    await impactMedium();
-    await restorePurchases();
+    setIsLoading('restore');
+    setError(null);
+    try {
+      await impactMedium();
+      await restorePurchases();
+      await notificationSuccess();
+    } catch (err: any) {
+      await notificationError();
+      setError(err.message || 'Could not restore purchases. Please try again.');
+    } finally {
+      setIsLoading(null);
+    }
   };
 
   const formatDate = (date: Date | null) => {
@@ -196,6 +239,18 @@ export function SubscriptionScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          {/* Error Banner */}
+          {error && (
+            <Animated.View 
+              entering={reduceMotion ? undefined : FadeIn.duration(300)}
+              style={[styles.errorBanner, { backgroundColor: withAlpha(colors.statusError, 0.1) }]}
+            >
+              <Text variant="bodyMedium" style={{ color: colors.statusError }} align="center">
+                {error}
+              </Text>
+            </Animated.View>
+          )}
+
           {/* Current Status */}
           {isPremium && (
             <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(100).duration(400)}>
@@ -316,7 +371,12 @@ export function SubscriptionScreen() {
             entering={reduceMotion ? undefined : FadeInDown.delay(500).duration(400)}
             style={styles.restoreSection}
           >
-            <Pressable onPress={handleRestore}>
+            <Pressable 
+              onPress={handleRestore}
+              accessibilityRole="button"
+              accessibilityLabel="Restore purchases"
+              accessibilityHint="Restores any previous subscriptions you purchased"
+            >
               <Text variant="labelMedium" color="inkMuted" align="center">
                 Restore Purchases
               </Text>
@@ -418,6 +478,12 @@ const styles = StyleSheet.create({
   },
   restoreSection: {
     paddingVertical: spacing[4],
+  },
+  errorBanner: {
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
+    borderRadius: borderRadius.md,
+    marginBottom: spacing[4],
   },
 });
 

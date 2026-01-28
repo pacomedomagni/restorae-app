@@ -7,6 +7,7 @@
  * UX Improvements:
  * - Exit confirmation dialog when session is in progress
  * - Swipe gesture to dismiss (with confirmation)
+ * - Session state persistence on app background
  */
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { 
@@ -17,6 +18,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useKeepAwake } from 'expo-keep-awake';
 import Animated, {
   FadeIn,
@@ -42,7 +44,9 @@ import { Icon } from '../../components/Icon';
 import { spacing, borderRadius, layout, withAlpha } from '../../theme';
 import { RootStackParamList, BreathingPattern } from '../../types';
 import { useHaptics } from '../../hooks/useHaptics';
+import { useSessionPersistence } from '../../hooks/useSessionPersistence';
 import { getPatternById, BREATHING_PATTERNS } from '../../data';
+import { navigationHelpers } from '../../services/navigationHelpers';
 
 type Phase = 'idle' | 'inhale' | 'hold' | 'exhale' | 'complete';
 
@@ -61,7 +65,7 @@ export function BreathingScreen() {
   useKeepAwake();
   const { colors, reduceMotion } = useTheme();
   const { impactLight, impactMedium, notificationSuccess } = useHaptics();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'Breathing'>>();
 
   // Get pattern from data library, default to box-breathing
@@ -73,7 +77,36 @@ export function BreathingScreen() {
   const [countdown, setCountdown] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Session persistence for app backgrounding
+  const { saveState, clearState } = useSessionPersistence({
+    sessionType: 'breathing',
+    sessionId: patternId,
+    enabled: isRunning && phase !== 'complete',
+    onRestore: (savedState) => {
+      // Restore session state
+      if (savedState.customData) {
+        setPhase(savedState.customData.phase as Phase);
+        setCurrentCycle(savedState.customData.currentCycle || 0);
+        setIsRunning(true);
+        setSessionStartTime(savedState.startTime);
+      }
+    },
+  });
+
+  // Save state when phase or cycle changes
+  useEffect(() => {
+    if (isRunning && phase !== 'idle' && phase !== 'complete') {
+      saveState({
+        phase,
+        progress: currentCycle / pattern.cycles,
+        startTime: sessionStartTime || Date.now(),
+        customData: { phase, currentCycle },
+      });
+    }
+  }, [phase, currentCycle, isRunning, pattern.cycles, sessionStartTime, saveState]);
 
   // Handle hardware back button on Android
   useEffect(() => {
@@ -152,6 +185,7 @@ export function BreathingScreen() {
   const handleStart = async () => {
     if (isRunning) return;
     setIsRunning(true);
+    setSessionStartTime(Date.now());
     await impactMedium();
     runBreathCycle(1);
   };
@@ -160,6 +194,9 @@ export function BreathingScreen() {
     // If session is running, show confirmation
     if (isRunning && phase !== 'complete') {
       setShowExitConfirm(true);
+    } else if (phase === 'complete') {
+      // Navigate to completion screen
+      handleSessionComplete();
     } else {
       handleClose();
     }
@@ -168,6 +205,24 @@ export function BreathingScreen() {
   const handleClose = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     navigation.goBack();
+  };
+
+  const handleSessionComplete = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    
+    // Clear saved session state
+    clearState();
+    
+    const duration = sessionStartTime 
+      ? navigationHelpers.calculateSessionDuration(sessionStartTime)
+      : Math.round(pattern.cycles * (pattern.inhale + (pattern.hold1 || 0) + pattern.exhale + (pattern.hold2 || 0)));
+    
+    navigationHelpers.navigateToSessionComplete(navigation, {
+      sessionType: 'breathing',
+      sessionName: pattern.name,
+      duration,
+      cycles: pattern.cycles,
+    });
   };
 
   const handleExitConfirm = () => {
@@ -200,7 +255,14 @@ export function BreathingScreen() {
           entering={reduceMotion ? undefined : FadeIn.duration(400)} 
           style={styles.header}
         >
-          <Pressable onPress={handleCloseAttempt} style={styles.closeButton} hitSlop={12}>
+          <Pressable 
+            onPress={handleCloseAttempt} 
+            style={styles.closeButton} 
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            accessibilityHint={isRunning ? "Shows exit confirmation" : "Returns to previous screen"}
+          >
             <Text variant="bodyMedium" color="ink">Close</Text>
           </Pressable>
           
@@ -238,6 +300,10 @@ export function BreathingScreen() {
           <Pressable
             onPress={phase === 'idle' ? handleStart : undefined}
             style={styles.orbWrapper}
+            accessibilityRole="button"
+            accessibilityLabel={phase === 'idle' ? `Start ${pattern.name} breathing exercise` : `${phaseLabels[phase]}${countdown > 0 ? `, ${countdown} seconds remaining` : ''}`}
+            accessibilityHint={phase === 'idle' ? "Tap to begin the breathing exercise" : undefined}
+            accessibilityState={{ disabled: phase !== 'idle' }}
           >
             <BreathingOrb
               phase={orbPhase}
@@ -280,15 +346,18 @@ export function BreathingScreen() {
               variant="glow" 
               size="lg" 
               fullWidth 
-              onPress={handleClose}
+              onPress={handleSessionComplete}
             >
-              Done
+              Complete Session
             </PremiumButton>
             
             <Pressable
               onPress={handleRestart}
               style={styles.againButton}
               hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Breathe again"
+              accessibilityHint="Restarts the breathing exercise"
             >
               <Text variant="labelLarge" color="inkMuted">
                 Breathe again

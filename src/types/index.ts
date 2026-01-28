@@ -178,6 +178,16 @@ export type RootStackParamList = {
   Progress: undefined;
   ToolsMore: undefined;
   QuickReset: undefined;
+  // Unified completion screen
+  SessionComplete: {
+    sessionType: 'breathing' | 'grounding' | 'reset' | 'focus' | 'journal' | 'story' | 'ritual' | 'mood';
+    sessionName?: string;
+    duration?: number; // in seconds
+    cycles?: number;
+    steps?: number;
+    wordCount?: number;
+    mood?: MoodType;
+  };
   Ritual: { type?: 'morning' | 'evening'; ritualId?: string };
   RitualSession: { type: 'morning' | 'evening'; ritualId: string };
   MorningRitual: undefined;

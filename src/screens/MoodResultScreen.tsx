@@ -1,15 +1,25 @@
 /**
- * MoodResultScreen - Consistent UI with visual mood continuity
+ * MoodResultScreen - Enhanced with gamification integration
+ * 
+ * UX Improvements:
+ * - XP reward for mood check-in
+ * - Streak tracking
+ * - Celebration animations
+ * - Personalized suggestions
  */
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeInDown, ZoomIn, FadeInUp } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, ZoomIn, FadeInUp, useSharedValue, useAnimatedStyle, withSpring, withTiming } from 'react-native-reanimated';
 import { useNavigation, useRoute, NavigationProp, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useTheme } from '../contexts/ThemeContext';
-import { Text, Button, GlassCard, AmbientBackground, MoodOrb } from '../components/ui';
+import { useHaptics } from '../hooks/useHaptics';
+import { Text, Button, GlassCard, AmbientBackground, MoodOrb, Confetti } from '../components/ui';
 import { spacing, layout, withAlpha } from '../theme';
+import { gamification, Achievement } from '../services/gamification';
+import { recommendations } from '../services/recommendations';
 import type { RootStackParamList, MoodType } from '../types';
 
 const MOOD_DATA: Record<MoodType, { message: string; suggestion: string; tool: string; toolRoute: keyof RootStackParamList }> = {
@@ -62,16 +72,72 @@ const MOOD_LABELS: Record<MoodType, string> = {
 
 export function MoodResultScreen() {
   const { reduceMotion, colors } = useTheme();
-  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'MoodResult'>>();
+  const { notificationSuccess } = useHaptics();
 
   const mood = (route.params?.mood || 'calm') as MoodType;
   const note = route.params?.note;
   const moodInfo = MOOD_DATA[mood] || MOOD_DATA.calm;
 
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [xpEarned, setXpEarned] = useState(0);
+  const [showXP, setShowXP] = useState(false);
+
+  // XP animation values
+  const xpScale = useSharedValue(0);
+  const xpOpacity = useSharedValue(0);
+
+  const xpAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: xpScale.value }],
+    opacity: xpOpacity.value,
+  }));
+
+  // Record mood check-in and award XP
+  useEffect(() => {
+    const processMoodCheckin = async () => {
+      // Record the activity
+      const result = await gamification.recordActivity('mood', 0, { mood, hasNote: !!note });
+      
+      // Record mood for recommendations
+      recommendations.recordMood(mood);
+
+      setXpEarned(result.xpEarned);
+      
+      // Trigger celebration
+      await notificationSuccess();
+      setShowConfetti(true);
+      
+      // Show XP badge with animation
+      setTimeout(() => {
+        setShowXP(true);
+        xpScale.value = withSpring(1, { damping: 12, stiffness: 200 });
+        xpOpacity.value = withTiming(1, { duration: 300 });
+      }, 400);
+    };
+
+    processMoodCheckin();
+  }, []);
+
+  const handleToolNavigation = () => {
+    if (moodInfo.toolRoute === 'JournalEntry') {
+      navigation.navigate('JournalEntry', { mode: 'new' });
+    } else {
+      navigation.navigate(moodInfo.toolRoute as any);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <AmbientBackground variant="calm" />
+      
+      {/* Celebration Confetti */}
+      <Confetti 
+        active={showConfetti} 
+        intensity={reduceMotion ? 'low' : 'medium'}
+        onComplete={() => setShowConfetti(false)}
+      />
+
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.scrollContent}>
           {/* Mood Orb - Visual continuity */}
@@ -87,7 +153,7 @@ export function MoodResultScreen() {
             />
           </Animated.View>
 
-          {/* Success checkmark animation */}
+          {/* Success checkmark + XP reward */}
           <Animated.View
             entering={reduceMotion ? undefined : FadeInUp.delay(200).duration(400)}
             style={styles.checkContainer}
@@ -97,6 +163,16 @@ export function MoodResultScreen() {
                 ✓ Check-in saved
               </Text>
             </View>
+            
+            {/* XP Reward Badge */}
+            {showXP && (
+              <Animated.View style={[styles.xpBadge, { backgroundColor: withAlpha(colors.accentWarm, 0.15) }, xpAnimatedStyle]}>
+                <Text style={styles.xpEmoji}>✨</Text>
+                <Text variant="labelMedium" style={{ color: colors.accentWarm }}>
+                  +{xpEarned} XP
+                </Text>
+              </Animated.View>
+            )}
           </Animated.View>
 
           <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(300).duration(400)}>
@@ -126,7 +202,7 @@ export function MoodResultScreen() {
               size="lg"
               tone="primary"
               fullWidth
-              onPress={() => navigation.navigate(moodInfo.toolRoute as any)}
+              onPress={handleToolNavigation}
               style={styles.primaryButton}
             >
               {moodInfo.tool}
@@ -168,11 +244,25 @@ const styles = StyleSheet.create({
   checkContainer: {
     alignItems: 'center',
     marginBottom: spacing[6],
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing[3],
   },
   checkBadge: {
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[2],
     borderRadius: 20,
+  },
+  xpBadge: {
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+  },
+  xpEmoji: {
+    fontSize: 14,
   },
   suggestion: {
     marginTop: spacing[3],

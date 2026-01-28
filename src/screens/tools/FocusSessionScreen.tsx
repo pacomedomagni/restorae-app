@@ -5,6 +5,7 @@
  * 
  * UX Improvements:
  * - Exit confirmation when session is in progress
+ * - Session state persistence on app background
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
@@ -15,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useKeepAwake } from 'expo-keep-awake';
 import Animated, {
   FadeIn,
@@ -40,7 +42,9 @@ import {
 import { spacing, layout, withAlpha, borderRadius } from '../../theme';
 import { RootStackParamList } from '../../types';
 import { useHaptics } from '../../hooks/useHaptics';
+import { useSessionPersistence } from '../../hooks/useSessionPersistence';
 import { getSessionById, FOCUS_SESSIONS, AMBIENT_SOUNDS } from '../../data';
+import { navigationHelpers } from '../../services/navigationHelpers';
 
 // =============================================================================
 // TYPES
@@ -176,7 +180,7 @@ export function FocusSessionScreen() {
   const { colors, reduceMotion } = useTheme();
   const { impactLight, impactMedium, notificationSuccess } = useHaptics();
   const { playSound, pauseSound, stopSound, isPlaying: audioIsPlaying } = useAudio();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'FocusSession'>>();
 
   const sessionId = route.params?.sessionId ?? 'deep-work';
@@ -187,11 +191,39 @@ export function FocusSessionScreen() {
   const [timeRemaining, setTimeRemaining] = useState(session.duration * 60);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [sessionStartTime] = useState<number>(Date.now());
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const totalTime = session.duration * 60;
   const progress = 1 - (timeRemaining / totalTime);
   const isSessionActive = phase === 'focusing';
+
+  // Session persistence for app backgrounding
+  const { saveState, clearState } = useSessionPersistence({
+    sessionType: 'focus',
+    sessionId,
+    enabled: isSessionActive,
+    onRestore: (savedState) => {
+      if (savedState.customData) {
+        setPhase('focusing');
+        setTimeRemaining(savedState.customData.timeRemaining || session.duration * 60);
+        setIsPaused(true); // Start paused so user can resume
+        setIsPlaying(false);
+      }
+    },
+  });
+
+  // Save state when time changes (throttled to every 10 seconds)
+  useEffect(() => {
+    if (isSessionActive && timeRemaining % 10 === 0) {
+      saveState({
+        phase: 'focusing',
+        progress,
+        startTime: sessionStartTime,
+        customData: { timeRemaining, isPaused },
+      });
+    }
+  }, [timeRemaining, isSessionActive, progress, sessionStartTime, isPaused, saveState]);
 
   // Handle hardware back button on Android
   useEffect(() => {
@@ -265,13 +297,31 @@ export function FocusSessionScreen() {
     navigation.goBack();
   }, [navigation, stopSound]);
 
+  const handleSessionComplete = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    stopSound();
+    
+    // Clear saved session state
+    clearState();
+    
+    const duration = session.duration * 60; // Total session duration
+    
+    navigationHelpers.navigateToSessionComplete(navigation, {
+      sessionType: 'focus',
+      sessionName: session.name,
+      duration,
+    });
+  }, [navigation, stopSound, session, clearState]);
+
   const handleCloseAttempt = useCallback(() => {
     if (isSessionActive) {
       setShowExitConfirm(true);
+    } else if (phase === 'complete') {
+      handleSessionComplete();
     } else {
       handleClose();
     }
-  }, [isSessionActive, handleClose]);
+  }, [isSessionActive, phase, handleClose, handleSessionComplete]);
 
   const handleExitConfirm = useCallback(() => {
     setShowExitConfirm(false);
@@ -301,7 +351,14 @@ export function FocusSessionScreen() {
           entering={reduceMotion ? undefined : FadeIn.duration(400)}
           style={styles.header}
         >
-          <Pressable onPress={handleCloseAttempt} style={styles.closeButton} hitSlop={12}>
+          <Pressable 
+            onPress={handleCloseAttempt} 
+            style={styles.closeButton} 
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            accessibilityHint={isSessionActive ? "Shows exit confirmation" : "Returns to previous screen"}
+          >
             <Text variant="bodyMedium" color="ink">Close</Text>
           </Pressable>
 
@@ -409,14 +466,17 @@ export function FocusSessionScreen() {
                 size="lg"
                 fullWidth
                 tone="calm"
-                onPress={handleClose}
+                onPress={handleSessionComplete}
               >
-                Done
+                Complete Session
               </PremiumButton>
               <Pressable
                 onPress={handleRestart}
                 style={styles.againButton}
                 hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Start another session"
+                accessibilityHint="Restarts the focus timer"
               >
                 <Text variant="labelLarge" color="inkMuted">
                   Start another session

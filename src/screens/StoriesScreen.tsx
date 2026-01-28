@@ -4,7 +4,7 @@
  * Bedtime stories hub with categories, featured stories,
  * and quick access to soundscapes.
  */
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -12,6 +12,7 @@ import {
   Pressable,
   Dimensions,
   Image,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -34,6 +35,8 @@ import {
   AmbientBackground,
   TabSafeScrollView,
   EmptyState,
+  Skeleton,
+  SkeletonCard,
 } from '../components/ui';
 import { LuxeIcon } from '../components/LuxeIcon';
 import { Icon } from '../components/Icon';
@@ -52,6 +55,29 @@ import {
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const FEATURED_CARD_WIDTH = SCREEN_WIDTH - layout.screenPaddingHorizontal * 2;
 const STORY_CARD_WIDTH = (SCREEN_WIDTH - layout.screenPaddingHorizontal * 2 - spacing[4]) / 2;
+
+// =============================================================================
+// SKELETON COMPONENTS
+// =============================================================================
+function SkeletonStoryCard() {
+  return (
+    <View style={{ width: STORY_CARD_WIDTH }}>
+      <SkeletonCard style={{ height: 160, marginBottom: spacing[2] }} />
+      <Skeleton width="80%" height={16} style={{ marginBottom: spacing[1] }} />
+      <Skeleton width="50%" height={12} />
+    </View>
+  );
+}
+
+function SkeletonFeaturedCard() {
+  return (
+    <View style={{ width: FEATURED_CARD_WIDTH }}>
+      <SkeletonCard style={{ height: 200, marginBottom: spacing[2] }} />
+      <Skeleton width="70%" height={20} style={{ marginBottom: spacing[1] }} />
+      <Skeleton width="40%" height={14} />
+    </View>
+  );
+}
 
 // =============================================================================
 // CATEGORY PILL
@@ -87,6 +113,9 @@ function CategoryPill({ category, isActive, onPress }: CategoryPillProps) {
         await impactLight();
         onPress();
       }}
+      accessibilityRole="button"
+      accessibilityLabel={`Filter by ${category.label}`}
+      accessibilityState={{ selected: isActive }}
     >
       <Animated.View
         style={[
@@ -147,6 +176,9 @@ function FeaturedStoryCard({ story, onPress }: FeaturedCardProps) {
         await impactLight();
         onPress();
       }}
+      accessibilityRole="button"
+      accessibilityLabel={`${story.title}. ${story.subtitle}. ${formatDuration(story.duration)}${isLocked ? '. Premium content' : ''}`}
+      accessibilityHint={isLocked ? 'Opens subscription screen' : 'Plays this story'}
     >
       <Animated.View style={[styles.featuredCard, animatedStyle]}>
         <View style={styles.featuredImageContainer}>
@@ -238,6 +270,9 @@ function StoryCard({ story, index, onPress }: StoryCardProps) {
           onPress();
         }}
         style={styles.storyCard}
+        accessibilityRole="button"
+        accessibilityLabel={`${story.title} by ${story.narrator}. ${formatDuration(story.duration)}${isLocked ? '. Premium content' : ''}`}
+        accessibilityHint={isLocked ? 'Opens subscription screen' : 'Plays this story'}
       >
         <Animated.View style={useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }))}>
           <GlassCard variant="elevated" padding="none">
@@ -294,9 +329,27 @@ export function StoriesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { isPremium } = useSubscription();
   const [selectedCategory, setSelectedCategory] = useState<StoryCategory | 'all'>('all');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const filteredStories = getStoriesByCategory(selectedCategory);
   const featuredStory = BEDTIME_STORIES[0]; // First story as featured
+
+  // Simulate initial load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Pull-to-refresh handler
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    // Simulate refresh - in real app would fetch new stories
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setIsRefreshing(false);
+  }, []);
 
   const handleStoryPress = useCallback((story: BedtimeStory) => {
     if (story.isPremium && !isPremium) {
@@ -309,6 +362,49 @@ export function StoriesScreen() {
     }
   }, [isPremium, navigation]);
 
+  // Render loading skeletons
+  const renderSkeletons = () => (
+    <>
+      {/* Header skeleton */}
+      <View style={styles.header}>
+        <Skeleton width="60%" height={32} style={{ marginBottom: spacing[2] }} />
+        <Skeleton width="80%" height={16} />
+      </View>
+
+      {/* Categories skeleton */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.categoriesContainer}
+      >
+        {[1, 2, 3, 4].map((i) => (
+          <Skeleton 
+            key={i} 
+            width={80} 
+            height={36} 
+            style={{ borderRadius: 18, marginRight: spacing[2] }} 
+          />
+        ))}
+      </ScrollView>
+
+      {/* Featured skeleton */}
+      <View style={styles.featuredSection}>
+        <Skeleton width={100} height={12} style={{ marginBottom: spacing[3] }} />
+        <SkeletonFeaturedCard />
+      </View>
+
+      {/* Grid skeleton */}
+      <View style={styles.storiesSection}>
+        <Skeleton width={80} height={12} style={{ marginBottom: spacing[3] }} />
+        <View style={styles.storiesGrid}>
+          {[1, 2, 3, 4].map((i) => (
+            <SkeletonStoryCard key={i} />
+          ))}
+        </View>
+      </View>
+    </>
+  );
+
   return (
     <View style={styles.container}>
       <AmbientBackground variant="evening" />
@@ -318,31 +414,43 @@ export function StoriesScreen() {
           style={styles.scrollView}
           contentStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              tintColor={colors.accentPrimary}
+              colors={[colors.accentPrimary]}
+            />
+          }
         >
-          {/* Header */}
-          <Animated.View
-            entering={reduceMotion ? undefined : FadeIn.duration(400)}
-            style={styles.header}
-          >
-            <Text variant="displaySmall" color="ink">
-              Sleep Stories
-            </Text>
-            <Text variant="bodyMedium" color="inkMuted" style={{ marginTop: spacing[2] }}>
-              Drift off with calming tales and soundscapes
-            </Text>
-          </Animated.View>
-
-          {/* Categories */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoriesContainer}
-          >
-            {STORY_CATEGORIES.map((category, index) => (
+          {isLoading ? (
+            renderSkeletons()
+          ) : (
+            <>
+              {/* Header */}
               <Animated.View
-                key={category.id}
-                entering={reduceMotion ? undefined : FadeInRight.delay(index * 50).duration(300)}
+                entering={reduceMotion ? undefined : FadeIn.duration(400)}
+                style={styles.header}
               >
+                <Text variant="displaySmall" color="ink">
+                  Sleep Stories
+                </Text>
+                <Text variant="bodyMedium" color="inkMuted" style={{ marginTop: spacing[2] }}>
+                  Drift off with calming tales and soundscapes
+                </Text>
+              </Animated.View>
+
+              {/* Categories */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoriesContainer}
+              >
+                {STORY_CATEGORIES.map((category, index) => (
+                  <Animated.View
+                    key={category.id}
+                    entering={reduceMotion ? undefined : FadeInRight.delay(index * 50).duration(300)}
+                  >
                 <CategoryPill
                   category={category}
                   isActive={selectedCategory === category.id}
@@ -387,7 +495,7 @@ export function StoriesScreen() {
               </View>
             ) : (
               <EmptyState
-                icon="moon"
+                icon="reset"
                 title="No stories found"
                 description="Try selecting a different category"
               />
@@ -419,6 +527,8 @@ export function StoriesScreen() {
                 </View>
               </GlassCard>
             </Animated.View>
+          )}
+            </>
           )}
         </TabSafeScrollView>
       </SafeAreaView>
