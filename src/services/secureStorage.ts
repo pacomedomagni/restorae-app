@@ -16,7 +16,14 @@ export const SECURE_KEYS = {
   ENCRYPTION_KEY: 'restorae_encryption_key',
 } as const;
 
-// ... (keep unused keys)
+// Keys for regular AsyncStorage
+export const STORAGE_KEYS = {
+  USER: 'restorae_user',
+  USER_ID: 'restorae_user_id',
+  USER_NAME: 'restorae_user_name',
+  USER_EMAIL: 'restorae_user_email',
+  ONBOARDING_COMPLETE: 'restorae_onboarding_complete',
+} as const;
 
 /**
  * Secure storage for sensitive data (tokens)

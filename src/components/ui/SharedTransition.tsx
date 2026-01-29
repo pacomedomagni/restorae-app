@@ -4,19 +4,16 @@
  * Utilities for creating smooth shared element transitions between screens
  * using Reanimated's layout animations.
  * 
+ * NOTE: SharedTransition.custom was removed in Reanimated 4.x
+ * This file provides stub implementations for compatibility.
+ * 
  * Usage:
  * 1. Wrap the source element with SharedElement and give it a unique tag
  * 2. Wrap the target element with the same tag
  * 3. The transition happens automatically when navigating
  */
 import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
-import Animated, {
-  SharedTransition,
-  withSpring,
-  withTiming,
-  Easing,
-  SharedTransitionType,
-} from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import { View, StyleSheet, LayoutChangeEvent } from 'react-native';
 
 // =============================================================================
@@ -53,59 +50,34 @@ interface SharedTransitionContextType {
 }
 
 // =============================================================================
-// SHARED TRANSITION PRESETS
+// SHARED TRANSITION PRESETS (STUBS for Reanimated 4.x compatibility)
 // =============================================================================
 
 /**
- * Create a smooth spring-based shared transition
+ * Create a shared transition config (stub - SharedTransition.custom removed in Reanimated 4.x)
  */
-export function createSharedTransition(config?: TransitionConfig): SharedTransition {
-  const {
-    duration = 400,
-    damping = 15,
-    stiffness = 100,
-    type = 'spring',
-  } = config || {};
-
-  if (type === 'spring') {
-    return SharedTransition.custom((values) => {
-      'worklet';
-      return {
-        originX: withSpring(values.targetOriginX, { damping, stiffness }),
-        originY: withSpring(values.targetOriginY, { damping, stiffness }),
-        width: withSpring(values.targetWidth, { damping, stiffness }),
-        height: withSpring(values.targetHeight, { damping, stiffness }),
-      };
-    });
-  }
-
-  return SharedTransition.custom((values) => {
-    'worklet';
-    return {
-      originX: withTiming(values.targetOriginX, { duration, easing: Easing.out(Easing.ease) }),
-      originY: withTiming(values.targetOriginY, { duration, easing: Easing.out(Easing.ease) }),
-      width: withTiming(values.targetWidth, { duration, easing: Easing.out(Easing.ease) }),
-      height: withTiming(values.targetHeight, { duration, easing: Easing.out(Easing.ease) }),
-    };
-  });
+export function createSharedTransition(_config?: TransitionConfig): undefined {
+  // SharedTransition.custom was removed in Reanimated 4.x
+  // Return undefined - components will render without shared transitions
+  return undefined;
 }
 
-// Preset transitions
+// Preset transitions (all undefined for compatibility)
 export const sharedTransitions = {
   /** Default spring transition */
-  default: createSharedTransition(),
+  default: undefined,
   
   /** Faster spring for cards */
-  card: createSharedTransition({ damping: 18, stiffness: 150 }),
+  card: undefined,
   
   /** Slower, smoother transition for images */
-  image: createSharedTransition({ damping: 12, stiffness: 80 }),
+  image: undefined,
   
   /** Quick timing-based transition */
-  quick: createSharedTransition({ type: 'timing', duration: 250 }),
+  quick: undefined,
   
   /** Slow, cinematic transition */
-  cinematic: createSharedTransition({ type: 'timing', duration: 500 }),
+  cinematic: undefined,
 };
 
 // =============================================================================
@@ -179,7 +151,6 @@ export function SharedElement({ tag, children, style }: SharedElementProps) {
   return (
     <Animated.View
       sharedTransitionTag={tag}
-      sharedTransitionStyle={sharedTransitions.card}
       style={style}
     >
       {children}
@@ -194,7 +165,6 @@ export function SharedImage({ tag, children, style }: SharedElementProps) {
   return (
     <Animated.View
       sharedTransitionTag={tag}
-      sharedTransitionStyle={sharedTransitions.image}
       style={style}
     >
       {children}
@@ -209,7 +179,6 @@ export function SharedText({ tag, children, style }: SharedElementProps) {
   return (
     <Animated.View
       sharedTransitionTag={tag}
-      sharedTransitionStyle={sharedTransitions.quick}
       style={style}
     >
       {children}

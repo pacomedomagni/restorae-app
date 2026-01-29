@@ -15,6 +15,7 @@ import {
   Dimensions,
   Pressable,
   TextInput,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -210,7 +211,11 @@ function FloatingOrb({ isBreathing = false }: { isBreathing?: boolean }) {
               },
             ]}
           >
-            <Icon name="logo" size={orbSize * 0.45} />
+            <Image
+              source={require('../../assets/icon.png')}
+              style={{ width: orbSize * 0.7, height: orbSize * 0.7 }}
+              resizeMode="contain"
+            />
           </View>
         </Animated.View>
       </Animated.View>

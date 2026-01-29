@@ -31,7 +31,7 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Text } from '../ui';
+import { Text } from './Text';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useHaptics } from '../../hooks/useHaptics';
 import { gamification, StreakData, UserLevel } from '../../services/gamification';

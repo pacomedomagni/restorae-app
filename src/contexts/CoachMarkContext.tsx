@@ -16,25 +16,32 @@ export type CoachMarkId =
   // Home Screen
   | 'home_for_you'
   | 'home_mood_checkin'
+  | 'home_mood_select'
   | 'home_quick_actions'
   // Tools Screen
   | 'tools_long_press'
   | 'tools_categories'
+  | 'tools_browse'
   // Breathing
   | 'breathing_tap_to_pause'
+  | 'breathing_tap'
   | 'breathing_swipe_patterns'
   // Journal
   | 'journal_swipe_entries'
+  | 'journal_swipe'
   | 'journal_long_press'
   | 'journal_search'
+  | 'journal_private'
   // Focus
   | 'focus_ambient_sounds'
   | 'focus_timer'
   // Stories
   | 'stories_sleep_timer'
+  | 'stories_scrub'
   // Profile
   | 'profile_streak'
-  | 'profile_achievements';
+  | 'profile_achievements'
+  | 'profile_customize';
 
 export interface CoachMark {
   id: CoachMarkId;
@@ -62,6 +69,12 @@ interface CoachMarkContextType {
   
   // Show a specific coach mark (if not already shown)
   shouldShow: (id: CoachMarkId) => boolean;
+  
+  // Alias for shouldShow
+  shouldShowCoachMark: (id: CoachMarkId) => boolean;
+  
+  // Coach mark definitions
+  COACH_MARKS: Record<CoachMarkId, Omit<CoachMark, 'id'>>;
   
   // Reset all coach marks (for testing)
   resetAllMarks: () => Promise<void>;
@@ -94,6 +107,12 @@ export const COACH_MARKS: Record<CoachMarkId, Omit<CoachMark, 'id'>> = {
     message: 'Regular check-ins help us personalize your experience and show your progress.',
     icon: '🎯',
     position: 'bottom',
+  },
+  home_mood_select: {
+    title: 'How Are You Feeling?',
+    message: 'Tap a mood orb to check in. This helps personalize your experience.',
+    icon: '💫',
+    position: 'center',
   },
   home_quick_actions: {
     title: 'Quick Actions',
@@ -184,6 +203,46 @@ export const COACH_MARKS: Record<CoachMarkId, Omit<CoachMark, 'id'>> = {
     message: 'Complete milestones to unlock achievements and track your growth.',
     icon: '🏆',
     position: 'center',
+  },
+  profile_customize: {
+    title: 'Personalize Your Experience',
+    message: 'Customize your profile settings and preferences here.',
+    icon: '⚙️',
+    position: 'center',
+  },
+  // Additional tools
+  tools_browse: {
+    title: 'Browse Tools',
+    message: 'Explore all available wellness tools organized by category.',
+    icon: '🔎',
+    position: 'top',
+  },
+  // Additional breathing
+  breathing_tap: {
+    title: 'Tap to Control',
+    message: 'Tap anywhere on the screen to pause or resume your breathing session.',
+    icon: '⏸️',
+    position: 'center',
+  },
+  // Additional journal
+  journal_swipe: {
+    title: 'Swipe to Navigate',
+    message: 'Swipe left on an entry to delete, or swipe right to edit.',
+    icon: '📝',
+    position: 'center',
+  },
+  journal_private: {
+    title: 'Private & Secure',
+    message: 'Your journal entries are private and stored securely on your device.',
+    icon: '🔒',
+    position: 'top',
+  },
+  // Additional stories
+  stories_scrub: {
+    title: 'Scrub Through Story',
+    message: 'Drag the progress bar to jump to any point in the story.',
+    icon: '⏩',
+    position: 'bottom',
   },
 };
 
@@ -290,6 +349,8 @@ export function CoachMarkProvider({ children }: { children: ReactNode }) {
     markAsShown,
     getPendingMark,
     shouldShow,
+    shouldShowCoachMark: shouldShow,
+    COACH_MARKS,
     resetAllMarks,
     activeCoachMark,
     setActiveCoachMark,

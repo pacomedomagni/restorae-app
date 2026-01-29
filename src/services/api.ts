@@ -376,7 +376,7 @@ class ApiClient {
     limit?: number;
     offset?: number;
   }) {
-    const response = await this.client.get<{ entries: MoodEntry[]; total: number }>('/mood', { params });
+    const response = await this.client.get<MoodEntry[]>('/mood', { params });
     return response.data;
   }
 
@@ -422,7 +422,7 @@ class ApiClient {
     offset?: number;
     search?: string;
   }) {
-    const response = await this.client.get<{ entries: JournalEntry[]; total: number }>('/journal', { params });
+    const response = await this.client.get<JournalEntry[]>('/journal', { params });
     return response.data;
   }
 
@@ -644,7 +644,7 @@ class ApiClient {
   // =========================================================================
 
   async getSubscription() {
-    const response = await this.client.get<Subscription>('/subscriptions/me');
+    const response = await this.client.get<Subscription>('/subscriptions');
     return response.data;
   }
 

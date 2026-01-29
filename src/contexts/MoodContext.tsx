@@ -257,18 +257,24 @@ export function MoodProvider({ children }: { children: ReactNode }) {
 
   const syncWithServer = useCallback(async () => {
     if (syncInProgress.current || isSyncing) return;
+    
+    // Check if user is authenticated before syncing
+    const hasToken = await api.hasValidToken();
+    if (!hasToken) return;
+    
     const netInfo = await NetInfo.fetch();
     if (!netInfo.isConnected || !netInfo.isInternetReachable) return;
     syncInProgress.current = true;
     setIsSyncing(true);
     try {
-      const response = await api.getMoodEntries({ limit: 500 });
-      const serverEntries = response.entries || [];
+      const serverEntries = await api.getMoodEntries({ limit: 500 });
+      // Ensure we have an array
+      const entries = Array.isArray(serverEntries) ? serverEntries : [];
       const localData = await AsyncStorage.getItem(STORAGE_KEY);
       const localEntries: MoodEntry[] = localData ? JSON.parse(localData) : [];
       const localByServerId = new Map(localEntries.filter(e => e.serverId).map(e => [e.serverId, e]));
       const mergedEntries: MoodEntry[] = [];
-      serverEntries.forEach((se: any) => {
+      entries.forEach((se: any) => {
         const le = localByServerId.get(se.id);
         mergedEntries.push({
           id: le?.id || `mood_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,

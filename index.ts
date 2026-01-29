@@ -1,3 +1,6 @@
+// MUST be first import - initializes Reanimated worklets runtime
+import 'react-native-reanimated';
+
 import { registerRootComponent } from 'expo';
 
 import App from './App';

@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StyleSheet, View, Pressable } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, {
   useAnimatedStyle,
   withSpring,
@@ -12,6 +13,8 @@ import Animated, {
 import { useHaptics } from '../hooks/useHaptics';
 import { withAlpha } from '../theme';
 import { ErrorBoundary } from '../components/ui';
+
+const ONBOARDING_COMPLETE_KEY = '@restorae/onboarding_complete';
 
 import { useTheme } from '../contexts/ThemeContext';
 import { RootStackParamList, MainTabParamList } from '../types';
@@ -311,6 +314,23 @@ function MainTabs() {
 export function RootNavigator() {
   const { colors, isDark } = useTheme();
   const { isAuthenticated, isLoading } = useAuth();
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);
+
+  // Check if onboarding has been completed
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      try {
+        const completed = await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY);
+        setHasCompletedOnboarding(completed === 'true');
+      } catch {
+        setHasCompletedOnboarding(false);
+      }
+    };
+    
+    if (isAuthenticated) {
+      checkOnboarding();
+    }
+  }, [isAuthenticated]);
 
   const navigationTheme = {
     dark: isDark,
@@ -330,8 +350,8 @@ export function RootNavigator() {
     },
   };
 
-  // Show loading state while checking auth
-  if (isLoading) {
+  // Show loading state while checking auth or onboarding status
+  if (isLoading || (isAuthenticated && hasCompletedOnboarding === null)) {
     return null; // Or a splash screen component
   }
 
@@ -344,6 +364,9 @@ export function RootNavigator() {
     );
   }
 
+  // Determine initial route based on onboarding status
+  const initialRouteName = hasCompletedOnboarding ? 'Main' : 'Onboarding';
+
   return (
     <ErrorBoundary
       errorTitle="Something went wrong"
@@ -351,6 +374,7 @@ export function RootNavigator() {
     >
       <NavigationContainer theme={navigationTheme}>
         <Stack.Navigator
+          initialRouteName={initialRouteName}
           screenOptions={{
             headerShown: false,
             animation: 'fade',
