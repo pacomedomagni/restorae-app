@@ -15,6 +15,7 @@ import { useNavigation, useRoute, NavigationProp, RouteProp } from '@react-navig
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useTheme } from '../contexts/ThemeContext';
+import { useMood } from '../contexts/MoodContext';
 import { useHaptics } from '../hooks/useHaptics';
 import { Text, Button, GlassCard, AmbientBackground, MoodOrb, Confetti } from '../components/ui';
 import { spacing, layout, withAlpha } from '../theme';
@@ -74,6 +75,7 @@ const MOOD_LABELS: Record<MoodType, string> = {
 
 export function MoodResultScreen() {
   const { reduceMotion, colors } = useTheme();
+  const { addMoodEntry } = useMood();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'MoodResult'>>();
   const { notificationSuccess } = useHaptics();
@@ -98,6 +100,13 @@ export function MoodResultScreen() {
   // Record mood check-in and award XP
   useEffect(() => {
     const processMoodCheckin = async () => {
+      // CRITICAL: Actually persist the mood entry to MoodContext/backend
+      try {
+        await addMoodEntry(mood, note, 'manual');
+      } catch (error) {
+        console.error('Failed to save mood entry:', error);
+      }
+
       // Record the activity for gamification
       const result = await gamification.recordActivity('mood', 0, { mood, hasNote: !!note });
       
