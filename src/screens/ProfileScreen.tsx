@@ -39,6 +39,7 @@ import {
   CoachMarkOverlay,
 } from '../components/ui';
 import { Icon } from '../components/Icon';
+import { Logo } from '../components/Logo';
 import { spacing, borderRadius, layout, withAlpha } from '../theme';
 import { RootStackParamList } from '../types';
 
@@ -495,9 +496,7 @@ export function ProfileScreen() {
             entering={reduceMotion ? undefined : FadeIn.delay(400).duration(300)}
             style={styles.appInfo}
           >
-            <View style={styles.logoMini}>
-              <Icon name="logo" size={32} />
-            </View>
+            <Logo size="small" style={styles.logoMini} />
             <Text variant="labelSmall" color="inkFaint">
               Restorae v1.0.0
             </Text>

@@ -15,7 +15,6 @@ import {
   Dimensions,
   Pressable,
   TextInput,
-  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -48,6 +47,7 @@ import {
   GlassCard,
 } from '../components/ui';
 import { Icon } from '../components/Icon';
+import { Logo } from '../components/Logo';
 import { spacing, borderRadius, withAlpha } from '../theme';
 import { RootStackParamList } from '../types';
 import logger from '../services/logger';
@@ -217,11 +217,8 @@ function FloatingOrb({ isBreathing = false }: { isBreathing?: boolean }) {
               <SvgCircle cx="50" cy="50" r="48" fill="url(#highlight)" />
             </Svg>
             
-            <Image
-              source={require('../../assets/icon.png')}
-              style={{ width: orbSize * 0.5, height: orbSize * 0.5, opacity: 0.9 }} 
-              resizeMode="contain"
-            />
+            {/* Logo centered in orb */}
+            <Logo size="hero" />
           </View>
         </Animated.View>
       </Animated.View>

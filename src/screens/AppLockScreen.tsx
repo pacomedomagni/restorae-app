@@ -6,7 +6,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   Animated,
@@ -18,6 +17,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAppLock } from '../contexts/AppLockContext';
 import { useBiometrics } from '../hooks/useBiometrics';
 import { useHaptics } from '../hooks/useHaptics';
+import { Text } from '../components/ui/Text';
+import { Logo } from '../components/Logo';
 
 const PIN_LENGTH = 4;
 
@@ -227,14 +228,9 @@ export default function AppLockScreen() {
       marginBottom: 16,
       textAlign: 'center',
     },
-    logo: {
+    logoContainer: {
       marginBottom: 40,
-    },
-    logoText: {
-      fontSize: 28,
-      fontWeight: '700',
-      color: colors.accentPrimary,
-      letterSpacing: -0.5,
+      alignItems: 'center',
     },
   });
 
@@ -306,8 +302,8 @@ export default function AppLockScreen() {
 
   return (
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-      <View style={styles.logo}>
-        <Text style={styles.logoText}>Restorae</Text>
+      <View style={styles.logoContainer}>
+        <Logo size="large" showText textPosition="bottom" />
       </View>
 
       <View style={styles.lockIcon}>

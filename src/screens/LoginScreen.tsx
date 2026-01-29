@@ -35,6 +35,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useHaptics } from '../hooks/useHaptics';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { Text, GlassCard, AmbientBackground } from '../components/ui';
+import { Logo } from '../components/Logo';
 import { spacing, borderRadius, withAlpha } from '../theme';
 
 interface LoginScreenProps {
@@ -258,9 +259,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
               entering={reduceMotion ? undefined : FadeInDown.delay(100).duration(500)}
               style={styles.header}
             >
-              <Text variant="displayMedium" color="ink" style={styles.logo}>
-                Restorae
-              </Text>
+              <Logo size="large" showText textPosition="bottom" style={styles.logo} />
               <Text variant="bodyLarge" color="inkMuted">
                 Welcome back
               </Text>
