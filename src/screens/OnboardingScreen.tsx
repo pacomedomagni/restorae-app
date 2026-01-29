@@ -199,21 +199,27 @@ function FloatingOrb({ isBreathing = false }: { isBreathing?: boolean }) {
       {/* Main orb */}
       <Animated.View style={[styles.orbMain, containerStyle]}>
         <Animated.View style={innerStyle}>
-          <View
-            style={[
-              styles.orbInner,
-              {
-                width: orbSize,
-                height: orbSize,
-                borderRadius: orbSize / 2,
-                backgroundColor: withAlpha(colors.canvasElevated, 0.95),
-                borderColor: withAlpha(colors.accentPrimary, 0.2),
-              },
-            ]}
-          >
+          <View style={{ width: orbSize, height: orbSize, alignItems: 'center', justifyContent: 'center' }}>
+            <Svg width={orbSize} height={orbSize} viewBox="0 0 100 100" style={StyleSheet.absoluteFill}>
+              <Defs>
+                <RadialGradient id="mainOrbGradient" cx="35%" cy="35%" r="65%">
+                  <Stop offset="0%" stopColor={withAlpha('#FFFFFF', 0.3)} />
+                  <Stop offset="30%" stopColor={colors.accentPrimary} />
+                  <Stop offset="70%" stopColor={colors.accentCalm} />
+                  <Stop offset="100%" stopColor={withAlpha(colors.accentCalm, 0.8)} />
+                </RadialGradient>
+                <RadialGradient id="highlight" cx="30%" cy="30%" r="40%">
+                   <Stop offset="0%" stopColor="#FFFFFF" stopOpacity={0.4} />
+                   <Stop offset="100%" stopColor="#FFFFFF" stopOpacity={0} />
+                </RadialGradient>
+              </Defs>
+              <SvgCircle cx="50" cy="50" r="48" fill="url(#mainOrbGradient)" />
+              <SvgCircle cx="50" cy="50" r="48" fill="url(#highlight)" />
+            </Svg>
+            
             <Image
               source={require('../../assets/icon.png')}
-              style={{ width: orbSize * 0.7, height: orbSize * 0.7 }}
+              style={{ width: orbSize * 0.5, height: orbSize * 0.5, opacity: 0.9 }} 
               resizeMode="contain"
             />
           </View>
@@ -772,16 +778,6 @@ const styles = StyleSheet.create({
   orbMain: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  orbInner: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 12,
   },
   orbWrapper: {
     alignItems: 'center',

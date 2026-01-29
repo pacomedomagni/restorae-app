@@ -494,7 +494,12 @@ export function SessionCompleteScreen() {
 
   // Navigation handlers
   const handleGoHome = () => {
-    navigation.navigate('Main');
+    // Reset navigation stack to prevent back button from returning to session
+    // This allows the user to start fresh on the Home screen
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Main' }],
+    });
   };
 
   const handleSuggestion = () => {
