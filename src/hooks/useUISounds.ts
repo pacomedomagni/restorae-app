@@ -86,7 +86,7 @@ export function useUISounds() {
       isLoadingRef.current.delete(type);
       return sound;
     } catch (error) {
-      logger.warn(`Failed to load UI sound: ${type}`, error);
+      logger.warn(`Failed to load UI sound: ${type}`, error as Record<string, any>);
       isLoadingRef.current.delete(type);
       return null;
     }

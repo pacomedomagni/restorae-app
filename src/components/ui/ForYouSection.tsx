@@ -60,7 +60,7 @@ function SkeletonRecommendationCard({ index }: { index: number }) {
   return (
     <Animated.View
       entering={FadeIn.delay(index * 100).duration(300)}
-      style={[styles.cardWrapper, { marginLeft: index === 0 ? 0 : spacing[3] }]}
+      style={[styles.recommendationCardWrapper, { marginLeft: index === 0 ? 0 : spacing[3] }]}
     >
       <View style={styles.skeletonCard}>
         <Skeleton width="100%" height={80} style={{ marginBottom: spacing[3] }} />
@@ -149,8 +149,6 @@ function RecommendationCard({ recommendation, index, onPress }: RecommendationCa
         return '#A78BFA'; // Purple
       case 'story':
         return colors.accentCalm;
-      case 'ritual':
-        return colors.accentWarm;
       default:
         return colors.accentPrimary;
     }

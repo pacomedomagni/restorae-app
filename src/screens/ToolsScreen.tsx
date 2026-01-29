@@ -695,16 +695,16 @@ export function ToolsScreen() {
       </SafeAreaView>
 
       {/* Long Press Gesture Hint - shows once */}
-      <GestureHint
-        visible={showLongPressHint}
-        gesture="long-press"
-        label="Long press for options"
-        onDismiss={() => {
-          markAsShown('tools_long_press');
-          setShowLongPressHint(false);
-        }}
-        position={{ top: 350, left: '50%' }}
-      />
+      {showLongPressHint && (
+        <GestureHint
+          gesture="long-press"
+          label="Long press for options"
+          onDismiss={() => {
+            markAsShown('tools_long_press');
+            setShowLongPressHint(false);
+          }}
+        />
+      )}
 
       {/* Context Menu for Tool Actions */}
       <ContextMenu
@@ -712,6 +712,7 @@ export function ToolsScreen() {
         onClose={handleContextMenuClose}
         items={[
           {
+            id: 'start',
             label: 'Start Now',
             icon: 'play',
             onPress: () => {
@@ -719,6 +720,7 @@ export function ToolsScreen() {
             },
           },
           {
+            id: 'favorite',
             label: 'Add to Favorites',
             icon: 'heart',
             onPress: () => {
@@ -727,6 +729,7 @@ export function ToolsScreen() {
             },
           },
           {
+            id: 'reminder',
             label: 'Set Reminder',
             icon: 'bell',
             onPress: () => {
@@ -740,21 +743,22 @@ export function ToolsScreen() {
       />
 
       {/* Coach Mark Overlay */}
-      <CoachMarkOverlay
-        visible={showToolsCoachMark}
-        coachMark={COACH_MARKS.tools_browse}
-        onDismiss={() => {
-          markAsShown('tools_browse');
-          setShowToolsCoachMark(false);
-          // Chain to long press hint
-          setTimeout(() => {
-            if (shouldShowCoachMark('tools_long_press')) {
-              setShowLongPressHint(true);
-            }
-          }, 500);
-        }}
-        position="center"
-      />
+      {showToolsCoachMark && (
+        <CoachMarkOverlay
+          markId="tools_browse"
+          visible={showToolsCoachMark}
+          onDismiss={() => {
+            markAsShown('tools_browse');
+            setShowToolsCoachMark(false);
+            // Chain to long press hint
+            setTimeout(() => {
+              if (shouldShowCoachMark('tools_long_press')) {
+                setShowLongPressHint(true);
+              }
+            }, 500);
+          }}
+        />
+      )}
     </View>
   );
 }

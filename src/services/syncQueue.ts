@@ -7,6 +7,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import logger from './logger';
+import { api } from './api';
 
 // Extended operation types to support ritual-specific actions
 export type SyncOperationType = 

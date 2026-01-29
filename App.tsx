@@ -31,6 +31,7 @@ import { AppLockProvider } from './src/contexts/AppLockContext';
 import { RitualsProvider } from './src/contexts/RitualsContext';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { CoachMarkProvider } from './src/contexts/CoachMarkContext';
+import { SessionProvider } from './src/contexts/SessionContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { ErrorBoundary, SharedTransitionProvider } from './src/components/ui';
 
@@ -96,14 +97,16 @@ export default function App() {
                       <RitualsProvider>
                         <AppLockProvider>
                           <CoachMarkProvider>
-                            <SharedTransitionProvider>
-                              <ErrorBoundary
+                            <SessionProvider>
+                              <SharedTransitionProvider>
+                                <ErrorBoundary
                                 errorTitle="Something went wrong"
                                 errorDescription="Restorae encountered an unexpected error. Please restart the app."
                               >
                                 <AppContent />
                               </ErrorBoundary>
-                            </SharedTransitionProvider>
+                              </SharedTransitionProvider>
+                            </SessionProvider>
                           </CoachMarkProvider>
                         </AppLockProvider>
                       </RitualsProvider>

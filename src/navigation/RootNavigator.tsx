@@ -72,6 +72,10 @@ import { ProgressScreen } from '../screens/ProgressScreen';
 // Session Complete Screen
 import { SessionCompleteScreen } from '../screens/SessionCompleteScreen';
 
+// Unified Session System Screens
+import { UnifiedSessionScreen } from '../screens/UnifiedSessionScreen';
+import { SessionSummaryScreen } from '../screens/SessionSummaryScreen';
+
 // Subscription & Paywall Screens
 import { SubscriptionScreen } from '../screens/SubscriptionScreen';
 import { PaywallScreen } from '../screens/PaywallScreen';
@@ -692,6 +696,28 @@ export function RootNavigator() {
           name="SecuritySettings"
           component={SecuritySettingsScreen}
           options={{ animation: 'slide_from_right' }}
+        />
+        
+        {/* Unified Session System */}
+        <Stack.Screen 
+          name="UnifiedSession" 
+          component={UnifiedSessionScreen} 
+          options={{ 
+            animation: 'slide_from_bottom',
+            presentation: 'fullScreenModal',
+            gestureEnabled: false,
+            headerShown: false,
+          }} 
+        />
+        <Stack.Screen 
+          name="SessionSummary" 
+          component={SessionSummaryScreen} 
+          options={{ 
+            animation: 'slide_from_bottom',
+            presentation: 'fullScreenModal',
+            gestureEnabled: false,
+            headerShown: false,
+          }} 
         />
         </Stack.Navigator>
       </NavigationContainer>

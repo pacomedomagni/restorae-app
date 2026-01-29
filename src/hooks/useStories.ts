@@ -113,7 +113,7 @@ export function useStories() {
       }));
     } catch (err) {
       // Silent fail for background refresh
-      logger.debug('Background stories refresh failed:', err);
+      logger.debug('Background stories refresh failed:', err as Record<string, any>);
     }
   }, []);
 
@@ -173,7 +173,7 @@ export function useStories() {
     try {
       await api.trackStoryPlay(storyId);
     } catch (err) {
-      logger.debug('Failed to track story play:', err);
+      logger.debug('Failed to track story play:', err as Record<string, any>);
     }
   }, []);
 

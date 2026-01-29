@@ -53,7 +53,7 @@ export function useCoachMarksSync() {
         timestamp: Date.now(),
       }));
     } catch (err) {
-      logger.debug('Failed to load coach marks from API:', err);
+      logger.debug('Failed to load coach marks from API:', err as Record<string, any>);
     }
   }, []);
 
@@ -82,10 +82,10 @@ export function useCoachMarksSync() {
         syncedRef.current = true;
       } catch (err) {
         // Backend sync failed - just use local data
-        logger.debug('Failed to sync coach marks with backend:', err);
+        logger.debug('Failed to sync coach marks with backend:', err as Record<string, any>);
       }
     } catch (err) {
-      logger.error('Failed to load seen coach marks:', err);
+      logger.error('Failed to load seen coach marks:', err as Record<string, any>);
     }
   }, []);
 
@@ -139,7 +139,7 @@ export function useCoachMarksSync() {
     try {
       await api.resetCoachMarks();
     } catch (err) {
-      logger.debug('Failed to reset coach marks on backend:', err);
+      logger.debug('Failed to reset coach marks on backend:', err as Record<string, any>);
     }
   }, []);
 

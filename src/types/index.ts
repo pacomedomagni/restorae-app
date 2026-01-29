@@ -198,6 +198,9 @@ export type RootStackParamList = {
   AppLockSetup: undefined;
   DataSettings: undefined;
   SecuritySettings: undefined;
+  // Unified Session System
+  UnifiedSession: undefined;
+  SessionSummary: { summary: import('./session').SessionSummary };
 };
 
 export type MainTabParamList = {

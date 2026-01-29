@@ -126,7 +126,7 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
               <PremiumText variant="bodyMedium" color="inkMuted" style={styles.successText}>
                 We've sent password reset instructions to
               </PremiumText>
-              <PremiumText variant="bodyMedium" color="accentPrimary" style={styles.emailHighlight}>
+              <PremiumText variant="bodyMedium" color="accent" style={styles.emailHighlight}>
                 {email}
               </PremiumText>
               <PremiumText variant="bodySmall" color="inkFaint" style={styles.successSubtext}>
@@ -139,12 +139,13 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
               style={styles.successActions}
             >
               <Button
-                label="Back to Sign In"
                 onPress={handleNavigateToLogin}
                 variant="primary"
                 size="lg"
                 fullWidth
-              />
+              >
+                Back to Sign In
+              </Button>
 
               <Pressable
                 style={styles.resendButton}
@@ -157,7 +158,7 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
                 accessibilityLabel="Resend email"
                 accessibilityHint="Sends another password reset email to your address"
               >
-                <PremiumText variant="labelMedium" color="accentPrimary">
+                <PremiumText variant="labelMedium" color="accent">
                   Resend email
                 </PremiumText>
               </Pressable>
@@ -221,7 +222,7 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
                     style={[styles.errorBanner, { backgroundColor: withAlpha(colors.accentWarm, 0.15) }]}
                   >
                     <Ionicons name="alert-circle" size={18} color={colors.accentWarm} />
-                    <PremiumText variant="bodySmall" color="accentWarm" style={{ marginLeft: spacing[2], flex: 1 }}>
+                    <PremiumText variant="bodySmall" color="ink" style={{ marginLeft: spacing[2], flex: 1 }}>
                       {error}
                     </PremiumText>
                   </Animated.View>
@@ -262,7 +263,6 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
 
                 {/* Submit Button */}
                 <Button
-                  label="Send Reset Link"
                   onPress={handleSubmit}
                   loading={isLoading}
                   disabled={isLoading}
@@ -270,7 +270,9 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
                   size="lg"
                   fullWidth
                   style={{ marginTop: spacing[4] }}
-                />
+                >
+                  Send Reset Link
+                </Button>
               </GlassCard>
             </Animated.View>
 
@@ -288,7 +290,7 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
                 accessibilityLabel="Sign In"
                 accessibilityHint="Navigate to the sign in screen"
               >
-                <PremiumText variant="labelMedium" color="accentPrimary">
+                <PremiumText variant="labelMedium" color="accent">
                   Sign In
                 </PremiumText>
               </Pressable>

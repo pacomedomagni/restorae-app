@@ -292,10 +292,10 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
                 <GlassCard 
                   variant="default" 
                   padding="none"
-                  style={[
-                    styles.inputWrapper,
-                    errors.email && { borderWidth: 1, borderColor: colors.statusError }
-                  ]}
+                  style={{
+                    ...styles.inputWrapper,
+                    ...(errors.email ? { borderWidth: 1, borderColor: colors.statusError } : {})
+                  }}
                 >
                   <View style={styles.inputInner}>
                     <Ionicons name="mail-outline" size={20} color={colors.inkMuted} />
@@ -336,10 +336,10 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
                 <GlassCard 
                   variant="default" 
                   padding="none"
-                  style={[
-                    styles.inputWrapper,
-                    errors.password && { borderWidth: 1, borderColor: colors.statusError }
-                  ]}
+                  style={{
+                    ...styles.inputWrapper,
+                    ...(errors.password ? { borderWidth: 1, borderColor: colors.statusError } : {})
+                  }}
                 >
                   <View style={styles.inputInner}>
                     <Ionicons name="lock-closed-outline" size={20} color={colors.inkMuted} />

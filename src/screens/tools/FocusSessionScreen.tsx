@@ -194,8 +194,8 @@ export function FocusSessionScreen() {
   const session = getSessionById(sessionId) || FOCUS_SESSIONS[0];
   
   // Get time-aware recommended sound
-  const { getRecommendedSoundId } = useSessionAudio();
-  const recommendedSound = getRecommendedSoundId('focus');
+  const sessionAudio = useSessionAudio({ sessionType: 'focus' });
+  const recommendedSound = sessionAudio.recommendedSoundId;
 
   const [phase, setPhase] = useState<SessionPhase>('ready');
   const [isPaused, setIsPaused] = useState(false);
@@ -203,7 +203,7 @@ export function FocusSessionScreen() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [sessionStartTime] = useState<number>(Date.now());
-  const [selectedSoundId, setSelectedSoundId] = useState<string | null>(
+  const [selectedSoundId, setSelectedSoundId] = useState<string | undefined>(
     session.defaultSound || recommendedSound
   );
   const [showFocusCoachMark, setShowFocusCoachMark] = useState(false);
@@ -433,12 +433,13 @@ export function FocusSessionScreen() {
               </GlassCard>
 
               {/* Ambient Sound Selection */}
-              <AmbientSoundPicker
-                selectedSoundId={selectedSoundId}
-                onSoundSelect={setSelectedSoundId}
-                mode="compact"
-                style={styles.soundPicker}
-              />
+              <View style={styles.soundPicker}>
+                <AmbientSoundPicker
+                  selectedSoundId={selectedSoundId}
+                  onSelect={setSelectedSoundId}
+                  compact
+                />
+              </View>
 
               {session.purpose && (
                 <View style={styles.techniqueContainer}>
@@ -547,15 +548,16 @@ export function FocusSessionScreen() {
       />
 
       {/* Coach Mark - Focus timer explanation */}
-      <CoachMarkOverlay
-        visible={showFocusCoachMark}
-        coachMark={COACH_MARKS.focus_timer}
-        onDismiss={() => {
-          markAsShown('focus_timer');
-          setShowFocusCoachMark(false);
-        }}
-        position="center"
-      />
+      {showFocusCoachMark && (
+        <CoachMarkOverlay
+          markId="focus_timer"
+          visible={showFocusCoachMark}
+          onDismiss={() => {
+            markAsShown('focus_timer');
+            setShowFocusCoachMark(false);
+          }}
+        />
+      )}
     </View>
   );
 }

@@ -36,7 +36,18 @@ type IconName =
   | 'privacy'
   | 'support'
   | 'chevronUp'
-  | 'chevronDown';
+  | 'chevronDown'
+  // Playback icons
+  | 'play'
+  | 'pause'
+  | 'check'
+  | 'moon'
+  | 'rotateCcw'
+  | 'rotateCw'
+  | 'volumeX'
+  | 'volume2'
+  // Security icons
+  | 'security';
 
 export const Icon: React.FC<IconProps> = ({ name, size = 24, color }) => {
   const { colors } = useTheme();
@@ -463,6 +474,140 @@ export const Icon: React.FC<IconProps> = ({ name, size = 24, color }) => {
         <Path
           d="M26 20L27 18L28 20L30 21L28 22L27 24L26 22L24 21L26 20Z"
           fill={stroke}
+        />
+      </Svg>
+    ),
+
+    // Playback icons
+    play: (
+      <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <Path
+          d="M8 5v14l11-7z"
+          fill={stroke}
+        />
+      </Svg>
+    ),
+
+    pause: (
+      <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <Rect x="6" y="4" width="4" height="16" rx="1" fill={stroke} />
+        <Rect x="14" y="4" width="4" height="16" rx="1" fill={stroke} />
+      </Svg>
+    ),
+
+    check: (
+      <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <Path
+          d="M20 6L9 17l-5-5"
+          stroke={stroke}
+          strokeWidth={strokeBold}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </Svg>
+    ),
+
+    moon: (
+      <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <Path
+          d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+          stroke={stroke}
+          strokeWidth={strokeWide}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+      </Svg>
+    ),
+
+    rotateCcw: (
+      <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <Path
+          d="M1 4v6h6"
+          stroke={stroke}
+          strokeWidth={strokeWide}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <Path
+          d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"
+          stroke={stroke}
+          strokeWidth={strokeWide}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+      </Svg>
+    ),
+
+    rotateCw: (
+      <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <Path
+          d="M23 4v6h-6"
+          stroke={stroke}
+          strokeWidth={strokeWide}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <Path
+          d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"
+          stroke={stroke}
+          strokeWidth={strokeWide}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+      </Svg>
+    ),
+
+    volumeX: (
+      <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <Path
+          d="M11 5L6 9H2v6h4l5 4V5z"
+          stroke={stroke}
+          strokeWidth={strokeWide}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+        <Path
+          d="M23 9l-6 6M17 9l6 6"
+          stroke={stroke}
+          strokeWidth={strokeWide}
+          strokeLinecap="round"
+        />
+      </Svg>
+    ),
+
+    volume2: (
+      <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <Path
+          d="M11 5L6 9H2v6h4l5 4V5z"
+          stroke={stroke}
+          strokeWidth={strokeWide}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+        <Path
+          d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"
+          stroke={stroke}
+          strokeWidth={strokeWide}
+          strokeLinecap="round"
+          fill="none"
+        />
+      </Svg>
+    ),
+
+    security: (
+      <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <Path
+          d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+          stroke={stroke}
+          strokeWidth={strokeWide}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
         />
       </Svg>
     ),

@@ -389,7 +389,7 @@ function AchievementsShowcase() {
         <Text variant="labelSmall" color="inkFaint" style={styles.cardLabel}>
           ACHIEVEMENTS
         </Text>
-        <View style={styles.achievementGrid}>
+        <View style={styles.achievementsGrid}>
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <SkeletonAchievement key={i} />
           ))}
@@ -408,9 +408,8 @@ function AchievementsShowcase() {
             ACHIEVEMENTS
           </Text>
           <EmptyState
-            icon="🏆"
             title="No achievements yet"
-            message="Complete activities to unlock achievements and track your wellness journey"
+            description="Complete activities to unlock achievements and track your wellness journey"
           />
         </GlassCard>
       </Animated.View>

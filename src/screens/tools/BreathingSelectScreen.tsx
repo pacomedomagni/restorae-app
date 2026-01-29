@@ -32,6 +32,7 @@ import {
 import { spacing, borderRadius, layout, withAlpha } from '../../theme';
 import { RootStackParamList, BreathingPattern } from '../../types';
 import { useHaptics } from '../../hooks/useHaptics';
+import { useStartActivity } from '../../hooks/useStartActivity';
 import {
   BREATHING_PATTERNS,
   BREATHING_CATEGORIES,
@@ -186,12 +187,14 @@ function PatternCard({ pattern, index, onPress }: PatternCardProps) {
 export function BreathingSelectScreen() {
   const { colors, reduceMotion } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { startBreathing } = useStartActivity();
   const [selectedCategory, setSelectedCategory] = useState<BreathingCategory>('all');
 
   const patterns = getPatternsByCategory(selectedCategory);
 
   const handlePatternSelect = (patternId: string) => {
-    navigation.navigate('Breathing', { patternId });
+    // Use new unified session system
+    startBreathing(patternId);
   };
 
   return (

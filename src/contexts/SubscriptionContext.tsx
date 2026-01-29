@@ -118,74 +118,14 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   
   const isOnlineRef = useRef(true);
   const validationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Monitor network status
+  const stateRef = useRef(state);
+  
+  // Keep state ref updated
   useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener(state => {
-      const wasOffline = !isOnlineRef.current;
-      isOnlineRef.current = state.isConnected ?? false;
-      
-      // If we just came online, validate subscription
-      if (wasOffline && isOnlineRef.current && isAuthenticated) {
-        syncWithServer();
-      }
-    });
-    
-    return () => unsubscribe();
-  }, [isAuthenticated, syncWithServer]);
+    stateRef.current = state;
+  }, [state]);
 
-  // Load local state on mount
-  useEffect(() => {
-    loadLocalState();
-  }, []);
-
-  // Sync when authenticated
-  useEffect(() => {
-    if (isAuthenticated && !isLoading) {
-      syncWithServer();
-    }
-  }, [isAuthenticated, isLoading, syncWithServer]);
-
-  // Periodic re-validation (every hour)
-  useEffect(() => {
-    if (isAuthenticated) {
-      validationTimeoutRef.current = setInterval(() => {
-        syncWithServer();
-      }, VALIDATION_CACHE_DURATION);
-    }
-    
-    return () => {
-      if (validationTimeoutRef.current) {
-        clearInterval(validationTimeoutRef.current);
-      }
-    };
-  }, [isAuthenticated, syncWithServer]);
-
-  const loadLocalState = async () => {
-    try {
-      setIsLoading(true);
-      const saved = await AsyncStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setState({
-          tier: parsed.tier || 'free',
-          status: parsed.status || 'unknown',
-          expiresAt: parsed.expiresAt ? new Date(parsed.expiresAt) : null,
-          isTrialing: parsed.isTrialing || false,
-          trialEndsAt: parsed.trialEndsAt ? new Date(parsed.trialEndsAt) : null,
-          cancelAtPeriodEnd: parsed.cancelAtPeriodEnd || false,
-          serverSubscription: parsed.serverSubscription || null,
-          lastValidated: parsed.lastValidated || null,
-        });
-      }
-    } catch (error) {
-      logger.error('Failed to load subscription state:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const saveLocalState = async (newState: SubscriptionState) => {
+  const saveLocalState = useCallback(async (newState: SubscriptionState) => {
     setState(newState);
     try {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -196,15 +136,48 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       logger.error('Failed to save subscription state:', error);
     }
-  };
+  }, []);
 
-  // Sync subscription status with server
+  const checkLocalExpiration = useCallback(async () => {
+    const now = new Date();
+    let needsUpdate = false;
+    let newState = { ...stateRef.current };
+    
+    // Check trial expiration
+    if (stateRef.current.isTrialing && stateRef.current.trialEndsAt && now >= stateRef.current.trialEndsAt) {
+      newState = {
+        ...newState,
+        isTrialing: false,
+        trialEndsAt: null,
+        tier: 'free',
+        status: 'expired',
+      };
+      needsUpdate = true;
+    }
+    
+    // Check subscription expiration
+    if (stateRef.current.tier === 'premium' && stateRef.current.expiresAt && now >= stateRef.current.expiresAt) {
+      newState = {
+        ...newState,
+        tier: 'free',
+        status: 'expired',
+        expiresAt: null,
+      };
+      needsUpdate = true;
+    }
+    
+    if (needsUpdate) {
+      await saveLocalState(newState);
+    }
+  }, [saveLocalState]);
+
+  // Sync subscription status with server (defined early so it can be used in useEffects)
   const syncWithServer = useCallback(async () => {
     if (!isAuthenticated || isSyncing) return;
     
     // Check if we've validated recently
-    if (state.lastValidated) {
-      const lastValidatedDate = new Date(state.lastValidated);
+    if (stateRef.current.lastValidated) {
+      const lastValidatedDate = new Date(stateRef.current.lastValidated);
       const timeSinceValidation = Date.now() - lastValidatedDate.getTime();
       if (timeSinceValidation < VALIDATION_CACHE_DURATION) {
         return; // Still within cache period
@@ -252,40 +225,73 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsSyncing(false);
     }
-  }, [isAuthenticated, isSyncing, state.lastValidated]);
+  }, [isAuthenticated, isSyncing, saveLocalState, checkLocalExpiration]);
 
-  const checkLocalExpiration = async () => {
-    const now = new Date();
-    let needsUpdate = false;
-    let newState = { ...state };
+  const loadLocalState = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const saved = await AsyncStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setState({
+          tier: parsed.tier || 'free',
+          status: parsed.status || 'unknown',
+          expiresAt: parsed.expiresAt ? new Date(parsed.expiresAt) : null,
+          isTrialing: parsed.isTrialing || false,
+          trialEndsAt: parsed.trialEndsAt ? new Date(parsed.trialEndsAt) : null,
+          cancelAtPeriodEnd: parsed.cancelAtPeriodEnd || false,
+          serverSubscription: parsed.serverSubscription || null,
+          lastValidated: parsed.lastValidated || null,
+        });
+      }
+    } catch (error) {
+      logger.error('Failed to load subscription state:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Monitor network status
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(netState => {
+      const wasOffline = !isOnlineRef.current;
+      isOnlineRef.current = netState.isConnected ?? false;
+      
+      // If we just came online, validate subscription
+      if (wasOffline && isOnlineRef.current && isAuthenticated) {
+        syncWithServer();
+      }
+    });
     
-    // Check trial expiration
-    if (state.isTrialing && state.trialEndsAt && now >= state.trialEndsAt) {
-      newState = {
-        ...newState,
-        isTrialing: false,
-        trialEndsAt: null,
-        tier: 'free',
-        status: 'expired',
-      };
-      needsUpdate = true;
+    return () => unsubscribe();
+  }, [isAuthenticated, syncWithServer]);
+
+  // Load local state on mount
+  useEffect(() => {
+    loadLocalState();
+  }, [loadLocalState]);
+
+  // Sync when authenticated
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      syncWithServer();
+    }
+  }, [isAuthenticated, isLoading, syncWithServer]);
+
+  // Periodic re-validation (every hour)
+  useEffect(() => {
+    if (isAuthenticated) {
+      validationTimeoutRef.current = setInterval(() => {
+        syncWithServer();
+      }, VALIDATION_CACHE_DURATION);
     }
     
-    // Check subscription expiration
-    if (state.tier === 'premium' && state.expiresAt && now >= state.expiresAt) {
-      newState = {
-        ...newState,
-        tier: 'free',
-        status: 'expired',
-        expiresAt: null,
-      };
-      needsUpdate = true;
-    }
-    
-    if (needsUpdate) {
-      await saveLocalState(newState);
-    }
-  };
+    return () => {
+      if (validationTimeoutRef.current) {
+        clearInterval(validationTimeoutRef.current);
+      }
+    };
+  }, [isAuthenticated, syncWithServer]);
 
   // Check if subscription is valid
   const isPremium = useMemo(() => {

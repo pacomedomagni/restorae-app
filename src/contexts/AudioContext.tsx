@@ -98,6 +98,45 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Fade functions - defined first so they can be used in playSound
+  const fadeOut = useCallback(async (duration = 1000) => {
+    if (!soundRef.current) return;
+    
+    // Simple linear fade out
+    try {
+      const startVol = (await soundRef.current.getStatusAsync() as any).volume || state.volume;
+      const steps = 10;
+      const stepTime = duration / steps;
+      const volStep = startVol / steps;
+
+      let currentVol = startVol;
+      for (let i = 0; i < steps; i++) {
+        currentVol = Math.max(0, currentVol - volStep);
+        if (soundRef.current) await soundRef.current.setVolumeAsync(currentVol);
+        await new Promise(r => setTimeout(r, stepTime));
+      }
+      if (soundRef.current) await soundRef.current.setVolumeAsync(0);
+    } catch (e) {
+      // Ignore errors during fade if unloaded
+    }
+  }, [state.volume]);
+
+  const fadeIn = useCallback(async (duration = 1000) => {
+    if (!soundRef.current) return;
+    // Similar to playSound logic but exposed
+    const targetVol = state.volume;
+    const steps = 10;
+    const stepTime = duration / steps;
+    const volStep = targetVol / steps;
+
+    let currentVol = 0;
+    for (let i = 0; i < steps; i++) {
+        currentVol = Math.min(targetVol, currentVol + volStep);
+        if (soundRef.current) await soundRef.current.setVolumeAsync(currentVol);
+        await new Promise(r => setTimeout(r, stepTime));
+    }
+  }, [state.volume]);
+
   const playSound = useCallback(async (soundId: string) => {
     if (!soundsEnabled) return;
 
@@ -157,24 +196,24 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       logger.error('Error playing sound', error);
       setState(prev => ({ ...prev, isLoading: false, isPlaying: false }));
     }
-  }, [soundsEnabled, state.volume, fadeOut]); // added fadeOut to dep array
+  }, [soundsEnabled, state.volume, fadeOut]);
 
   // Helpers
-  const pauseSound = async () => {
+  const pauseSound = useCallback(async () => {
      if (soundRef.current) {
        await soundRef.current.pauseAsync();
        setState(prev => ({ ...prev, isPlaying: false }));
      }
-  };
+  }, []);
 
-  const resumeSound = async () => {
+  const resumeSound = useCallback(async () => {
      if (soundRef.current) {
        await soundRef.current.playAsync();
        setState(prev => ({ ...prev, isPlaying: true }));
      }
-  };
+  }, []);
 
-  const stopSound = async () => {
+  const stopSound = useCallback(async () => {
     if (soundRef.current) {
       await fadeOut(800);
       await soundRef.current.stopAsync();
@@ -182,52 +221,14 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       soundRef.current = null;
       setState(prev => ({ ...prev, isPlaying: false, currentSoundId: null }));
     }
-  };
+  }, [fadeOut]);
 
-  const setVolume = async (volume: number) => {
+  const setVolume = useCallback(async (volume: number) => {
     setState(prev => ({ ...prev, volume }));
     if (soundRef.current) {
       await soundRef.current.setVolumeAsync(volume);
     }
-  };
-
-  const fadeOut = async (duration = 1000) => {
-    if (!soundRef.current) return;
-    
-    // Simple linear fade out
-    try {
-      const startVol = (await soundRef.current.getStatusAsync() as any).volume || state.volume;
-      const steps = 10;
-      const stepTime = duration / steps;
-      const volStep = startVol / steps;
-
-      let currentVol = startVol;
-      for (let i = 0; i < steps; i++) {
-        currentVol = Math.max(0, currentVol - volStep);
-        if (soundRef.current) await soundRef.current.setVolumeAsync(currentVol);
-        await new Promise(r => setTimeout(r, stepTime));
-      }
-      if (soundRef.current) await soundRef.current.setVolumeAsync(0);
-    } catch (e) {
-      // Ignore errors during fade if unloaded
-    }
-  };
-
-  const fadeIn = async (duration = 1000) => {
-    if (!soundRef.current) return;
-    // Similar to playSound logic but exposed
-    const targetVol = state.volume;
-    const steps = 10;
-    const stepTime = duration / steps;
-    const volStep = targetVol / steps;
-
-    let currentVol = 0;
-    for (let i = 0; i < steps; i++) {
-        currentVol = Math.min(targetVol, currentVol + volStep);
-        if (soundRef.current) await soundRef.current.setVolumeAsync(currentVol);
-        await new Promise(r => setTimeout(r, stepTime));
-    }
-  };
+  }, []);
 
   const value = useMemo(() => ({
     ...state,
@@ -238,7 +239,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     setVolume,
     fadeOut,
     fadeIn,
-  }), [state, playSound]);
+  }), [state, playSound, pauseSound, resumeSound, stopSound, setVolume, fadeOut, fadeIn]);
 
   return (
     <AudioContext.Provider value={value}>

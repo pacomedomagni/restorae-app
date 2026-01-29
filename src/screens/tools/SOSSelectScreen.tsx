@@ -2,6 +2,7 @@
  * SOSSelectScreen
  * 
  * Selection for 8 SOS emergency presets
+ * Now uses the unified session system
  */
 import React from 'react';
 import {
@@ -11,8 +12,6 @@ import {
   Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -29,15 +28,15 @@ import {
   ScreenHeader,
 } from '../../components/ui';
 import { spacing, layout, withAlpha, borderRadius } from '../../theme';
-import { RootStackParamList } from '../../types';
 import { useHaptics } from '../../hooks/useHaptics';
-import { SOS_PRESETS } from '../../data';
+import { useStartActivity } from '../../hooks/useStartActivity';
+import { SOSPreset } from '../../types/session';
 
 // =============================================================================
 // PRESET CARD
 // =============================================================================
 interface PresetCardProps {
-  preset: typeof SOS_PRESETS[number];
+  preset: SOSPreset;
   index: number;
   onPress: () => void;
 }
@@ -66,6 +65,11 @@ function PresetCard({ preset, index, onPress }: PresetCardProps) {
 
   // Use warm accent for SOS cards
   const accentColor = colors.accentWarm;
+  
+  // Calculate duration in minutes (handle undefined)
+  const durationMinutes = preset.estimatedDuration 
+    ? Math.ceil(preset.estimatedDuration / 60) 
+    : 5; // Default to 5 min if undefined
 
   return (
     <Animated.View
@@ -83,7 +87,7 @@ function PresetCard({ preset, index, onPress }: PresetCardProps) {
               <Text style={styles.cardIcon}>{preset.icon}</Text>
               <View style={[styles.intensityBadge, { backgroundColor: withAlpha(accentColor, 0.15) }]}>
                 <Text variant="labelSmall" style={{ color: accentColor }}>
-                  {preset.phases.length} phases
+                  {preset.activities.length} phases
                 </Text>
               </View>
             </View>
@@ -95,7 +99,7 @@ function PresetCard({ preset, index, onPress }: PresetCardProps) {
             </Text>
             <View style={styles.cardMeta}>
               <Text variant="labelSmall" color="inkFaint">
-                {preset.totalDuration}
+                {durationMinutes} min
               </Text>
             </View>
           </View>
@@ -110,10 +114,10 @@ function PresetCard({ preset, index, onPress }: PresetCardProps) {
 // =============================================================================
 export function SOSSelectScreen() {
   const { colors, reduceMotion } = useTheme();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { startSOSSession, sosPresets } = useStartActivity();
 
-  const handlePresetSelect = (presetId: string) => {
-    navigation.navigate('SOSSession', { presetId });
+  const handlePresetSelect = (preset: SOSPreset) => {
+    startSOSSession(preset);
   };
 
   return (
@@ -148,12 +152,12 @@ export function SOSSelectScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {SOS_PRESETS.map((preset, index) => (
+          {sosPresets.map((preset, index) => (
             <PresetCard
               key={preset.id}
               preset={preset}
               index={index}
-              onPress={() => handlePresetSelect(preset.id)}
+              onPress={() => handlePresetSelect(preset)}
             />
           ))}
           <View style={{ height: layout.tabBarHeight + spacing[4] }} />

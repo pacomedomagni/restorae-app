@@ -6,7 +6,7 @@
 import React, { useState, useRef } from 'react';
 import {
   View,
-  Text,
+  Text as RNText,
   StyleSheet,
   TouchableOpacity,
   Switch,
@@ -20,7 +20,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useAppLock, LockMethod } from '../contexts/AppLockContext';
 import { useBiometrics } from '../hooks/useBiometrics';
 import { useHaptics } from '../hooks/useHaptics';
-import { ScreenHeader, GlassCard, AmbientBackground, AlertModal, SwipeableModal, Button } from '../components/ui';
+import { ScreenHeader, GlassCard, AmbientBackground, AlertModal, SwipeableModal, Button, Text } from '../components/ui';
 import { spacing, layout } from '../theme';
 
 const PIN_LENGTH = 4;
@@ -312,7 +312,7 @@ export default function AppLockSetupScreen() {
 
     return (
       <TouchableOpacity style={styles.key} onPress={() => handlePinInput(digit)}>
-        <Text style={styles.keyText}>{digit}</Text>
+        <RNText style={styles.keyText}>{digit}</RNText>
       </TouchableOpacity>
     );
   };
@@ -320,12 +320,12 @@ export default function AppLockSetupScreen() {
   if (showPinSetup) {
     return (
       <View style={styles.pinOverlay}>
-        <Text style={styles.pinTitle}>
+        <RNText style={styles.pinTitle}>
           {step === 'enter' ? 'Create PIN' : 'Confirm PIN'}
-        </Text>
-        <Text style={styles.pinSubtitle}>
+        </RNText>
+        <RNText style={styles.pinSubtitle}>
           {step === 'enter' ? 'Enter a 4-digit PIN' : 'Re-enter your PIN'}
-        </Text>
+        </RNText>
 
         <View style={styles.pinDots}>
           {Array.from({ length: PIN_LENGTH }).map((_, i) => (
@@ -363,7 +363,7 @@ export default function AppLockSetupScreen() {
         </View>
 
         <TouchableOpacity style={styles.cancelButton} onPress={cancelPinSetup}>
-          <Text style={styles.cancelText}>Cancel</Text>
+          <RNText style={styles.cancelText}>Cancel</RNText>
         </TouchableOpacity>
       </View>
     );
@@ -379,18 +379,18 @@ export default function AppLockSetupScreen() {
           <GlassCard variant="default" padding="lg">
             <View style={styles.settingRow}>
               <View style={styles.settingLabel}>
-                <Text style={styles.settingTitle}>Enable App Lock</Text>
-                <Text style={styles.settingDescription}>
+                <RNText style={styles.settingTitle}>Enable App Lock</RNText>
+                <RNText style={styles.settingDescription}>
                   Require authentication to open Restorae
-                </Text>
+                </RNText>
               </View>
               {isEnabled && (
                 <View style={styles.lockMethodBadge}>
-                  <Text style={styles.lockMethodText}>
+                  <RNText style={styles.lockMethodText}>
                     {lockMethod === 'biometric' ? getBiometricLabel() : 
                      lockMethod === 'pin' ? 'PIN' : 
                      `${getBiometricLabel()} + PIN`}
-                  </Text>
+                  </RNText>
                 </View>
               )}
               <Switch
@@ -404,15 +404,15 @@ export default function AppLockSetupScreen() {
 
           {isEnabled && (
             <>
-              <Text style={styles.sectionTitle}>LOCK SETTINGS</Text>
+              <RNText style={styles.sectionTitle}>LOCK SETTINGS</RNText>
               
               <GlassCard variant="subtle" padding="lg">
                 <View style={styles.settingRow}>
                   <View style={styles.settingLabel}>
-                    <Text style={styles.settingTitle}>Lock on Background</Text>
-                    <Text style={styles.settingDescription}>
+                    <RNText style={styles.settingTitle}>Lock on Background</RNText>
+                    <RNText style={styles.settingDescription}>
                       Lock when switching apps
-                    </Text>
+                    </RNText>
                   </View>
                   <Switch
                     value={lockOnBackground}
@@ -423,7 +423,7 @@ export default function AppLockSetupScreen() {
                 </View>
               </GlassCard>
 
-              <Text style={styles.sectionTitle}>LOCK TIMEOUT</Text>
+              <RNText style={styles.sectionTitle}>LOCK TIMEOUT</RNText>
               
               <GlassCard variant="subtle" padding="lg">
                 {TIMEOUT_OPTIONS.map((option, index) => (
@@ -432,7 +432,7 @@ export default function AppLockSetupScreen() {
                       style={styles.optionRow}
                       onPress={() => handleTimeoutChange(option.value)}
                     >
-                      <Text style={styles.optionLabel}>{option.label}</Text>
+                      <RNText style={styles.optionLabel}>{option.label}</RNText>
                       <View style={[
                         styles.radioButton,
                         lockTimeout === option.value && styles.radioButtonSelected
@@ -458,11 +458,15 @@ export default function AppLockSetupScreen() {
       {/* Lock Method Selection Modal */}
       <SwipeableModal
         visible={showLockMethodModal}
-        onClose={() => setShowLockMethodModal(false)}
-        title="Choose Lock Method"
-        subtitle="How would you like to secure your app?"
+        onDismiss={() => setShowLockMethodModal(false)}
       >
         <View style={{ gap: spacing[3] }}>
+          <Text variant="headlineSmall" style={{ textAlign: 'center', marginBottom: spacing[1] }}>
+            Choose Lock Method
+          </Text>
+          <Text variant="bodyMedium" color="inkMuted" style={{ textAlign: 'center', marginBottom: spacing[3] }}>
+            How would you like to secure your app?
+          </Text>
           <Button
             variant="primary"
             size="lg"

@@ -32,6 +32,7 @@ import {
 import { spacing, borderRadius, layout, withAlpha } from '../../theme';
 import { RootStackParamList } from '../../types';
 import { useHaptics } from '../../hooks/useHaptics';
+import { useStartActivity } from '../../hooks/useStartActivity';
 import {
   FOCUS_SESSIONS,
   FOCUS_CATEGORIES,
@@ -193,12 +194,14 @@ function SessionCard({ session, index, onPress }: SessionCardProps) {
 export function FocusSelectScreen() {
   const { reduceMotion } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { startFocus } = useStartActivity();
   const [selectedCategory, setSelectedCategory] = useState<FocusCategory>('all');
 
   const sessions = getSessionsByCategory(selectedCategory);
 
   const handleSessionSelect = (sessionId: string) => {
-    navigation.navigate('FocusSession', { sessionId });
+    // Use new unified session system
+    startFocus(sessionId);
   };
 
   return (

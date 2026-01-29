@@ -126,7 +126,7 @@ export function useAchievements() {
         timestamp: Date.now(),
       }));
     } catch (err) {
-      logger.debug('Background achievements refresh failed:', err);
+      logger.debug('Background achievements refresh failed:', err as Record<string, any>);
     }
   }, []);
 

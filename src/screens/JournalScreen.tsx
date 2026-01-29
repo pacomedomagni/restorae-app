@@ -509,33 +509,34 @@ export function JournalScreen() {
       </SafeAreaView>
 
       {/* Coach Mark Overlay */}
-      <CoachMarkOverlay
-        visible={showJournalCoachMark}
-        coachMark={COACH_MARKS.journal_private}
-        onDismiss={() => {
-          markAsShown('journal_private');
-          setShowJournalCoachMark(false);
-          // Show swipe hint for entry management
-          setTimeout(() => {
-            if (recentEntries.length > 0 && shouldShowCoachMark('journal_swipe')) {
-              setShowSwipeHint(true);
-            }
-          }, 500);
-        }}
-        position="center"
-      />
+      {showJournalCoachMark && (
+        <CoachMarkOverlay
+          markId="journal_private"
+          visible={showJournalCoachMark}
+          onDismiss={() => {
+            markAsShown('journal_private');
+            setShowJournalCoachMark(false);
+            // Show swipe hint for entry management
+            setTimeout(() => {
+              if (recentEntries.length > 0 && shouldShowCoachMark('journal_swipe')) {
+                setShowSwipeHint(true);
+              }
+            }, 500);
+          }}
+        />
+      )}
 
       {/* Swipe Gesture Hint */}
-      <GestureHint
-        visible={showSwipeHint}
-        gesture="swipe-left"
-        label="Swipe to delete entries"
-        onDismiss={() => {
-          markAsShown('journal_swipe');
-          setShowSwipeHint(false);
-        }}
-        position={{ top: 400, left: '50%' }}
-      />
+      {showSwipeHint && (
+        <GestureHint
+          gesture="swipe-left"
+          label="Swipe to delete entries"
+          onDismiss={() => {
+            markAsShown('journal_swipe');
+            setShowSwipeHint(false);
+          }}
+        />
+      )}
     </View>
   );
 }

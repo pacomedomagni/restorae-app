@@ -397,15 +397,16 @@ export function BreathingScreen() {
       />
 
       {/* Coach Mark - Tap to pause */}
-      <CoachMarkOverlay
-        visible={showTapCoachMark}
-        coachMark={COACH_MARKS.breathing_tap}
-        onDismiss={() => {
-          markAsShown('breathing_tap');
-          setShowTapCoachMark(false);
-        }}
-        position="center"
-      />
+      {showTapCoachMark && (
+        <CoachMarkOverlay
+          markId="breathing_tap"
+          visible={showTapCoachMark}
+          onDismiss={() => {
+            markAsShown('breathing_tap');
+            setShowTapCoachMark(false);
+          }}
+        />
+      )}
     </View>
   );
 }

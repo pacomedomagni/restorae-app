@@ -454,7 +454,7 @@ export function StoryPlayerScreen() {
             accessibilityRole="button"
             accessibilityLabel="Close player"
           >
-            <Icon name="chevron-down" size={28} color="#FFFFFF" />
+            <Icon name="chevronDown" size={28} color="#FFFFFF" />
           </Pressable>
           
           <Text variant="labelMedium" style={{ color: 'rgba(255,255,255,0.7)' }}>
@@ -537,7 +537,7 @@ export function StoryPlayerScreen() {
               accessibilityRole="button"
               accessibilityLabel="Skip back 15 seconds"
             >
-              <Icon name="rotate-ccw" size={24} color="rgba(255,255,255,0.8)" />
+              <Icon name="rotateCcw" size={24} color="rgba(255,255,255,0.8)" />
               <Text variant="labelSmall" style={{ color: 'rgba(255,255,255,0.6)' }}>
                 15
               </Text>
@@ -576,7 +576,7 @@ export function StoryPlayerScreen() {
               accessibilityRole="button"
               accessibilityLabel="Skip forward 15 seconds"
             >
-              <Icon name="rotate-cw" size={24} color="rgba(255,255,255,0.8)" />
+              <Icon name="rotateCw" size={24} color="rgba(255,255,255,0.8)" />
               <Text variant="labelSmall" style={{ color: 'rgba(255,255,255,0.6)' }}>
                 15
               </Text>
@@ -594,7 +594,7 @@ export function StoryPlayerScreen() {
               accessibilityLabel={playbackState.isMuted ? 'Unmute' : 'Mute'}
             >
               <Icon
-                name={playbackState.isMuted ? 'volume-x' : 'volume-2'}
+                name={playbackState.isMuted ? 'volumeX' : 'volume2'}
                 size={20}
                 color="rgba(255,255,255,0.6)"
               />
@@ -623,33 +623,34 @@ export function StoryPlayerScreen() {
       />
 
       {/* Coach Mark - Sleep timer feature */}
-      <CoachMarkOverlay
-        visible={showStoryCoachMark}
-        coachMark={COACH_MARKS.stories_sleep_timer}
-        onDismiss={() => {
-          markAsShown('stories_sleep_timer');
-          setShowStoryCoachMark(false);
-          // Show scrub hint next
-          setTimeout(() => {
-            if (shouldShowCoachMark('stories_scrub')) {
-              setShowScrubHint(true);
-            }
-          }, 500);
-        }}
-        position="center"
-      />
+      {showStoryCoachMark && (
+        <CoachMarkOverlay
+          markId="stories_sleep_timer"
+          visible={showStoryCoachMark}
+          onDismiss={() => {
+            markAsShown('stories_sleep_timer');
+            setShowStoryCoachMark(false);
+            // Show scrub hint next
+            setTimeout(() => {
+              if (shouldShowCoachMark('stories_scrub')) {
+                setShowScrubHint(true);
+              }
+            }, 500);
+          }}
+        />
+      )}
 
       {/* Gesture hint for scrubbing */}
-      <GestureHint
-        visible={showScrubHint}
-        gesture="swipe-left"
-        label="Drag progress bar to scrub"
-        onDismiss={() => {
-          markAsShown('stories_scrub');
-          setShowScrubHint(false);
-        }}
-        position={{ bottom: 200, left: '50%' }}
-      />
+      {showScrubHint && (
+        <GestureHint
+          gesture="swipe-left"
+          label="Drag progress bar to scrub"
+          onDismiss={() => {
+            markAsShown('stories_scrub');
+            setShowScrubHint(false);
+          }}
+        />
+      )}
     </View>
   );
 }

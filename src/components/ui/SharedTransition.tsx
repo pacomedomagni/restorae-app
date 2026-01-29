@@ -136,6 +136,9 @@ export function useSharedTransition() {
 /**
  * SharedElement wrapper for creating shared element transitions
  * 
+ * Note: sharedTransitionTag was removed in Reanimated 4.x
+ * This is now a simple wrapper for backwards compatibility.
+ * 
  * @example
  * // In list screen
  * <SharedElement tag={`card-${item.id}`}>
@@ -147,12 +150,9 @@ export function useSharedTransition() {
  *   <DetailHeader />
  * </SharedElement>
  */
-export function SharedElement({ tag, children, style }: SharedElementProps) {
+export function SharedElement({ tag: _tag, children, style }: SharedElementProps) {
   return (
-    <Animated.View
-      sharedTransitionTag={tag}
-      style={style}
-    >
+    <Animated.View style={style}>
       {children}
     </Animated.View>
   );
@@ -161,12 +161,9 @@ export function SharedElement({ tag, children, style }: SharedElementProps) {
 /**
  * SharedImage - Optimized for image transitions
  */
-export function SharedImage({ tag, children, style }: SharedElementProps) {
+export function SharedImage({ tag: _tag, children, style }: SharedElementProps) {
   return (
-    <Animated.View
-      sharedTransitionTag={tag}
-      style={style}
-    >
+    <Animated.View style={style}>
       {children}
     </Animated.View>
   );
@@ -175,12 +172,9 @@ export function SharedImage({ tag, children, style }: SharedElementProps) {
 /**
  * SharedText - For text element transitions
  */
-export function SharedText({ tag, children, style }: SharedElementProps) {
+export function SharedText({ tag: _tag, children, style }: SharedElementProps) {
   return (
-    <Animated.View
-      sharedTransitionTag={tag}
-      style={style}
-    >
+    <Animated.View style={style}>
       {children}
     </Animated.View>
   );

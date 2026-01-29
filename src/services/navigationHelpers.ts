@@ -4,11 +4,14 @@
  * Utility functions for consistent navigation flows throughout the app.
  * Provides unified session completion handling with gamification integration.
  */
-import { NavigationProp } from '@react-navigation/native';
+import { NavigationProp, ParamListBase } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RootStackParamList, MoodType } from '../types';
 import { gamification, ActivityType } from './gamification';
 import { recommendations } from './recommendations';
+
+// Type for any navigation object that can navigate
+type AnyNavigation = NavigationProp<ParamListBase> | { navigate: (screen: string, params?: any) => void };
 
 // =============================================================================
 // TYPES
@@ -56,7 +59,7 @@ const SESSION_XP: Record<SessionType, number> = {
  * This ensures all tool completions have a consistent, celebratory experience.
  */
 export function navigateToSessionComplete(
-  navigation: NavigationProp<RootStackParamList>,
+  navigation: AnyNavigation,
   options: SessionCompleteOptions
 ) {
   const { skipCompletionScreen, ...params } = options;
@@ -133,7 +136,7 @@ async function processSessionCompletionBackground(options: SessionCompleteOption
  * Navigate to a breathing session with the given pattern
  */
 export function navigateToBreathing(
-  navigation: NavigationProp<RootStackParamList>,
+  navigation: AnyNavigation,
   patternId?: string
 ) {
   if (patternId) {
@@ -147,7 +150,7 @@ export function navigateToBreathing(
  * Navigate to a grounding session with the given technique
  */
 export function navigateToGrounding(
-  navigation: NavigationProp<RootStackParamList>,
+  navigation: AnyNavigation,
   techniqueId?: string
 ) {
   if (techniqueId) {
@@ -161,7 +164,7 @@ export function navigateToGrounding(
  * Navigate to a focus session
  */
 export function navigateToFocus(
-  navigation: NavigationProp<RootStackParamList>,
+  navigation: AnyNavigation,
   sessionId?: string
 ) {
   if (sessionId) {
@@ -175,7 +178,7 @@ export function navigateToFocus(
  * Navigate to journal entry screen
  */
 export function navigateToJournal(
-  navigation: NavigationProp<RootStackParamList>,
+  navigation: AnyNavigation,
   mode: 'new' | 'prompt' = 'new',
   prompt?: string
 ) {
@@ -186,7 +189,7 @@ export function navigateToJournal(
  * Navigate to a story player
  */
 export function navigateToStory(
-  navigation: NavigationProp<RootStackParamList>,
+  navigation: AnyNavigation,
   storyId: string
 ) {
   navigation.navigate('StoryPlayer', { storyId });
@@ -196,7 +199,7 @@ export function navigateToStory(
  * Navigate to mood check-in
  */
 export function navigateToMoodCheckin(
-  navigation: NavigationProp<RootStackParamList>,
+  navigation: AnyNavigation,
   mood?: MoodType
 ) {
   navigation.navigate('MoodCheckin', { mood });

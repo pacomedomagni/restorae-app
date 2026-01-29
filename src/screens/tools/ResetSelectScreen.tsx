@@ -32,6 +32,7 @@ import {
 import { spacing, borderRadius, layout, withAlpha } from '../../theme';
 import { RootStackParamList } from '../../types';
 import { useHaptics } from '../../hooks/useHaptics';
+import { useStartActivity } from '../../hooks/useStartActivity';
 import {
   RESET_EXERCISES,
   RESET_CATEGORIES,
@@ -182,12 +183,14 @@ function ExerciseCard({ exercise, index, onPress }: ExerciseCardProps) {
 export function ResetSelectScreen() {
   const { reduceMotion } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { startReset } = useStartActivity();
   const [selectedCategory, setSelectedCategory] = useState<ResetCategory>('all');
 
   const exercises = getExercisesByCategory(selectedCategory);
 
   const handleExerciseSelect = (exerciseId: string) => {
-    navigation.navigate('ResetSession', { exerciseId });
+    // Use new unified session system
+    startReset(exerciseId);
   };
 
   return (

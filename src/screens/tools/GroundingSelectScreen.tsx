@@ -32,6 +32,7 @@ import {
 import { spacing, borderRadius, layout, withAlpha } from '../../theme';
 import { RootStackParamList } from '../../types';
 import { useHaptics } from '../../hooks/useHaptics';
+import { useStartActivity } from '../../hooks/useStartActivity';
 import {
   GROUNDING_TECHNIQUES,
   GROUNDING_CATEGORIES,
@@ -180,12 +181,14 @@ function TechniqueCard({ technique, index, onPress }: TechniqueCardProps) {
 export function GroundingSelectScreen() {
   const { reduceMotion } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { startGrounding } = useStartActivity();
   const [selectedCategory, setSelectedCategory] = useState<GroundingCategory>('all');
 
   const techniques = getTechniquesByCategory(selectedCategory);
 
   const handleTechniqueSelect = (techniqueId: string) => {
-    navigation.navigate('GroundingSession', { techniqueId });
+    // Use new unified session system
+    startGrounding(techniqueId);
   };
 
   return (

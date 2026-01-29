@@ -509,15 +509,16 @@ export function ProfileScreen() {
       </SafeAreaView>
 
       {/* Coach Mark - Profile customization */}
-      <CoachMarkOverlay
-        visible={showProfileCoachMark}
-        coachMark={COACH_MARKS.profile_customize}
-        onDismiss={() => {
-          markAsShown('profile_customize');
-          setShowProfileCoachMark(false);
-        }}
-        position="center"
-      />
+      {showProfileCoachMark && (
+        <CoachMarkOverlay
+          markId="profile_customize"
+          visible={showProfileCoachMark}
+          onDismiss={() => {
+            markAsShown('profile_customize');
+            setShowProfileCoachMark(false);
+          }}
+        />
+      )}
     </View>
   );
 }// =============================================================================

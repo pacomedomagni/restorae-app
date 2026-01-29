@@ -968,7 +968,8 @@ class I18n {
         this.currentLocale = savedLocale as SupportedLocale;
       } else {
         // Detect device locale
-        const deviceLocale = Localization.locale.split('-')[0];
+        const locales = Localization.getLocales();
+        const deviceLocale = locales[0]?.languageCode ?? 'en';
         if (this.isSupported(deviceLocale)) {
           this.currentLocale = deviceLocale as SupportedLocale;
         }

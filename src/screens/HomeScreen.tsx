@@ -64,6 +64,8 @@ import { spacing, borderRadius, layout, withAlpha } from '../theme';
 import { RootStackParamList, MoodType } from '../types';
 import { gamification, Achievement, UserLevel } from '../services/gamification';
 import { recommendations } from '../services/smartRecommendations';
+import { useSessionRecovery } from '../hooks/useSessionRecovery';
+import { SessionRecoveryModal } from '../components/session';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -226,6 +228,14 @@ export function HomeScreen() {
   const { impactMedium, impactLight, notificationSuccess } = useHaptics();
   const { playTap, playSuccess, playTransition } = useUISounds();
   const { shouldShowCoachMark, markAsShown, COACH_MARKS } = useCoachMarks();
+
+  // Session recovery hook
+  const {
+    showRecoveryModal,
+    persistedSession,
+    handleContinue: handleSessionContinue,
+    handleDiscard: handleSessionDiscard,
+  } = useSessionRecovery();
 
   const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
   const [userName, setUserName] = useState<string>('');
@@ -583,74 +593,87 @@ export function HomeScreen() {
       {/* Celebration Overlays */}
       <StreakCelebration
         visible={showStreakCelebration}
-        streakDays={celebrationStreak}
-        onDismiss={handleStreakCelebrationDismiss}
+        streakCount={celebrationStreak}
+        onClose={handleStreakCelebrationDismiss}
       />
       
       {unlockedAchievement && (
         <AchievementUnlock
           visible={showAchievement}
           achievement={unlockedAchievement}
-          onDismiss={handleAchievementDismiss}
+          onClose={handleAchievementDismiss}
         />
       )}
       
       {newLevel && (
         <LevelUp
           visible={showLevelUp}
-          level={newLevel}
-          onDismiss={handleLevelUpDismiss}
+          newLevel={newLevel}
+          onClose={handleLevelUpDismiss}
         />
       )}
       
       <SessionComplete
         visible={showSessionComplete}
+        sessionType="general"
+        duration={0}
         xpEarned={sessionXP}
-        streakDays={gamification.getStreak().currentStreak}
-        onDismiss={handleSessionCompleteDismiss}
+        streakDay={gamification.getStreak().currentStreak}
+        onClose={handleSessionCompleteDismiss}
       />
 
       {/* Coach Mark Overlays - First-time user guidance */}
-      <CoachMarkOverlay
-        visible={showMoodCoachMark}
-        coachMark={COACH_MARKS.home_mood_select}
-        onDismiss={() => {
-          markAsShown('home_mood_select');
-          setShowMoodCoachMark(false);
-          // Chain to next coach mark
-          setTimeout(() => {
-            if (shouldShowCoachMark('home_for_you')) {
-              setShowForYouCoachMark(true);
-            }
-          }, 500);
-        }}
-        position="center"
-      />
+      {showMoodCoachMark && (
+        <CoachMarkOverlay
+          markId="home_mood_select"
+          visible={showMoodCoachMark}
+          onDismiss={() => {
+            markAsShown('home_mood_select');
+            setShowMoodCoachMark(false);
+            // Chain to next coach mark
+            setTimeout(() => {
+              if (shouldShowCoachMark('home_for_you')) {
+                setShowForYouCoachMark(true);
+              }
+            }, 500);
+          }}
+        />
+      )}
 
-      <CoachMarkOverlay
-        visible={showForYouCoachMark}
-        coachMark={COACH_MARKS.home_for_you}
-        onDismiss={() => {
-          markAsShown('home_for_you');
-          setShowForYouCoachMark(false);
-          // Chain to next coach mark
-          setTimeout(() => {
-            if (shouldShowCoachMark('home_quick_actions')) {
-              setShowQuickActionsCoachMark(true);
-            }
-          }, 500);
-        }}
-        position="center"
-      />
+      {showForYouCoachMark && (
+        <CoachMarkOverlay
+          markId="home_for_you"
+          visible={showForYouCoachMark}
+          onDismiss={() => {
+            markAsShown('home_for_you');
+            setShowForYouCoachMark(false);
+            // Chain to next coach mark
+            setTimeout(() => {
+              if (shouldShowCoachMark('home_quick_actions')) {
+                setShowQuickActionsCoachMark(true);
+              }
+            }, 500);
+          }}
+        />
+      )}
 
-      <CoachMarkOverlay
-        visible={showQuickActionsCoachMark}
-        coachMark={COACH_MARKS.home_quick_actions}
-        onDismiss={() => {
-          markAsShown('home_quick_actions');
-          setShowQuickActionsCoachMark(false);
-        }}
-        position="center"
+      {showQuickActionsCoachMark && (
+        <CoachMarkOverlay
+          markId="home_quick_actions"
+          visible={showQuickActionsCoachMark}
+          onDismiss={() => {
+            markAsShown('home_quick_actions');
+            setShowQuickActionsCoachMark(false);
+          }}
+        />
+      )}
+
+      {/* Session Recovery Modal */}
+      <SessionRecoveryModal
+        visible={showRecoveryModal}
+        persistedSession={persistedSession}
+        onContinue={handleSessionContinue}
+        onDiscard={handleSessionDiscard}
       />
     </View>
   );

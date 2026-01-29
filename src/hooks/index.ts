@@ -71,3 +71,8 @@ export { useCoachMarksSync, type CoachMark } from './useCoachMarksSync';
 // Session persistence
 export { useSessionPersistence } from './useSessionPersistence';
 
+// Session starting helper
+export { useStartActivity } from './useStartActivity';
+
+// Session recovery
+export { useSessionRecovery } from './useSessionRecovery';
