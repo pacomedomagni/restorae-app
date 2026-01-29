@@ -429,3 +429,83 @@ export function formatDuration(minutes: number): string {
   const mins = minutes % 60;
   return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
 }
+
+// =============================================================================
+// API RESPONSE MAPPING
+// =============================================================================
+
+// API returns UPPERCASE categories, we use lowercase
+const categoryMap: Record<string, StoryCategory> = {
+  'NATURE': 'nature',
+  'TRAVEL': 'travel',
+  'FANTASY': 'fantasy',
+  'MEDITATION': 'meditation',
+  'SOUNDSCAPES': 'soundscapes',
+  'CLASSICS': 'classics',
+};
+
+// API returns UPPERCASE moods, we use lowercase
+const moodMap: Record<string, BedtimeStory['mood']> = {
+  'CALM': 'calm',
+  'DREAMY': 'dreamy',
+  'COZY': 'cozy',
+  'MAGICAL': 'magical',
+};
+
+// API response type
+export interface ApiStory {
+  id: string;
+  slug: string;
+  title: string;
+  subtitle: string | null;
+  description: string | null;
+  narrator: string | null;
+  duration: number;
+  audioUrl: string | null;
+  artworkUrl: string | null;
+  category: string;
+  tags: string[];
+  isPremium: boolean;
+  mood: string;
+  backgroundSound: string | null;
+  order: number;
+  status: string;
+  listenCount: number;
+  createdAt: string;
+  updatedAt: string;
+  publishedAt: string | null;
+  locales: any[];
+}
+
+// Map API response to local BedtimeStory format
+export function mapApiStoryToLocal(apiStory: ApiStory): BedtimeStory {
+  return {
+    id: apiStory.id,
+    title: apiStory.title,
+    subtitle: apiStory.subtitle || '',
+    description: apiStory.description || '',
+    narrator: apiStory.narrator || 'Unknown',
+    duration: apiStory.duration,
+    audioUrl: apiStory.audioUrl || '',
+    artworkUrl: apiStory.artworkUrl || undefined,
+    category: categoryMap[apiStory.category] || 'nature',
+    tags: apiStory.tags || [],
+    isPremium: apiStory.isPremium,
+    mood: moodMap[apiStory.mood] || 'calm',
+    backgroundSound: apiStory.backgroundSound || undefined,
+  };
+}
+
+// Map array of API stories
+export function mapApiStoriesToLocal(apiStories: ApiStory[]): BedtimeStory[] {
+  return apiStories.map(mapApiStoryToLocal);
+}
+
+// Filter stories by category (works with both local and API data)
+export function filterStoriesByCategory(
+  stories: BedtimeStory[],
+  category: StoryCategory | 'all'
+): BedtimeStory[] {
+  if (category === 'all') return stories;
+  return stories.filter(s => s.category === category);
+}

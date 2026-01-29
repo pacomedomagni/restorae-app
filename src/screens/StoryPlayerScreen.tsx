@@ -51,8 +51,9 @@ import { Text, GlassCard, Button, ExitConfirmationModal, CoachMarkOverlay, Gestu
 import { Icon } from '../components/Icon';
 import { spacing, borderRadius } from '../theme';
 import { RootStackParamList } from '../types';
-import { getStoryById, formatDuration, SLEEP_TIMER_OPTIONS, BedtimeStory } from '../data/bedtimeStories';
+import { getStoryById, formatDuration, SLEEP_TIMER_OPTIONS, BedtimeStory, mapApiStoryToLocal, ApiStory } from '../data/bedtimeStories';
 import { navigationHelpers } from '../services/navigationHelpers';
+import { api } from '../services/api';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -205,7 +206,29 @@ export function StoryPlayerScreen() {
   const analytics = useAnalytics();
 
   const storyId = route.params?.storyId;
-  const story = storyId ? getStoryById(storyId) : null;
+  const [story, setStory] = useState<BedtimeStory | null>(
+    storyId ? getStoryById(storyId) || null : null
+  );
+
+  // Fetch story from API (with local fallback already loaded)
+  useEffect(() => {
+    if (!storyId) return;
+    
+    const fetchStory = async () => {
+      try {
+        // Try to fetch from API using slug (storyId might be slug or id)
+        const apiStory = await api.getStoryBySlug(storyId) as ApiStory;
+        if (apiStory) {
+          setStory(mapApiStoryToLocal(apiStory));
+        }
+      } catch (error) {
+        // Keep using local data on error (already set as initial state)
+        console.log('Using local story data:', error);
+      }
+    };
+    
+    fetchStory();
+  }, [storyId]);
 
   const [playbackState, setPlaybackState] = useState<PlaybackState>({
     isPlaying: false,

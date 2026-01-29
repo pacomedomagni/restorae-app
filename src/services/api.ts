@@ -94,8 +94,8 @@ export interface Content {
 
 // API Configuration
 const API_ROOT = (process.env.EXPO_PUBLIC_API_URL || (__DEV__
-  ? 'http://localhost:3000'
-  : 'https://api.restorae.com')).replace(/\/+$/, '');
+  ? 'http://localhost:3001'
+  : 'https://api.restorae.kouakoudomagni.com')).replace(/\/+$/, '');
 const API_PREFIX = process.env.EXPO_PUBLIC_API_PREFIX || '/api/v1';
 const API_BASE_URL = `${API_ROOT}${API_PREFIX}`;
 

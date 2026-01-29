@@ -3,8 +3,11 @@
  * 
  * Bedtime stories hub with categories, featured stories,
  * and quick access to soundscapes.
+ * 
+ * Uses hybrid data approach: fetches from API when online,
+ * falls back to local data when offline or on error.
  */
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -29,6 +32,7 @@ import Animated, {
 import { useHaptics } from '../hooks/useHaptics';
 import { useTheme } from '../contexts/ThemeContext';
 import { useSubscription } from '../contexts/SubscriptionContext';
+import { useStories, BedtimeStory as ApiStory } from '../hooks/useStories';
 import {
   Text,
   GlassCard,
@@ -45,8 +49,6 @@ import { RootStackParamList } from '../types';
 import {
   BEDTIME_STORIES,
   STORY_CATEGORIES,
-  getStoriesByCategory,
-  getFreeStories,
   formatDuration,
   BedtimeStory,
   StoryCategory,
@@ -329,27 +331,55 @@ export function StoriesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { isPremium } = useSubscription();
   const [selectedCategory, setSelectedCategory] = useState<StoryCategory | 'all'>('all');
-  const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Use the stories hook for API data with caching
+  const { 
+    stories: apiStories, 
+    loading: apiLoading, 
+    error: apiError,
+    refresh: refreshStories 
+  } = useStories();
 
-  const filteredStories = getStoriesByCategory(selectedCategory);
-  const featuredStory = BEDTIME_STORIES[0]; // First story as featured
+  // Map API stories to local format for compatibility, fall back to local data
+  const stories = useMemo(() => {
+    if (apiStories && apiStories.length > 0) {
+      // Map API format to local format
+      return apiStories.map((s): BedtimeStory => ({
+        id: s.id,
+        title: s.title,
+        subtitle: s.subtitle || '',
+        description: '',
+        narrator: s.narrator || 'Unknown',
+        duration: s.duration,
+        audioUrl: s.audioUrl || '',
+        artworkUrl: s.artworkUrl,
+        category: (s.mood?.toLowerCase() || 'nature') as StoryCategory,
+        tags: [],
+        isPremium: s.isPremium,
+        mood: (s.mood?.toLowerCase() || 'calm') as BedtimeStory['mood'],
+      }));
+    }
+    // Fallback to local data
+    return BEDTIME_STORIES;
+  }, [apiStories]);
 
-  // Simulate initial load
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, []);
+  const isLoading = apiLoading;
+
+  // Filter stories based on selected category
+  const filteredStories = useMemo(() => {
+    if (selectedCategory === 'all') return stories;
+    return stories.filter(s => s.category === selectedCategory);
+  }, [stories, selectedCategory]);
+  
+  const featuredStory = stories[0]; // First story as featured
 
   // Pull-to-refresh handler
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
-    // Simulate refresh - in real app would fetch new stories
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await refreshStories();
     setIsRefreshing(false);
-  }, []);
+  }, [refreshStories]);
 
   const handleStoryPress = useCallback((story: BedtimeStory) => {
     if (story.isPremium && !isPremium) {
