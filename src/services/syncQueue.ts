@@ -114,9 +114,9 @@ class SyncQueueManager {
   async processQueue(executor?: (op: SyncOperation) => Promise<{ success: boolean; serverId?: string }>) {
     if (this.isProcessing || this.queue.length === 0) return;
 
-    // Use legacy executor if provided (during migration or testing)
+    // Use custom executor if provided (for context-specific processing)
     if (executor) {
-       return this.processQueueLegacy(executor);
+       return this.processQueueWithExecutor(executor);
     }
 
     const netInfo = await NetInfo.fetch();
@@ -168,8 +168,8 @@ class SyncQueueManager {
     }
   }
 
-  // Legacy processor for fallback
-  private async processQueueLegacy(executor: (op: SyncOperation) => Promise<{ success: boolean; serverId?: string }>) {
+  // Process queue with a custom executor function
+  private async processQueueWithExecutor(executor: (op: SyncOperation) => Promise<{ success: boolean; serverId?: string }>) {
       try {
       const sortedQueue = [...this.queue].sort(
         (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()

@@ -117,6 +117,9 @@ export interface SessionState {
   mode: SessionMode;
   status: SessionStatus;
   
+  // Backend Sync
+  backendSessionId?: string; // ID from the backend UserSession
+  
   // Queue Management
   queue: ActivityState[];
   currentIndex: number;

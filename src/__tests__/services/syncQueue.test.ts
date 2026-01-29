@@ -167,7 +167,7 @@ describe('SyncQueue', () => {
   describe('Listeners', () => {
     it('should notify listeners on queue change', () => {
       const listener = jest.fn();
-      const listeners = new Set<Function>();
+      const listeners = new Set<(queue: { id: string }[]) => void>();
       listeners.add(listener);
 
       const queue = [{ id: 'op1' }];
@@ -177,7 +177,7 @@ describe('SyncQueue', () => {
     });
 
     it('should allow unsubscribing', () => {
-      const listeners = new Set<Function>();
+      const listeners = new Set<() => void>();
       const listener = jest.fn();
       
       listeners.add(listener);

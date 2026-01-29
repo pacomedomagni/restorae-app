@@ -607,38 +607,6 @@ class ApiClient {
     return response.data;
   }
 
-  // Legacy methods (kept for backward compatibility)
-  async getCustomRituals() {
-    return this.getRituals(false);
-  }
-
-  async createCustomRitual(data: {
-    name: string;
-    description?: string;
-    timeOfDay: string;
-    activities: any[];
-    days?: string[];
-  }) {
-    const response = await this.client.post('/rituals/custom', data);
-    return response.data;
-  }
-
-  async completeRitual(data: {
-    ritualId?: string;
-    customRitualId?: string;
-    duration: number;
-    completedActivities: string[];
-    notes?: string;
-  }) {
-    const response = await this.client.post('/rituals/complete', data);
-    return response.data;
-  }
-
-  async getRitualStats(period: 'week' | 'month' = 'week') {
-    const response = await this.client.get('/rituals/stats', { params: { period } });
-    return response.data;
-  }
-
   // =========================================================================
   // SUBSCRIPTION ENDPOINTS
   // =========================================================================
@@ -665,70 +633,54 @@ class ApiClient {
   }
 
   // =========================================================================
-  // REMINDERS ENDPOINTS
+  // REMINDERS ENDPOINTS (via notifications)
   // =========================================================================
 
   async getReminders() {
-    const response = await this.client.get('/reminders');
+    const response = await this.client.get('/notifications/reminders');
     return response.data;
   }
 
   async createReminder(data: {
     type: string;
+    label: string;
     time: string;
-    days: string[];
-    message?: string;
+    ritualId?: string;
   }) {
-    const response = await this.client.post('/reminders', data);
+    const response = await this.client.post('/notifications/reminders', data);
     return response.data;
   }
 
   async updateReminder(id: string, data: Partial<{
+    label: string;
     time: string;
-    days: string[];
-    message: string;
-    isActive: boolean;
+    enabled: boolean;
   }>) {
-    const response = await this.client.patch(`/reminders/${id}`, data);
+    const response = await this.client.patch(`/notifications/reminders/${id}`, data);
     return response.data;
   }
 
   async deleteReminder(id: string) {
-    await this.client.delete(`/reminders/${id}`);
+    await this.client.delete(`/notifications/reminders/${id}`);
   }
 
-  // =========================================================================
-  // GOALS ENDPOINTS
-  // =========================================================================
-
-  async getWeeklyGoals() {
-    const response = await this.client.get('/goals/weekly');
+  async toggleReminder(id: string) {
+    const response = await this.client.post(`/notifications/reminders/${id}/toggle`);
     return response.data;
   }
 
-  async getWeeklyGoal() {
-    // Get the most recent/active weekly goal for mood tracking
-    const response = await this.client.get('/goals/weekly');
-    const goals = response.data?.goals || response.data || [];
-    return Array.isArray(goals) ? goals[0] : goals;
-  }
+  // =========================================================================
+  // WEEKLY GOALS ENDPOINTS (via mood)
+  // =========================================================================
 
-  async createWeeklyGoal(data: {
-    type: string;
-    target: number;
-    weekStart: string;
-  }) {
-    const response = await this.client.post('/goals/weekly', data);
+  async getWeeklyGoal() {
+    // Weekly goal is managed via mood module
+    const response = await this.client.get('/mood/goal');
     return response.data;
   }
 
   async setWeeklyGoalTarget(targetDays: number) {
-    const response = await this.client.patch('/goals/weekly/target', { targetDays });
-    return response.data;
-  }
-
-  async updateGoalProgress(id: string, progress: number) {
-    const response = await this.client.patch(`/goals/weekly/${id}`, { progress });
+    const response = await this.client.patch('/mood/goal', { targetDays });
     return response.data;
   }
 
@@ -777,6 +729,74 @@ class ApiClient {
     endDate?: string;
   }) {
     const response = await this.client.get('/activities/history', { params });
+    return response.data;
+  }
+
+  // =========================================================================
+  // SESSION ENDPOINTS
+  // =========================================================================
+
+  async createSession(data: {
+    mode: 'SINGLE' | 'RITUAL' | 'SOS';
+    ritualId?: string;
+    ritualSlug?: string;
+    sosPresetId?: string;
+    activities: Array<{
+      activityType: string;
+      activityId: string;
+      activityName: string;
+      order: number;
+    }>;
+  }) {
+    const response = await this.client.post('/sessions', data);
+    return response.data;
+  }
+
+  async getSession(sessionId: string) {
+    const response = await this.client.get(`/sessions/${sessionId}`);
+    return response.data;
+  }
+
+  async getSessions(params?: {
+    mode?: 'SINGLE' | 'RITUAL' | 'SOS';
+    status?: 'IN_PROGRESS' | 'COMPLETED' | 'EXITED' | 'INTERRUPTED';
+    limit?: number;
+    offset?: number;
+    startDate?: string;
+    endDate?: string;
+  }) {
+    const response = await this.client.get('/sessions', { params });
+    return response.data;
+  }
+
+  async updateSession(sessionId: string, data: {
+    status?: 'IN_PROGRESS' | 'COMPLETED' | 'EXITED' | 'INTERRUPTED';
+    completedCount?: number;
+    skippedCount?: number;
+    totalDuration?: number;
+    wasPartial?: boolean;
+    wasInterrupted?: boolean;
+    completedAt?: string;
+  }) {
+    const response = await this.client.patch(`/sessions/${sessionId}`, data);
+    return response.data;
+  }
+
+  async updateSessionActivity(sessionId: string, activityId: string, data: {
+    completed?: boolean;
+    skipped?: boolean;
+    duration?: number;
+    startedAt?: string;
+    completedAt?: string;
+  }) {
+    const response = await this.client.patch(`/sessions/${sessionId}/activities/${activityId}`, data);
+    return response.data;
+  }
+
+  async getSessionStats(startDate?: string, endDate?: string) {
+    const response = await this.client.get('/sessions/stats', {
+      params: { startDate, endDate }
+    });
     return response.data;
   }
 
@@ -927,20 +947,6 @@ class ApiClient {
 
   async resetCoachMarks() {
     const response = await this.client.post('/coach-marks/user/reset');
-    return response.data;
-  }
-
-  // =========================================================================
-  // SEASONAL CONTENT
-  // =========================================================================
-
-  async getActiveSeasonalContent() {
-    const response = await this.client.get('/seasonal/active');
-    return response.data;
-  }
-
-  async getSeasonalContentByTheme(theme: string) {
-    const response = await this.client.get(`/seasonal/theme/${theme}`);
     return response.data;
   }
 }

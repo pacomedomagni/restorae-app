@@ -41,6 +41,7 @@ import { RootStackParamList } from '../types';
 import { useHaptics } from '../hooks/useHaptics';
 import { activityLogger } from '../services/activityLogger';
 import { gamification } from '../services/gamification';
+import api from '../services/api';
 import logger from '../services/logger';
 
 // =============================================================================
@@ -70,6 +71,7 @@ type SessionAction =
   | { type: 'SHOW_EXIT_CONFIRMATION' }
   | { type: 'HIDE_EXIT_CONFIRMATION' }
   | { type: 'RECOVER_SESSION'; state: SessionState }
+  | { type: 'SET_BACKEND_SESSION_ID'; sessionId: string }
   | { type: 'RESET' };
 
 // =============================================================================
@@ -361,6 +363,13 @@ function sessionReducer(state: SessionState, action: SessionAction): SessionStat
       };
     }
 
+    case 'SET_BACKEND_SESSION_ID': {
+      return {
+        ...state,
+        backendSessionId: action.sessionId,
+      };
+    }
+
     case 'RESET': {
       return INITIAL_SESSION_STATE;
     }
@@ -465,25 +474,85 @@ export function SessionProvider({ children }: SessionProviderProps) {
   }, [state.mode, state.status]);
 
   // =========================================================================
+  // BACKEND SYNC HELPERS
+  // =========================================================================
+  
+  const createBackendSession = useCallback(async (
+    mode: 'SINGLE' | 'RITUAL' | 'SOS',
+    activities: Activity[],
+    options?: { ritualId?: string; ritualSlug?: string; sosPresetId?: string }
+  ) => {
+    try {
+      const response = await api.createSession({
+        mode,
+        ritualId: options?.ritualId,
+        ritualSlug: options?.ritualSlug,
+        sosPresetId: options?.sosPresetId,
+        activities: activities.map((activity, index) => ({
+          activityType: activity.type,
+          activityId: activity.id,
+          activityName: activity.name,
+          order: index,
+        })),
+      });
+      dispatch({ type: 'SET_BACKEND_SESSION_ID', sessionId: response.id });
+      logger.info(`Backend session created: ${response.id}`);
+    } catch (error) {
+      // Non-blocking - session still works locally
+      logger.warn('Failed to create backend session:', error as Error);
+    }
+  }, []);
+
+  const updateBackendSession = useCallback(async (
+    status: 'COMPLETED' | 'EXITED' | 'INTERRUPTED',
+    stats: { completedCount: number; skippedCount: number; totalDuration: number }
+  ) => {
+    if (!state.backendSessionId) return;
+    
+    try {
+      await api.updateSession(state.backendSessionId, {
+        status,
+        completedCount: stats.completedCount,
+        skippedCount: stats.skippedCount,
+        totalDuration: stats.totalDuration,
+        wasPartial: status === 'EXITED' && stats.completedCount > 0,
+        completedAt: new Date().toISOString(),
+      });
+      logger.info(`Backend session updated: ${state.backendSessionId} -> ${status}`);
+    } catch (error) {
+      logger.warn('Failed to update backend session:', error as Error);
+    }
+  }, [state.backendSessionId]);
+
+  // =========================================================================
   // ACTIONS
   // =========================================================================
   const startSingle = useCallback((activity: Activity) => {
     dispatch({ type: 'START_SINGLE', activity });
     impactMedium();
     navigation.navigate('UnifiedSession');
-  }, [navigation, impactMedium]);
+    // Create backend session asynchronously
+    createBackendSession('SINGLE', [activity]);
+  }, [navigation, impactMedium, createBackendSession]);
 
   const startRitual = useCallback((ritual: Ritual) => {
     dispatch({ type: 'START_RITUAL', ritual });
     impactMedium();
     navigation.navigate('UnifiedSession');
-  }, [navigation, impactMedium]);
+    // Create backend session asynchronously
+    createBackendSession('RITUAL', ritual.activities, { 
+      ritualId: ritual.id,
+      ritualSlug: ritual.id, // Use ID as slug for preset rituals
+    });
+  }, [navigation, impactMedium, createBackendSession]);
 
   const startSOS = useCallback((preset: SOSPreset) => {
     dispatch({ type: 'START_SOS', preset });
     impactMedium();
     navigation.navigate('UnifiedSession');
-  }, [navigation, impactMedium]);
+    // Create backend session asynchronously
+    createBackendSession('SOS', preset.activities, { sosPresetId: preset.id });
+  }, [navigation, impactMedium, createBackendSession]);
 
   const completeCurrentActivity = useCallback(async () => {
     const activityState = state.queue[state.currentIndex];
@@ -533,6 +602,19 @@ export function SessionProvider({ children }: SessionProviderProps) {
   }, []);
 
   const exitSession = useCallback((saveProgress = false) => {
+    // Calculate stats for backend
+    const completedCount = state.queue.filter(a => a.status === 'completed').length;
+    const skippedCount = state.queue.filter(a => a.status === 'skipped').length;
+    const totalDuration = state.sessionStartTime 
+      ? Math.round((Date.now() - state.sessionStartTime) / 1000)
+      : 0;
+    
+    // Update backend session
+    updateBackendSession(
+      saveProgress ? 'EXITED' : 'EXITED',
+      { completedCount, skippedCount, totalDuration }
+    );
+    
     dispatch({ type: 'EXIT_SESSION' });
     
     // Navigate based on whether we should show summary
@@ -543,9 +625,19 @@ export function SessionProvider({ children }: SessionProviderProps) {
     } else {
       navigation.navigate('Main');
     }
-  }, [navigation, state, completedActivities]);
+  }, [navigation, state, completedActivities, updateBackendSession]);
 
   const markRitualComplete = useCallback(async () => {
+    // Calculate stats for backend
+    const completedCount = state.queue.filter(a => a.status === 'completed').length;
+    const skippedCount = state.queue.filter(a => a.status === 'skipped').length;
+    const totalDuration = state.sessionStartTime 
+      ? Math.round((Date.now() - state.sessionStartTime) / 1000)
+      : 0;
+    
+    // Update backend session as completed
+    updateBackendSession('COMPLETED', { completedCount, skippedCount, totalDuration });
+    
     dispatch({ type: 'MARK_RITUAL_COMPLETE' });
     
     // Award XP for ritual completion
@@ -560,7 +652,7 @@ export function SessionProvider({ children }: SessionProviderProps) {
     }
     
     notificationSuccess();
-  }, [state.sessionStartTime, state.ritualId, state.ritualName, notificationSuccess]);
+  }, [state, updateBackendSession, notificationSuccess]);
 
   const skipActivity = useCallback((index: number) => {
     dispatch({ type: 'SKIP_ACTIVITY', index });
