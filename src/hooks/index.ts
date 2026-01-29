@@ -48,6 +48,26 @@ export {
 // Network status
 export { useNetworkStatus } from './useNetworkStatus';
 
+// Stories
+export { 
+  useStories, 
+  type BedtimeStory, 
+  type StoryCategory 
+} from './useStories';
+
+// Achievements & Gamification
+export { 
+  useAchievements, 
+  type Achievement, 
+  type UserProgress, 
+  type AchievementTier, 
+  type AchievementCategory,
+  type TrackSessionResult 
+} from './useAchievements';
+
+// Coach Marks (Backend synced onboarding)
+export { useCoachMarksSync, type CoachMark } from './useCoachMarksSync';
+
 // Session persistence
 export { useSessionPersistence } from './useSessionPersistence';
 

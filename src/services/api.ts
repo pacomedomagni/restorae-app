@@ -804,6 +804,145 @@ class ApiClient {
   async getAmbientSounds() {
     return this.getContent({ type: 'AMBIENT_SOUND' });
   }
+
+  // =========================================================================
+  // BEDTIME STORIES
+  // =========================================================================
+
+  async getStories(locale = 'en') {
+    const response = await this.client.get('/stories', { params: { locale } });
+    return response.data;
+  }
+
+  async getStoryBySlug(slug: string, locale = 'en') {
+    const response = await this.client.get(`/stories/${slug}`, { params: { locale } });
+    return response.data;
+  }
+
+  async getStoryCategories(locale = 'en') {
+    const response = await this.client.get('/stories/categories', { params: { locale } });
+    return response.data;
+  }
+
+  async getStoriesByCategory(categorySlug: string, locale = 'en') {
+    const response = await this.client.get(`/stories/category/${categorySlug}`, { params: { locale } });
+    return response.data;
+  }
+
+  async getStoriesByMood(mood: string, locale = 'en') {
+    const response = await this.client.get(`/stories/mood/${mood}`, { params: { locale } });
+    return response.data;
+  }
+
+  async getFreeStoryIds() {
+    const response = await this.client.get('/stories/free-ids');
+    return response.data;
+  }
+
+  async trackStoryPlay(storyId: string) {
+    const response = await this.client.post(`/stories/${storyId}/play`);
+    return response.data;
+  }
+
+  async toggleStoryFavorite(storyId: string) {
+    const response = await this.client.post(`/stories/${storyId}/favorite`);
+    return response.data;
+  }
+
+  async getFavoriteStories(locale = 'en') {
+    const response = await this.client.get('/stories/user/favorites', { params: { locale } });
+    return response.data;
+  }
+
+  // =========================================================================
+  // ACHIEVEMENTS & GAMIFICATION
+  // =========================================================================
+
+  async getAchievements() {
+    const response = await this.client.get('/achievements');
+    return response.data;
+  }
+
+  async getAchievementsByCategory(category: string) {
+    const response = await this.client.get(`/achievements/category/${category}`);
+    return response.data;
+  }
+
+  async getUserAchievements() {
+    const response = await this.client.get('/achievements/user/unlocked');
+    return response.data;
+  }
+
+  async getUserProgress() {
+    const response = await this.client.get('/achievements/user/progress');
+    return response.data;
+  }
+
+  async trackSessionComplete(durationMinutes: number, sessionType: string) {
+    const response = await this.client.post('/achievements/track/session', {
+      durationMinutes,
+      sessionType,
+    });
+    return response.data;
+  }
+
+  async updateStreak() {
+    const response = await this.client.post('/achievements/track/streak');
+    return response.data;
+  }
+
+  async unlockAchievement(slug: string) {
+    const response = await this.client.post(`/achievements/unlock/${slug}`);
+    return response.data;
+  }
+
+  async getLeaderboard(limit = 10) {
+    const response = await this.client.get('/achievements/leaderboard', { params: { limit } });
+    return response.data;
+  }
+
+  // =========================================================================
+  // COACH MARKS (Onboarding tooltips)
+  // =========================================================================
+
+  async getCoachMarks() {
+    const response = await this.client.get('/coach-marks');
+    return response.data;
+  }
+
+  async getCoachMarksByScreen(screen: string) {
+    const response = await this.client.get(`/coach-marks/screen/${screen}`);
+    return response.data;
+  }
+
+  async getSeenCoachMarks() {
+    const response = await this.client.get('/coach-marks/user/seen');
+    return response.data;
+  }
+
+  async markCoachMarkSeen(key: string) {
+    const response = await this.client.post(`/coach-marks/user/seen/${key}`);
+    return response.data;
+  }
+
+  async resetCoachMarks() {
+    const response = await this.client.post('/coach-marks/user/reset');
+    return response.data;
+  }
+
+  // =========================================================================
+  // SEASONAL CONTENT
+  // =========================================================================
+
+  async getActiveSeasonalContent() {
+    const response = await this.client.get('/seasonal/active');
+    return response.data;
+  }
+
+  async getSeasonalContentByTheme(theme: string) {
+    const response = await this.client.get(`/seasonal/theme/${theme}`);
+    return response.data;
+  }
 }
 
 // Export singleton instance
