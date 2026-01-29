@@ -7,6 +7,7 @@
  * UX Improvements:
  * - "Skip for now" option on personalization step
  * - Allow users to experience first before committing
+ * - Swipe left/right to navigate between steps
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import {
@@ -35,9 +36,8 @@ import Animated, {
   Easing,
   interpolate,
   runOnJS,
-  cancelAnimation,
 } from 'react-native-reanimated';
-import Svg, { Defs, RadialGradient, Stop, Circle as SvgCircle, Path } from 'react-native-svg';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useHaptics } from '../hooks/useHaptics';
 import { useTheme } from '../contexts/ThemeContext';
 import {
@@ -45,6 +45,7 @@ import {
   AmbientBackground,
   PremiumButton,
   GlassCard,
+  FloatingOrb,
 } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { Logo } from '../components/Logo';
@@ -74,157 +75,6 @@ const WELLNESS_GOALS: WellnessGoal[] = [
   { id: 'mood', emoji: '☀️', label: 'Lift my mood', description: 'Brighten your day' },
   { id: 'presence', emoji: '🧘', label: 'Be present', description: 'Ground in the now' },
 ];
-
-// =============================================================================
-// FLOATING ORB - Hero visual element
-// =============================================================================
-function FloatingOrb({ isBreathing = false }: { isBreathing?: boolean }) {
-  const { colors, reduceMotion } = useTheme();
-  const scale = useSharedValue(1);
-  const innerScale = useSharedValue(1);
-  const glowOpacity = useSharedValue(0.3);
-  const rotation = useSharedValue(0);
-
-  useEffect(() => {
-    if (reduceMotion) return;
-
-    // Gentle ambient breathing
-    if (!isBreathing) {
-      scale.value = withRepeat(
-        withSequence(
-          withTiming(1.05, { duration: 4000, easing: Easing.inOut(Easing.ease) }),
-          withTiming(1, { duration: 4000, easing: Easing.inOut(Easing.ease) })
-        ),
-        -1,
-        false
-      );
-      glowOpacity.value = withRepeat(
-        withSequence(
-          withTiming(0.5, { duration: 3000, easing: Easing.inOut(Easing.ease) }),
-          withTiming(0.3, { duration: 3000, easing: Easing.inOut(Easing.ease) })
-        ),
-        -1,
-        false
-      );
-    } else {
-      // Active breathing animation (4-7-8 simplified)
-      const breathCycle = () => {
-        // Inhale (grow)
-        scale.value = withTiming(1.3, { duration: 4000, easing: Easing.inOut(Easing.ease) });
-        innerScale.value = withTiming(1.2, { duration: 4000, easing: Easing.inOut(Easing.ease) });
-        glowOpacity.value = withTiming(0.7, { duration: 4000 });
-        
-        // Hold & exhale
-        setTimeout(() => {
-          scale.value = withTiming(1, { duration: 6000, easing: Easing.inOut(Easing.ease) });
-          innerScale.value = withTiming(1, { duration: 6000, easing: Easing.inOut(Easing.ease) });
-          glowOpacity.value = withTiming(0.3, { duration: 6000 });
-        }, 4500);
-      };
-
-      breathCycle();
-      const interval = setInterval(breathCycle, 11000);
-      return () => clearInterval(interval);
-    }
-
-    // Slow rotation for depth
-    rotation.value = withRepeat(
-      withTiming(360, { duration: 60000, easing: Easing.linear }),
-      -1,
-      false
-    );
-
-    return () => {
-      cancelAnimation(scale);
-      cancelAnimation(glowOpacity);
-      cancelAnimation(rotation);
-    };
-  }, [isBreathing, reduceMotion]);
-
-  const containerStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const innerStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: innerScale.value }],
-  }));
-
-  const glowStyle = useAnimatedStyle(() => ({
-    opacity: glowOpacity.value,
-  }));
-
-  const rotatingStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${rotation.value}deg` }],
-  }));
-
-  const orbSize = isBreathing ? 200 : 160;
-
-  return (
-    <View style={[styles.orbContainer, { width: orbSize + 80, height: orbSize + 80 }]}>
-      {/* Outer glow */}
-      <Animated.View style={[styles.orbGlow, glowStyle]}>
-        <Svg width={orbSize + 80} height={orbSize + 80} viewBox="0 0 280 280">
-          <Defs>
-            <RadialGradient id="orbGlow" cx="50%" cy="50%" r="50%">
-              <Stop offset="0%" stopColor={colors.accentPrimary} stopOpacity={0.6} />
-              <Stop offset="50%" stopColor={colors.accentCalm} stopOpacity={0.2} />
-              <Stop offset="100%" stopColor={colors.accentPrimary} stopOpacity={0} />
-            </RadialGradient>
-          </Defs>
-          <SvgCircle cx="140" cy="140" r="140" fill="url(#orbGlow)" />
-        </Svg>
-      </Animated.View>
-
-      {/* Rotating ring */}
-      <Animated.View style={[styles.orbRing, rotatingStyle]}>
-        <Svg width={orbSize + 40} height={orbSize + 40} viewBox="0 0 240 240">
-          {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((angle, i) => {
-            const rad = (angle * Math.PI) / 180;
-            const x = 120 + 110 * Math.cos(rad);
-            const y = 120 + 110 * Math.sin(rad);
-            const opacity = 0.15 + (i % 4) * 0.1;
-            return (
-              <SvgCircle
-                key={i}
-                cx={x}
-                cy={y}
-                r={2 + (i % 3)}
-                fill={withAlpha(colors.accentPrimary, opacity)}
-              />
-            );
-          })}
-        </Svg>
-      </Animated.View>
-
-      {/* Main orb */}
-      <Animated.View style={[styles.orbMain, containerStyle]}>
-        <Animated.View style={innerStyle}>
-          <View style={{ width: orbSize, height: orbSize, alignItems: 'center', justifyContent: 'center' }}>
-            <Svg width={orbSize} height={orbSize} viewBox="0 0 100 100" style={StyleSheet.absoluteFill}>
-              <Defs>
-                <RadialGradient id="mainOrbGradient" cx="35%" cy="35%" r="65%">
-                  <Stop offset="0%" stopColor={withAlpha('#FFFFFF', 0.3)} />
-                  <Stop offset="30%" stopColor={colors.accentPrimary} />
-                  <Stop offset="70%" stopColor={colors.accentCalm} />
-                  <Stop offset="100%" stopColor={withAlpha(colors.accentCalm, 0.8)} />
-                </RadialGradient>
-                <RadialGradient id="highlight" cx="30%" cy="30%" r="40%">
-                   <Stop offset="0%" stopColor="#FFFFFF" stopOpacity={0.4} />
-                   <Stop offset="100%" stopColor="#FFFFFF" stopOpacity={0} />
-                </RadialGradient>
-              </Defs>
-              <SvgCircle cx="50" cy="50" r="48" fill="url(#mainOrbGradient)" />
-              <SvgCircle cx="50" cy="50" r="48" fill="url(#highlight)" />
-            </Svg>
-            
-            {/* Logo centered in orb */}
-            <Logo size="hero" />
-          </View>
-        </Animated.View>
-      </Animated.View>
-    </View>
-  );
-}
 
 // =============================================================================
 // STEP 1: WELCOME
@@ -462,9 +312,14 @@ function PersonalizationStep({
         style={styles.goalsSection}
       >
         <View style={styles.goalsHeaderRow}>
-          <Text variant="labelSmall" color="inkFaint" style={styles.goalsLabel}>
-            WHAT BRINGS YOU HERE?
-          </Text>
+          <View>
+            <Text variant="labelSmall" color="inkFaint" style={styles.goalsLabel}>
+              WHAT BRINGS YOU HERE?
+            </Text>
+            <Text variant="bodySmall" color="inkMuted" style={styles.goalsHint}>
+              Pick up to 3 to personalize your experience
+            </Text>
+          </View>
           <Pressable 
             onPress={onSkipGoals} 
             hitSlop={8}
@@ -480,6 +335,7 @@ function PersonalizationStep({
         <View style={styles.goalsGrid}>
           {WELLNESS_GOALS.map((goal, index) => {
             const isSelected = selectedGoals.includes(goal.id);
+            const isDisabled = !isSelected && selectedGoals.length >= 3;
             return (
               <Animated.View
                 key={goal.id}
@@ -487,10 +343,11 @@ function PersonalizationStep({
               >
                 <Pressable
                   onPress={() => handleGoalPress(goal.id)}
+                  disabled={isDisabled}
                   accessibilityRole="checkbox"
                   accessibilityLabel={`${goal.label}. ${goal.description}`}
-                  accessibilityHint={isSelected ? 'Tap to deselect this goal' : 'Tap to select this goal'}
-                  accessibilityState={{ checked: isSelected }}
+                  accessibilityHint={isSelected ? 'Tap to deselect this goal' : isDisabled ? 'Maximum of 3 goals reached' : 'Tap to select this goal'}
+                  accessibilityState={{ checked: isSelected, disabled: isDisabled }}
                   style={[
                     styles.goalCard,
                     {
@@ -500,6 +357,7 @@ function PersonalizationStep({
                       borderColor: isSelected
                         ? colors.accentPrimary
                         : withAlpha(colors.border, 0.3),
+                      opacity: isDisabled ? 0.4 : 1,
                     },
                   ]}
                 >
@@ -520,6 +378,16 @@ function PersonalizationStep({
             );
           })}
         </View>
+        {selectedGoals.length === 3 && (
+          <Animated.View
+            entering={reduceMotion ? undefined : FadeInUp.duration(300)}
+            style={styles.goalsMaxMessage}
+          >
+            <Text variant="bodySmall" color="inkMuted" align="center">
+              ✓ You've picked 3 goals. Tap any to change.
+            </Text>
+          </Animated.View>
+        )}
       </Animated.View>
     </View>
   );
@@ -588,20 +456,69 @@ function ReadyStep({ name }: { name: string }) {
 export function OnboardingScreen() {
   const { colors, reduceMotion } = useTheme();
   const navigation = useNavigation<NavigationProp>();
-  const { impactMedium, notificationSuccess } = useHaptics();
+  const { impactMedium, impactLight, notificationSuccess } = useHaptics();
 
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
+  
+  // Swipe animation
+  const translateX = useSharedValue(0);
 
   const totalSteps = 4;
+  const MAX_GOALS = 3;
+  const SWIPE_THRESHOLD = 50;
+
+  const goToStep = useCallback((newStep: number) => {
+    if (newStep >= 0 && newStep < totalSteps) {
+      impactLight();
+      setStep(newStep);
+    }
+  }, [totalSteps, impactLight]);
+
+  // Swipe gesture for navigating between steps
+  const swipeGesture = Gesture.Pan()
+    .onUpdate((event) => {
+      // Only allow horizontal swipe, limit the drag distance
+      translateX.value = Math.max(-100, Math.min(100, event.translationX));
+    })
+    .onEnd((event) => {
+      const { translationX, velocityX } = event;
+      
+      // Determine if swipe was significant enough
+      const shouldNavigate = Math.abs(translationX) > SWIPE_THRESHOLD || Math.abs(velocityX) > 500;
+      
+      if (shouldNavigate) {
+        if (translationX > 0 && step > 0) {
+          // Swipe right - go back
+          runOnJS(goToStep)(step - 1);
+        } else if (translationX < 0 && step < totalSteps - 1) {
+          // Swipe left - go forward
+          runOnJS(goToStep)(step + 1);
+        }
+      }
+      
+      // Spring back to center
+      translateX.value = withSpring(0, { damping: 20, stiffness: 300 });
+    });
+
+  const animatedContentStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value * 0.3 }],
+    opacity: interpolate(Math.abs(translateX.value), [0, 100], [1, 0.7]),
+  }));
 
   const handleToggleGoal = (goalId: string) => {
-    setSelectedGoals(prev =>
-      prev.includes(goalId)
-        ? prev.filter(id => id !== goalId)
-        : [...prev, goalId]
-    );
+    setSelectedGoals(prev => {
+      if (prev.includes(goalId)) {
+        // Always allow deselecting
+        return prev.filter(id => id !== goalId);
+      } else if (prev.length < MAX_GOALS) {
+        // Only add if under the limit
+        return [...prev, goalId];
+      }
+      // At limit, don't add more
+      return prev;
+    });
   };
 
   const handleSkipGoals = useCallback(async () => {
@@ -662,39 +579,23 @@ export function OnboardingScreen() {
       <AmbientBackground variant="calm" intensity="vivid" />
 
       <SafeAreaView style={styles.safeArea}>
-        {/* Progress indicator */}
-        <View style={styles.progressBar}>
-          {Array.from({ length: totalSteps }).map((_, i) => (
-            <View
-              key={i}
-              style={[
-                styles.progressSegment,
-                {
-                  backgroundColor: i <= step
-                    ? colors.accentPrimary
-                    : withAlpha(colors.ink, 0.15),
-                  flex: i === step ? 2 : 1,
-                },
-              ]}
-            />
-          ))}
-        </View>
-
-        {/* Content */}
-        <View style={styles.content}>
-          {step === 0 && <WelcomeStep />}
-          {step === 1 && <BreathingPreviewStep />}
-          {step === 2 && (
-            <PersonalizationStep
-              name={name}
-              onNameChange={setName}
-              selectedGoals={selectedGoals}
-              onToggleGoal={handleToggleGoal}
-              onSkipGoals={handleSkipGoals}
-            />
-          )}
-          {step === 3 && <ReadyStep name={name} />}
-        </View>
+        {/* Content - Swipeable */}
+        <GestureDetector gesture={swipeGesture}>
+          <Animated.View style={[styles.content, animatedContentStyle]}>
+            {step === 0 && <WelcomeStep />}
+            {step === 1 && <BreathingPreviewStep />}
+            {step === 2 && (
+              <PersonalizationStep
+                name={name}
+                onNameChange={setName}
+                selectedGoals={selectedGoals}
+                onToggleGoal={handleToggleGoal}
+                onSkipGoals={handleSkipGoals}
+              />
+            )}
+            {step === 3 && <ReadyStep name={name} />}
+          </Animated.View>
+        </GestureDetector>
 
         {/* Bottom actions */}
         <View style={styles.bottomActions}>
@@ -742,38 +643,12 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  progressBar: {
-    flexDirection: 'row',
-    paddingHorizontal: spacing[6],
-    paddingTop: spacing[4],
-    gap: spacing[2],
-  },
-  progressSegment: {
-    height: 4,
-    borderRadius: 2,
-  },
   content: {
     flex: 1,
     paddingHorizontal: spacing[6],
   },
   stepContainer: {
     flex: 1,
-    justifyContent: 'center',
-  },
-
-  // Orb styles
-  orbContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  orbGlow: {
-    position: 'absolute',
-  },
-  orbRing: {
-    position: 'absolute',
-  },
-  orbMain: {
-    alignItems: 'center',
     justifyContent: 'center',
   },
   orbWrapper: {
@@ -851,11 +726,19 @@ const styles = StyleSheet.create({
   goalsHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: spacing[3],
   },
   goalsLabel: {
     letterSpacing: 1.5,
+  },
+  goalsHint: {
+    marginTop: spacing[1],
+    opacity: 0.7,
+  },
+  goalsMaxMessage: {
+    marginTop: spacing[4],
+    paddingVertical: spacing[2],
   },
   goalsGrid: {
     flexDirection: 'row',

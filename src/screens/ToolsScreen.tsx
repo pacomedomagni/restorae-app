@@ -39,6 +39,7 @@ import {
   ContextMenu,
   CoachMarkOverlay,
   GestureHint,
+  OfflineBanner,
 } from '../components/ui';
 import { LuxeIcon } from '../components/LuxeIcon';
 import { spacing, borderRadius, layout, withAlpha } from '../theme';
@@ -421,119 +422,6 @@ function FeaturedToolCard({ tool, onPress }: FeaturedToolCardProps) {
 }
 
 // =============================================================================
-// QUICK START SECTION - For reduced navigation depth
-// =============================================================================
-interface QuickStartItem {
-  id: string;
-  label: string;
-  sublabel: string;
-  icon: 'breathe' | 'ground' | 'reset' | 'focus';
-  tone: 'primary' | 'warm' | 'calm';
-  route: keyof RootStackParamList;
-  routeParams?: any;
-}
-
-const QUICK_STARTS: QuickStartItem[] = [
-  {
-    id: 'box-breathing',
-    label: 'Box Breathing',
-    sublabel: '4 min • Calm',
-    icon: 'breathe',
-    tone: 'primary',
-    route: 'Breathing',
-    routeParams: { patternId: 'box-breathing' },
-  },
-  {
-    id: '5-4-3-2-1',
-    label: '5-4-3-2-1',
-    sublabel: '3 min • Ground',
-    icon: 'ground',
-    tone: 'warm',
-    route: 'GroundingSession',
-    routeParams: { techniqueId: '5-4-3-2-1' },
-  },
-  {
-    id: 'body-scan',
-    label: 'Quick Scan',
-    sublabel: '2 min • Release',
-    icon: 'reset',
-    tone: 'calm',
-    route: 'ResetSession',
-    routeParams: { exerciseId: 'body-scan' },
-  },
-];
-
-interface QuickStartCardProps {
-  item: QuickStartItem;
-  onPress: () => void;
-}
-
-function QuickStartCard({ item, onPress }: QuickStartCardProps) {
-  const { colors } = useTheme();
-  const { impactLight } = useHaptics();
-  const scale = useSharedValue(1);
-
-  const toneColor =
-    item.tone === 'warm'
-      ? colors.accentWarm
-      : item.tone === 'calm'
-      ? colors.accentCalm
-      : colors.accentPrimary;
-
-  const handlePressIn = () => {
-    scale.value = withSpring(0.95, { damping: 15, stiffness: 400 });
-  };
-
-  const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 12, stiffness: 300 });
-  };
-
-  const handlePress = async () => {
-    await impactLight();
-    onPress();
-  };
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  return (
-    <Pressable
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      onPress={handlePress}
-      style={styles.quickStartCard}
-      accessibilityRole="button"
-      accessibilityLabel={`${item.label}. ${item.sublabel}`}
-      accessibilityHint="Starts a quick tool session"
-    >
-      <Animated.View style={animatedStyle}>
-        <GlassCard variant="subtle" padding="sm">
-          <View style={styles.quickStartContent}>
-            <View
-              style={[
-                styles.quickStartIcon,
-                { backgroundColor: withAlpha(toneColor, 0.12) },
-              ]}
-            >
-              <LuxeIcon name={item.icon} size={18} color={toneColor} />
-            </View>
-            <View style={styles.quickStartText}>
-              <Text variant="labelMedium" color="ink">
-                {item.label}
-              </Text>
-              <Text variant="labelSmall" color="inkFaint">
-                {item.sublabel}
-              </Text>
-            </View>
-          </View>
-        </GlassCard>
-      </Animated.View>
-    </Pressable>
-  );
-}
-
-// =============================================================================
 // TOOLS SCREEN
 // =============================================================================
 export function ToolsScreen() {
@@ -541,12 +429,23 @@ export function ToolsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { playTap, playTransition } = useUISounds();
   const { shouldShowCoachMark, markAsShown, COACH_MARKS } = useCoachMarks();
+  const { impactLight } = useHaptics();
   
   const [activeCategory, setActiveCategory] = useState<ToolCategory>('all');
   const [contextMenuTool, setContextMenuTool] = useState<Tool | null>(null);
   const [showContextMenu, setShowContextMenu] = useState(false);
   const [showToolsCoachMark, setShowToolsCoachMark] = useState(false);
   const [showLongPressHint, setShowLongPressHint] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Pull to refresh handler
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await impactLight();
+    // Simulate refresh - in real app would reload favorites/recent
+    await new Promise(resolve => setTimeout(resolve, 500));
+    setIsRefreshing(false);
+  }, [impactLight]);
 
   // Check for coach marks on mount
   React.useEffect(() => {
@@ -589,64 +488,32 @@ export function ToolsScreen() {
     setContextMenuTool(null);
   }, []);
 
-  const handleQuickStart = useCallback(
-    (item: QuickStartItem) => {
-      playTap();
-      playTransition();
-      if (item.routeParams) {
-        navigation.navigate(item.route as any, item.routeParams);
-      } else {
-        navigation.navigate(item.route as any);
-      }
-    },
-    [navigation, playTap, playTransition]
-  );
-
   return (
     <View style={styles.container}>
       <AmbientBackground variant="calm" intensity="subtle" />
+
+      {/* Offline indicator */}
+      <OfflineBanner variant="floating" />
 
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <TabSafeScrollView
           style={styles.scrollView}
           contentStyle={styles.scrollContent}
+          onRefresh={handleRefresh}
+          refreshing={isRefreshing}
         >
-          {/* Header */}
+          {/* Header - Simplified */}
           <Animated.View
             entering={reduceMotion ? undefined : FadeIn.duration(600)}
             style={styles.header}
           >
-            <Text variant="labelSmall" color="inkFaint" style={styles.eyebrow}>
-              WELLNESS TOOLKIT
-            </Text>
-            <Text variant="displayMedium" color="ink">
+            <Text variant="displaySmall" color="ink">
               Tools
             </Text>
-            <Text variant="bodyLarge" color="inkMuted" style={styles.subtitle}>
+            <Text variant="bodyMedium" color="inkMuted" style={styles.subtitle}>
               Curated practices for every moment
             </Text>
           </Animated.View>
-
-          {/* Quick Start - Skip selection for popular tools */}
-          {activeCategory === 'all' && (
-            <Animated.View
-              entering={reduceMotion ? undefined : FadeIn.delay(50).duration(400)}
-              style={styles.quickStartSection}
-            >
-              <Text variant="labelSmall" color="inkFaint" style={styles.sectionLabel}>
-                QUICK START
-              </Text>
-              <View style={styles.quickStartGrid}>
-                {QUICK_STARTS.map((item) => (
-                  <QuickStartCard
-                    key={item.id}
-                    item={item}
-                    onPress={() => handleQuickStart(item)}
-                  />
-                ))}
-              </View>
-            </Animated.View>
-          )}
 
           {/* Category Filter */}
           <Animated.View
@@ -780,15 +647,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: layout.screenPaddingHorizontal,
   },
   header: {
-    paddingTop: spacing[4],
+    paddingTop: spacing[2],
     paddingBottom: spacing[4],
   },
-  eyebrow: {
-    marginBottom: spacing[1],
-    letterSpacing: 2,
-  },
   subtitle: {
-    marginTop: spacing[2],
+    marginTop: spacing[1],
   },
   categoriesContainer: {
     paddingVertical: spacing[3],
@@ -849,36 +712,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[3],
     paddingVertical: spacing[1],
     borderRadius: borderRadius.full,
-  },
-  // Quick Start styles
-  quickStartSection: {
-    marginBottom: spacing[4],
-  },
-  sectionLabel: {
-    letterSpacing: 2,
-    marginBottom: spacing[3],
-  },
-  quickStartGrid: {
-    flexDirection: 'row',
-    gap: spacing[3],
-  },
-  quickStartCard: {
-    flex: 1,
-  },
-  quickStartContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  quickStartIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing[3],
-  },
-  quickStartText: {
-    flex: 1,
   },
   // Tools grid
   toolsGrid: {

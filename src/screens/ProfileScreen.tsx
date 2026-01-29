@@ -1,8 +1,8 @@
 /**
  * ProfileScreen
  * 
- * User profile with stats, settings access,
- * and account management.
+ * Clean, focused profile with compact identity card
+ * and organized settings.
  */
 import React, { useState, useEffect } from 'react';
 import {
@@ -18,13 +18,9 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
-  withTiming,
-  withDelay,
   FadeIn,
   FadeInDown,
-  Easing,
 } from 'react-native-reanimated';
-import Svg, { Circle as SvgCircle } from 'react-native-svg';
 import { useHaptics } from '../hooks/useHaptics';
 import { useUISounds } from '../hooks/useUISounds';
 import { useTheme } from '../contexts/ThemeContext';
@@ -33,208 +29,66 @@ import {
   Text,
   GlassCard,
   AmbientBackground,
-  Skeleton,
-  SkeletonCard,
   TabSafeScrollView,
   CoachMarkOverlay,
+  OfflineBanner,
 } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { Logo } from '../components/Logo';
-import { spacing, borderRadius, layout, withAlpha } from '../theme';
+import { spacing, layout, withAlpha } from '../theme';
 import { RootStackParamList } from '../types';
 
 // =============================================================================
 // TYPES & DATA
 // =============================================================================
-interface StatData {
-  label: string;
-  value: string;
-  sublabel: string;
-  color: 'primary' | 'warm' | 'calm';
-}
-
 interface SettingItem {
   id: string;
   label: string;
-  description: string;
   icon: 'profile' | 'history' | 'subscription' | 'settings' | 'lock' | 'data' | 'privacy' | 'support' | 'security';
   route: keyof RootStackParamList;
 }
 
-const SETTINGS: SettingItem[] = [
+interface SettingCategory {
+  id: string;
+  label: string;
+  items: SettingItem[];
+}
+
+const SETTINGS_GROUPED: SettingCategory[] = [
   {
-    id: 'account',
-    label: 'Account',
-    description: 'Profile, logout & data management',
-    icon: 'profile',
-    route: 'EditProfile',
+    id: 'account-section',
+    label: 'ACCOUNT',
+    items: [
+      { id: 'account', label: 'Account', icon: 'profile', route: 'EditProfile' },
+      { id: 'subscription', label: 'Subscription', icon: 'subscription', route: 'Subscription' },
+    ],
   },
   {
-    id: 'mood-history',
-    label: 'Mood History',
-    description: 'View your emotional trends',
-    icon: 'history',
-    route: 'MoodHistory',
+    id: 'wellness-section',
+    label: 'WELLNESS',
+    items: [
+      { id: 'mood-history', label: 'Mood History', icon: 'history', route: 'MoodHistory' },
+      { id: 'progress', label: 'Progress & Stats', icon: 'history', route: 'Progress' },
+    ],
   },
   {
-    id: 'subscription',
-    label: 'Subscription',
-    description: 'Manage your premium plan',
-    icon: 'subscription',
-    route: 'Subscription',
+    id: 'preferences-section',
+    label: 'PREFERENCES',
+    items: [
+      { id: 'preferences', label: 'Appearance & Sounds', icon: 'settings', route: 'Preferences' },
+    ],
   },
   {
-    id: 'preferences',
-    label: 'Preferences',
-    description: 'Appearance, sounds & reminders',
-    icon: 'settings',
-    route: 'Preferences',
-  },
-  {
-    id: 'security',
-    label: 'Security & Privacy',
-    description: 'Journal encryption & biometric lock',
-    icon: 'lock',
-    route: 'SecuritySettings',
-  },
-  {
-    id: 'data',
-    label: 'Data & Storage',
-    description: 'Export & delete your data',
-    icon: 'data',
-    route: 'DataSettings',
-  },
-  {
-    id: 'privacy',
-    label: 'Privacy',
-    description: 'Privacy policy',
-    icon: 'privacy',
-    route: 'Privacy',
-  },
-  {
-    id: 'support',
-    label: 'Support',
-    description: 'Help, feedback & about',
-    icon: 'support',
-    route: 'Support',
+    id: 'privacy-section',
+    label: 'PRIVACY & DATA',
+    items: [
+      { id: 'security', label: 'Security', icon: 'lock', route: 'SecuritySettings' },
+      { id: 'data', label: 'Data & Storage', icon: 'data', route: 'DataSettings' },
+      { id: 'privacy', label: 'Privacy Policy', icon: 'privacy', route: 'Privacy' },
+      { id: 'support', label: 'Support', icon: 'support', route: 'Support' },
+    ],
   },
 ];
-
-// =============================================================================
-// CIRCULAR PROGRESS
-// =============================================================================
-interface CircularProgressProps {
-  progress: number; // 0-1
-  size: number;
-  strokeWidth: number;
-  color: string;
-  children?: React.ReactNode;
-}
-
-function CircularProgress({
-  progress,
-  size,
-  strokeWidth,
-  color,
-  children,
-}: CircularProgressProps) {
-  const { colors, reduceMotion } = useTheme();
-  const animatedProgress = useSharedValue(0);
-  
-  const radius = (size - strokeWidth) / 2;
-  const circumference = radius * 2 * Math.PI;
-
-  useEffect(() => {
-    if (reduceMotion) {
-      animatedProgress.value = progress;
-    } else {
-      animatedProgress.value = withDelay(
-        500,
-        withTiming(progress, { duration: 1500, easing: Easing.out(Easing.ease) })
-      );
-    }
-  }, [progress, reduceMotion, animatedProgress]);
-
-  // For SVG animation we need a static strokeDashoffset since react-native-svg 
-  // doesn't support animated props well with reanimated v4. Use the progress value directly.
-  const strokeDashoffset = circumference * (1 - progress);
-
-  return (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <Svg width={size} height={size} style={{ position: 'absolute' }}>
-        {/* Background circle */}
-        <SvgCircle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke={withAlpha(colors.ink, 0.08)}
-          strokeWidth={strokeWidth}
-          fill="none"
-        />
-        {/* Progress circle */}
-        <SvgCircle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke={color}
-          strokeWidth={strokeWidth}
-          fill="none"
-          strokeDasharray={`${circumference} ${circumference}`}
-          strokeDashoffset={strokeDashoffset}
-          strokeLinecap="round"
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
-      </Svg>
-      {children}
-    </View>
-  );
-}
-
-// =============================================================================
-// STAT CARD
-// =============================================================================
-interface StatCardProps {
-  stat: StatData;
-  index: number;
-}
-
-function StatCard({ stat, index }: StatCardProps) {
-  const { colors, reduceMotion } = useTheme();
-  
-  const colorMap = {
-    primary: colors.accentPrimary,
-    warm: colors.accentWarm,
-    calm: colors.accentCalm,
-  };
-  const color = colorMap[stat.color];
-
-  return (
-    <Animated.View
-      entering={
-        reduceMotion
-          ? undefined
-          : FadeInDown.delay(300 + index * 100)
-              .duration(400)
-              .easing(Easing.out(Easing.ease))
-      }
-      style={styles.statCard}
-    >
-      <GlassCard variant="elevated" padding="md">
-        <View style={styles.statContent}>
-          <Text variant="displaySmall" style={{ color }}>
-            {stat.value}
-          </Text>
-          <Text variant="labelMedium" color="ink" style={styles.statLabel}>
-            {stat.label}
-          </Text>
-          <Text variant="labelSmall" color="inkFaint">
-            {stat.sublabel}
-          </Text>
-        </View>
-      </GlassCard>
-    </Animated.View>
-  );
-}
 
 // =============================================================================
 // SETTING ROW
@@ -272,9 +126,7 @@ function SettingRow({ setting, index, onPress }: SettingRowProps) {
       entering={
         reduceMotion
           ? undefined
-          : FadeInDown.delay(600 + index * 80)
-              .duration(400)
-              .easing(Easing.out(Easing.ease))
+          : FadeInDown.delay(200 + index * 50).duration(300)
       }
     >
       <Pressable
@@ -282,33 +134,26 @@ function SettingRow({ setting, index, onPress }: SettingRowProps) {
         onPressOut={handlePressOut}
         onPress={handlePress}
         accessibilityRole="button"
-        accessibilityLabel={`${setting.label}. ${setting.description}`}
-        accessibilityHint="Opens the selected settings screen"
+        accessibilityLabel={setting.label}
+        accessibilityHint="Opens the selected screen"
       >
         <Animated.View style={animatedStyle}>
-          <GlassCard variant="subtle" padding="md">
-            <View style={styles.settingContent}>
-              <View
-                style={[
-                  styles.settingIcon,
-                  { backgroundColor: withAlpha(colors.accentPrimary, 0.1) },
-                ]}
-              >
-                <Icon name={setting.icon} size={22} color={colors.accentPrimary} />
-              </View>
-              <View style={styles.settingText}>
-                <Text variant="headlineSmall" color="ink">
-                  {setting.label}
-                </Text>
-                <Text variant="bodySmall" color="inkMuted">
-                  {setting.description}
-                </Text>
-              </View>
-              <Text variant="labelMedium" style={{ color: colors.accentPrimary }}>
-                →
-              </Text>
+          <View style={[styles.settingRow, { borderBottomColor: withAlpha(colors.border, 0.3) }]}>
+            <View
+              style={[
+                styles.settingIconSmall,
+                { backgroundColor: withAlpha(colors.accentPrimary, 0.1) },
+              ]}
+            >
+              <Icon name={setting.icon} size={18} color={colors.accentPrimary} />
             </View>
-          </GlassCard>
+            <Text variant="bodyLarge" color="ink" style={styles.settingLabel}>
+              {setting.label}
+            </Text>
+            <Text variant="bodyMedium" color="inkFaint">
+              →
+            </Text>
+          </View>
         </Animated.View>
       </Pressable>
     </Animated.View>
@@ -322,40 +167,44 @@ export function ProfileScreen() {
   const { colors, reduceMotion } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { playTap, playTransition } = useUISounds();
+  const { impactLight } = useHaptics();
   const { shouldShowCoachMark, markAsShown, COACH_MARKS } = useCoachMarks();
 
   const [userName, setUserName] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [stats, setStats] = useState<StatData[]>([]);
+  const [streakDays, setStreakDays] = useState(0);
+  const [weeklyProgress, setWeeklyProgress] = useState(0);
   const [showProfileCoachMark, setShowProfileCoachMark] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const loadData = async () => {
+    // Load user data
+    const name = await AsyncStorage.getItem('@restorae/user_name');
+    if (name) setUserName(name);
+    
+    // Load streak and progress (would come from context/API in real app)
+    setStreakDays(12);
+    setWeeklyProgress(0.68);
+  };
 
   useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      // Load user data
-      const name = await AsyncStorage.getItem('@restorae/user_name');
-      if (name) setUserName(name);
-      
-      // Simulate loading stats from storage/API
-      await new Promise(resolve => setTimeout(resolve, 600));
-      setStats([
-        { label: 'Sessions', value: '47', sublabel: 'this month', color: 'primary' },
-        { label: 'Streak', value: '12', sublabel: 'days', color: 'warm' },
-        { label: 'Minutes', value: '234', sublabel: 'total time', color: 'calm' },
-      ]);
-      setIsLoading(false);
-
-      // Check for coach marks
-      setTimeout(() => {
-        if (shouldShowCoachMark('profile_customize')) {
-          setShowProfileCoachMark(true);
-        }
-      }, 1000);
-    };
     loadData();
+
+    // Check for coach marks
+    setTimeout(() => {
+      if (shouldShowCoachMark('profile_customize')) {
+        setShowProfileCoachMark(true);
+      }
+    }, 1000);
   }, [shouldShowCoachMark]);
 
-  const weeklyProgress = 0.68; // 68% of weekly goal
+  // Pull to refresh handler
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await impactLight();
+    await loadData();
+    await new Promise(resolve => setTimeout(resolve, 300));
+    setIsRefreshing(false);
+  };
 
   const handleSettingPress = (route: keyof RootStackParamList) => {
     playTap();
@@ -367,129 +216,96 @@ export function ProfileScreen() {
     <View style={styles.container}>
       <AmbientBackground variant="evening" intensity="subtle" />
 
+      {/* Offline indicator */}
+      <OfflineBanner variant="floating" />
+
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <TabSafeScrollView
           style={styles.scrollView}
           contentStyle={styles.scrollContent}
+          onRefresh={handleRefresh}
+          refreshing={isRefreshing}
         >
-          {/* Header */}
+          {/* Header - Simple */}
           <Animated.View
             entering={reduceMotion ? undefined : FadeIn.duration(600)}
             style={styles.header}
           >
-            <Text variant="labelSmall" color="inkFaint" style={styles.eyebrow}>
-              YOUR SPACE
-            </Text>
-            <Text variant="displayMedium" color="ink">
+            <Text variant="displaySmall" color="ink">
               Profile
             </Text>
-            {userName && (
-              <Text variant="bodyLarge" color="inkMuted" style={styles.subtitle}>
-                Welcome back, {userName}
-              </Text>
-            )}
           </Animated.View>
 
-          {/* Weekly Progress Card */}
+          {/* Identity Card - Compact */}
           <Animated.View
             entering={
               reduceMotion
                 ? undefined
-                : FadeInDown.delay(100).duration(500).easing(Easing.out(Easing.ease))
+                : FadeInDown.delay(100).duration(400)
             }
           >
-            <GlassCard variant="hero" padding="lg" glow="primary">
-              <View style={styles.progressContent}>
-                <View style={styles.progressInfo}>
-                  <Text variant="labelSmall" color="inkFaint">
-                    WEEKLY GOAL
-                  </Text>
-                  <Text variant="headlineLarge" color="ink" style={styles.progressTitle}>
-                    Your rhythm
-                  </Text>
-                  <Text variant="bodyMedium" color="inkMuted" style={styles.progressDescription}>
-                    {Math.round(weeklyProgress * 100)}% of your wellness goal completed
-                  </Text>
-                  <View style={styles.progressMeta}>
-                    <View
-                      style={[
-                        styles.progressMetaPill,
-                        { backgroundColor: withAlpha(colors.accentPrimary, 0.12) },
-                      ]}
-                    >
-                      <Text variant="labelSmall" style={{ color: colors.accentPrimary }}>
-                        5 of 7 days
-                      </Text>
-                    </View>
+            <GlassCard variant="elevated" padding="md">
+              <View style={styles.identityCard}>
+                {/* User Info */}
+                <View style={styles.identityLeft}>
+                  <View style={[styles.avatarCircle, { backgroundColor: withAlpha(colors.accentPrimary, 0.15) }]}>
+                    <Text style={{ fontSize: 24 }}>👤</Text>
+                  </View>
+                  <View style={styles.identityText}>
+                    <Text variant="headlineSmall" color="ink">
+                      {userName || 'Welcome'}
+                    </Text>
+                    <Text variant="labelSmall" color="inkMuted">
+                      {streakDays > 0 ? `🔥 ${streakDays} day streak` : 'Start your streak today'}
+                    </Text>
                   </View>
                 </View>
-                
-                <CircularProgress
-                  progress={weeklyProgress}
-                  size={100}
-                  strokeWidth={8}
-                  color={colors.accentPrimary}
-                >
-                  <Text variant="headlineMedium" style={{ color: colors.accentPrimary }}>
-                    {Math.round(weeklyProgress * 100)}%
-                  </Text>
-                </CircularProgress>
+              </View>
+              
+              {/* Inline Progress Bar */}
+              <View style={styles.progressBarContainer}>
+                <View style={styles.progressBarHeader}>
+                  <Text variant="labelSmall" color="inkFaint">Weekly Goal</Text>
+                  <Text variant="labelSmall" color="inkMuted">{Math.round(weeklyProgress * 100)}%</Text>
+                </View>
+                <View style={[styles.progressBarTrack, { backgroundColor: withAlpha(colors.ink, 0.08) }]}>
+                  <View 
+                    style={[
+                      styles.progressBarFill, 
+                      { 
+                        backgroundColor: colors.accentPrimary,
+                        width: `${Math.round(weeklyProgress * 100)}%`,
+                      }
+                    ]} 
+                  />
+                </View>
               </View>
             </GlassCard>
           </Animated.View>
 
-          {/* Stats Grid */}
-          <View style={styles.statsSection}>
-            <Animated.View
-              entering={reduceMotion ? undefined : FadeIn.delay(200).duration(400)}
-            >
-              <Text variant="labelSmall" color="inkFaint" style={styles.sectionLabel}>
-                THIS WEEK
-              </Text>
-            </Animated.View>
-            
-            <View style={styles.statsGrid}>
-              {isLoading ? (
-                <>
-                  <View style={styles.statCard}>
-                    <SkeletonCard />
-                  </View>
-                  <View style={styles.statCard}>
-                    <SkeletonCard />
-                  </View>
-                  <View style={styles.statCard}>
-                    <SkeletonCard />
-                  </View>
-                </>
-              ) : (
-                stats.map((stat, index) => (
-                  <StatCard key={stat.label} stat={stat} index={index} />
-                ))
-              )}
-            </View>
-          </View>
+          {/* Settings Sections - Grouped */}
+          {SETTINGS_GROUPED.map((category, categoryIndex) => (
+            <View key={category.id} style={styles.settingsSection}>
+              <Animated.View
+                entering={reduceMotion ? undefined : FadeIn.delay(250 + categoryIndex * 100).duration(300)}
+              >
+                <Text variant="labelSmall" color="inkFaint" style={styles.sectionLabel}>
+                  {category.label}
+                </Text>
+              </Animated.View>
 
-          {/* Settings Section */}
-          <View style={styles.settingsSection}>
-            <Animated.View
-              entering={reduceMotion ? undefined : FadeIn.delay(250).duration(300)}
-            >
-              <Text variant="labelSmall" color="inkFaint" style={styles.sectionLabel}>
-                SETTINGS
-              </Text>
-            </Animated.View>
-
-            <View style={styles.settingsList}>
-              {SETTINGS.map((setting, index) => (
-                <SettingRow
-                  key={setting.id}
-                  setting={setting}
-                  index={index}
-                  onPress={() => handleSettingPress(setting.route)}
-                />
-              ))}
+              <View style={styles.settingsList}>
+                {category.items.map((setting, index) => (
+                  <SettingRow
+                    key={setting.id}
+                    setting={setting}
+                    index={index + categoryIndex * 3}
+                    onPress={() => handleSettingPress(setting.route)}
+                  />
+                ))}
+              </View>
             </View>
-          </View>
+          ))}
 
           {/* App Info */}
           <Animated.View
@@ -537,84 +353,80 @@ const styles = StyleSheet.create({
     paddingHorizontal: layout.screenPaddingHorizontal,
   },
   header: {
-    paddingTop: spacing[4],
-    paddingBottom: spacing[4],
+    paddingTop: spacing[2],
+    paddingBottom: spacing[3],
   },
-  eyebrow: {
-    marginBottom: spacing[1],
-    letterSpacing: 2,
-  },
-  subtitle: {
-    marginTop: spacing[2],
-  },
-  progressContent: {
+  // Identity card styles
+  identityCard: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
   },
-  progressInfo: {
-    flex: 1,
-    marginRight: spacing[4],
-  },
-  progressTitle: {
-    marginTop: spacing[1],
-  },
-  progressDescription: {
-    marginTop: spacing[2],
-  },
-  progressMeta: {
-    flexDirection: 'row',
-    marginTop: spacing[3],
-  },
-  progressMetaPill: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.full,
-  },
-  statsSection: {
-    marginTop: spacing[8],
-  },
-  sectionLabel: {
-    letterSpacing: 2,
-    marginBottom: spacing[4],
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    gap: spacing[3],
-  },
-  statCard: {
-    flex: 1,
-  },
-  statContent: {
-    alignItems: 'center',
-  },
-  statLabel: {
-    marginTop: spacing[1],
-  },
-  settingsSection: {
-    marginTop: spacing[8],
-  },
-  settingsList: {
-    gap: spacing[3],
-  },
-  settingContent: {
+  identityLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  settingIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  avatarCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing[4],
   },
-  settingText: {
+  identityText: {
+    marginLeft: spacing[3],
+  },
+  // Progress bar styles
+  progressBarContainer: {
+    marginTop: spacing[4],
+  },
+  progressBarHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: spacing[2],
+  },
+  progressBarTrack: {
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  // Section styles
+  sectionLabel: {
+    letterSpacing: 2,
+    marginBottom: spacing[2],
+  },
+  settingsSection: {
+    marginTop: spacing[6],
+  },
+  settingsList: {
+    gap: spacing[1],
+  },
+  // Compact setting row
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing[3],
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  settingIconSmall: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  settingLabel: {
     flex: 1,
+    marginLeft: spacing[3],
   },
+  // App info
   appInfo: {
     alignItems: 'center',
-    marginTop: spacing[10],
+    marginTop: spacing[8],
     paddingVertical: spacing[6],
   },
   logoMini: {

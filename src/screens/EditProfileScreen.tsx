@@ -56,7 +56,7 @@ const STORAGE_KEYS = {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 interface AccountActionProps {
-  icon: 'home' | 'journal-tab' | 'profile';
+  icon: 'data' | 'profile' | 'privacy';
   label: string;
   description: string;
   variant?: 'default' | 'danger';
@@ -132,7 +132,7 @@ function AccountAction({
               </View>
               <View style={styles.chevron}>
                 <Icon
-                  name="home"
+                  name="chevronDown"
                   size={16}
                   color={isDanger ? colors.accentDanger : colors.inkFaint}
                 />
@@ -314,7 +314,7 @@ export function EditProfileScreen() {
             accessibilityLabel="Go back"
           >
             <View style={styles.backButton}>
-              <Icon name="home" size={24} color={colors.ink} />
+              <Icon name="back" size={24} color={colors.ink} />
             </View>
           </Pressable>
           <Text variant="headlineSmall">Account</Text>
@@ -418,7 +418,7 @@ export function EditProfileScreen() {
 
             <View style={styles.actionsList}>
               <AccountAction
-                icon="journal-tab"
+                icon="data"
                 label="Export My Data"
                 description="Download all your wellness data"
                 onPress={handleExportData}
@@ -445,7 +445,7 @@ export function EditProfileScreen() {
                 index={0}
               />
               <AccountAction
-                icon="home"
+                icon="privacy"
                 label="Delete All Data"
                 description="Permanently erase all your data"
                 variant="danger"
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing[4],
   },
   backButton: {
-    transform: [{ rotate: '90deg' }],
+    // back icon is already correctly oriented
   },
   keyboardView: {
     flex: 1,

@@ -35,7 +35,7 @@ const STORAGE_KEY = '@restorae/theme_mode';
 // =============================================================================
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const systemScheme = useColorScheme();
-  const [mode, setModeState] = useState<ThemeMode>('system');
+  const [mode, setModeState] = useState<ThemeMode>('light');
   const [isLoaded, setIsLoaded] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
 

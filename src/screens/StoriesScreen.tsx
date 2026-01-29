@@ -41,6 +41,7 @@ import {
   EmptyState,
   Skeleton,
   SkeletonCard,
+  OfflineBanner,
 } from '../components/ui';
 import { LuxeIcon } from '../components/LuxeIcon';
 import { Icon } from '../components/Icon';
@@ -438,6 +439,9 @@ export function StoriesScreen() {
   return (
     <View style={styles.container}>
       <AmbientBackground variant="evening" />
+
+      {/* Offline indicator */}
+      <OfflineBanner variant="floating" />
       
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <TabSafeScrollView

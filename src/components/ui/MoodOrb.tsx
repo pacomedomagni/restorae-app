@@ -364,10 +364,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   labelContainer: {
-    marginTop: spacing[3],
+    marginTop: spacing[2],
     alignItems: 'center',
   },
   label: {
-    marginBottom: 2,
+    marginBottom: 1,
   },
 });

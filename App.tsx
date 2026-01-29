@@ -32,6 +32,8 @@ import { RitualsProvider } from './src/contexts/RitualsContext';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { CoachMarkProvider } from './src/contexts/CoachMarkContext';
 import { SessionProvider } from './src/contexts/SessionContext';
+import { ToastProvider } from './src/contexts/ToastContext';
+import { AccessibilityAnnouncerProvider } from './src/contexts/AccessibilityContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { ErrorBoundary, SharedTransitionProvider } from './src/components/ui';
 
@@ -98,14 +100,18 @@ export default function App() {
                         <AppLockProvider>
                           <CoachMarkProvider>
                             <SessionProvider>
-                              <SharedTransitionProvider>
-                                <ErrorBoundary
-                                errorTitle="Something went wrong"
-                                errorDescription="Restorae encountered an unexpected error. Please restart the app."
-                              >
-                                <AppContent />
-                              </ErrorBoundary>
-                              </SharedTransitionProvider>
+                              <ToastProvider>
+                                <AccessibilityAnnouncerProvider>
+                                  <SharedTransitionProvider>
+                                    <ErrorBoundary
+                                    errorTitle="Something went wrong"
+                                    errorDescription="Restorae encountered an unexpected error. Please restart the app."
+                                  >
+                                    <AppContent />
+                                  </ErrorBoundary>
+                                  </SharedTransitionProvider>
+                                </AccessibilityAnnouncerProvider>
+                              </ToastProvider>
                             </SessionProvider>
                           </CoachMarkProvider>
                         </AppLockProvider>

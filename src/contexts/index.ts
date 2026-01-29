@@ -46,3 +46,14 @@ export type {
 // Coach Marks (first-time user guidance)
 export { CoachMarkProvider, useCoachMarks, COACH_MARKS } from './CoachMarkContext';
 export type { CoachMarkId, CoachMark } from './CoachMarkContext';
+
+// Toast notifications
+export { ToastProvider, useToast } from './ToastContext';
+
+// Accessibility announcements
+export { 
+  AccessibilityAnnouncerProvider, 
+  useAccessibilityAnnouncer,
+  useStateAnnouncement,
+  useConnectionAnnouncement,
+} from './AccessibilityContext';

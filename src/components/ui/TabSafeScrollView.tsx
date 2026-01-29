@@ -67,6 +67,8 @@ export function TabSafeScrollView({
     contentContainerStyle,
     showsVerticalScrollIndicator: false,
     bounces: true,
+    keyboardDismissMode: 'on-drag' as const,
+    keyboardShouldPersistTaps: 'handled' as const,
     refreshControl,
     ...scrollViewProps,
   };

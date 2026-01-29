@@ -533,3 +533,74 @@ const styles = StyleSheet.create({
     marginLeft: spacing[2],
   },
 });
+
+// =============================================================================
+// SMOOTH CONTENT TRANSITION
+// =============================================================================
+
+interface ContentTransitionProps {
+  /** Whether content is loading */
+  isLoading: boolean;
+  /** Skeleton component to show while loading */
+  skeleton: React.ReactNode;
+  /** Actual content to show when loaded */
+  children: React.ReactNode;
+  /** Minimum loading time to prevent flash (ms) */
+  minLoadTime?: number;
+}
+
+/**
+ * SmoothContentTransition
+ * 
+ * Wraps content with smooth fade transitions between loading and loaded states.
+ * Prevents jarring skeleton-to-content jumps.
+ */
+export function SmoothContentTransition({
+  isLoading,
+  skeleton,
+  children,
+  minLoadTime = 300,
+}: ContentTransitionProps) {
+  const { reduceMotion } = useTheme();
+  const opacity = useSharedValue(isLoading ? 0 : 1);
+  const [showSkeleton, setShowSkeleton] = React.useState(isLoading);
+  const loadStartTime = React.useRef<number | null>(null);
+
+  React.useEffect(() => {
+    if (isLoading) {
+      loadStartTime.current = Date.now();
+      setShowSkeleton(true);
+      opacity.value = 0;
+    } else {
+      const elapsed = loadStartTime.current ? Date.now() - loadStartTime.current : minLoadTime;
+      const remainingTime = Math.max(0, minLoadTime - elapsed);
+
+      // Wait for minimum load time before transitioning
+      setTimeout(() => {
+        opacity.value = withTiming(1, { 
+          duration: reduceMotion ? 0 : 300,
+          easing: Easing.out(Easing.ease),
+        });
+        
+        // Hide skeleton after fade completes
+        setTimeout(() => {
+          setShowSkeleton(false);
+        }, reduceMotion ? 0 : 300);
+      }, remainingTime);
+    }
+  }, [isLoading, reduceMotion, minLoadTime]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
+
+  if (showSkeleton && isLoading) {
+    return <>{skeleton}</>;
+  }
+
+  return (
+    <Animated.View style={animatedStyle}>
+      {children}
+    </Animated.View>
+  );
+}

@@ -196,6 +196,7 @@ export function JournalEntryScreen() {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
           >
             <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(600)}>
               <ScreenHeader

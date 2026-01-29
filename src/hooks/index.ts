@@ -76,3 +76,6 @@ export { useStartActivity } from './useStartActivity';
 
 // Session recovery
 export { useSessionRecovery } from './useSessionRecovery';
+
+// Optimistic updates
+export { useOptimisticUpdate, useOptimisticList } from './useOptimisticUpdate';

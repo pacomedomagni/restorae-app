@@ -77,6 +77,9 @@ export type { ContextMenuItem, ContextMenuProps } from './ContextMenu';
 export { GestureHint } from './GestureHint';
 export type { GestureType } from './GestureHint';
 
+// Floating orb for onboarding and premium experiences
+export { FloatingOrb } from './FloatingOrb';
+
 // Pull to refresh with breathing orb
 export { 
   PullToRefreshScrollView, 
@@ -97,3 +100,12 @@ export {
   createSharedTag,
 } from './SharedTransition';
 
+// Toast notifications
+export { Toast } from './Toast';
+export type { ToastVariant, ToastAction, ToastProps } from './Toast';
+
+// Connection status indicator
+export { ConnectionStatusIndicator } from './ConnectionStatusIndicator';
+
+// Smooth content transitions (skeleton to content)
+export { SmoothContentTransition } from './Skeleton';

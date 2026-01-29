@@ -1,8 +1,8 @@
 /**
  * JournalScreen
  * 
- * Journaling hub with writing prompts, recent entries,
- * and mood tracking integration.
+ * Clean, focused journaling hub with writing prompts and recent entries.
+ * Simplified design for calm, distraction-free reflection.
  */
 import React, { useState, useEffect } from 'react';
 import {
@@ -15,14 +15,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  useAnimatedScrollHandler,
   withSpring,
-  interpolate,
-  Extrapolation,
   FadeIn,
   FadeInDown,
   Easing,
@@ -37,20 +33,19 @@ import {
   GlassCard,
   AmbientBackground,
   Button,
-  ScreenHeader,
   TabSafeScrollView,
   SkeletonJournalEntry,
   EmptyState,
-  PullToRefreshScrollView,
   CoachMarkOverlay,
   GestureHint,
+  OfflineBanner,
 } from '../components/ui';
 import { LuxeIcon } from '../components/LuxeIcon';
-import { spacing, borderRadius, layout, withAlpha } from '../theme';
+import { spacing, layout, withAlpha } from '../theme';
 import { RootStackParamList, MoodType } from '../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const PROMPT_CARD_WIDTH = SCREEN_WIDTH - layout.screenPaddingHorizontal * 2 - spacing[8];
+const PROMPT_CARD_WIDTH = SCREEN_WIDTH * 0.7; // Smaller cards, show partial next card
 
 // =============================================================================
 // TYPES & DATA
@@ -155,25 +150,13 @@ function PromptCard({ prompt, index, onPress }: PromptCardProps) {
         onPress={handlePress}
       >
         <Animated.View style={[styles.promptCard, animatedStyle]}>
-          <GlassCard variant="elevated" padding="lg" glow={prompt.category === 'gratitude' ? 'warm' : 'primary'}>
-            <View
-              style={[
-                styles.promptCategoryBadge,
-                { backgroundColor: withAlpha(color, 0.15) },
-              ]}
-            >
-              <Text variant="labelSmall" style={{ color, textTransform: 'capitalize' }}>
-                {prompt.category}
-              </Text>
-            </View>
-            <Text variant="headlineMedium" color="ink" style={styles.promptText}>
+          <GlassCard variant="subtle" padding="md">
+            <Text variant="bodyMedium" color="ink" numberOfLines={2} style={styles.promptText}>
               {prompt.text}
             </Text>
-            <View style={styles.promptFooter}>
-              <Text variant="labelSmall" style={{ color }}>
-                Tap to write →
-              </Text>
-            </View>
+            <Text variant="labelSmall" style={{ color, marginTop: spacing[2] }}>
+              Tap to write
+            </Text>
           </GlassCard>
         </Animated.View>
       </Pressable>
@@ -346,6 +329,9 @@ export function JournalScreen() {
     <View style={styles.container}>
       <AmbientBackground variant="morning" intensity="subtle" />
 
+      {/* Offline indicator */}
+      <OfflineBanner variant="floating" />
+
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <TabSafeScrollView
           style={styles.scrollView}
@@ -353,23 +339,15 @@ export function JournalScreen() {
           onRefresh={handleRefresh}
           refreshing={isRefreshing}
         >
-          {/* Header */}
+          {/* Header - Simplified */}
           <Animated.View
             entering={reduceMotion ? undefined : FadeIn.duration(600)}
             style={styles.header}
           >
             <View style={styles.headerRow}>
-              <View>
-                <Text variant="labelSmall" color="inkFaint" style={styles.eyebrow}>
-                  PRIVATE REFLECTION
-                </Text>
-                <Text variant="displayMedium" color="ink">
-                  Journal
-                </Text>
-                <Text variant="bodyLarge" color="inkMuted" style={styles.subtitle}>
-                  Your thoughts, unjudged
-                </Text>
-              </View>
+              <Text variant="displaySmall" color="ink">
+                Journal
+              </Text>
               <Pressable 
                 onPress={() => navigation.navigate('JournalSearch')}
                 style={[styles.searchButton, { backgroundColor: withAlpha(colors.accentPrimary, 0.12) }]}
@@ -381,55 +359,47 @@ export function JournalScreen() {
             </View>
           </Animated.View>
 
-          {/* New Entry CTA */}
+          {/* New Entry CTA - Compact */}
           <Animated.View
             entering={
               reduceMotion
                 ? undefined
-                : FadeInDown.delay(100).duration(500).easing(Easing.out(Easing.ease))
+                : FadeInDown.delay(100).duration(400).easing(Easing.out(Easing.ease))
             }
           >
-            <GlassCard variant="hero" padding="lg" glow="warm">
-              <View style={styles.newEntryContent}>
-                <View style={styles.newEntryHeader}>
+            <Pressable onPress={handleNewEntry}>
+              <GlassCard variant="elevated" padding="md">
+                <View style={styles.newEntryRow}>
                   <View
                     style={[
-                      styles.newEntryIcon,
+                      styles.newEntryIconCompact,
                       { backgroundColor: withAlpha(colors.accentWarm, 0.15) },
                     ]}
                   >
-                    <LuxeIcon name="journal" size={28} color={colors.accentWarm} />
+                    <LuxeIcon name="journal" size={22} color={colors.accentWarm} />
                   </View>
-                  <View style={styles.newEntryText}>
-                    <Text variant="headlineLarge" color="ink">
-                      Start writing
-                    </Text>
-                    <Text variant="bodyMedium" color="inkMuted">
-                      Let your thoughts flow freely
-                    </Text>
-                  </View>
+                  <Text variant="headlineSmall" color="ink" style={styles.newEntryTextCompact}>
+                    New Entry
+                  </Text>
+                  <Text variant="labelMedium" style={{ color: colors.accentWarm }}>
+                    +
+                  </Text>
                 </View>
-                <Button
-                  variant="glow"
-                  size="lg"
-                  tone="warm"
-                  fullWidth
-                  onPress={handleNewEntry}
-                  style={styles.newEntryButton}
-                >
-                  New Entry
-                </Button>
-              </View>
-            </GlassCard>
+              </GlassCard>
+            </Pressable>
           </Animated.View>
 
           {/* Prompts Section */}
           <View style={styles.section}>
             <Animated.View
               entering={reduceMotion ? undefined : FadeIn.delay(200).duration(400)}
+              style={styles.sectionHeaderWithHint}
             >
               <Text variant="labelSmall" color="inkFaint" style={styles.sectionLabel}>
                 WRITING PROMPTS
+              </Text>
+              <Text variant="labelSmall" color="inkFaint" style={styles.swipeHint}>
+                Swipe for more →
               </Text>
             </Animated.View>
             
@@ -558,56 +528,56 @@ const styles = StyleSheet.create({
     paddingHorizontal: layout.screenPaddingHorizontal,
   },
   header: {
-    paddingTop: spacing[4],
-    paddingBottom: spacing[4],
+    paddingTop: spacing[2],
+    paddingBottom: spacing[3],
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
   searchButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  eyebrow: {
-    marginBottom: spacing[1],
-    letterSpacing: 2,
-  },
-  subtitle: {
-    marginTop: spacing[2],
-  },
-  newEntryContent: {},
-  newEntryHeader: {
+  newEntryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[5],
   },
-  newEntryIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  newEntryIconCompact: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing[4],
   },
-  newEntryText: {},
-  newEntryButton: {
-    marginTop: spacing[2],
+  newEntryTextCompact: {
+    flex: 1,
+    marginLeft: spacing[3],
   },
   section: {
-    marginTop: spacing[8],
+    marginTop: spacing[6],
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  sectionHeaderWithHint: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing[4],
+  },
   sectionLabel: {
     letterSpacing: 2,
+    marginBottom: spacing[4],
+  },
+  swipeHint: {
+    opacity: 0.6,
     marginBottom: spacing[4],
   },
   promptsContainer: {
@@ -615,19 +585,11 @@ const styles = StyleSheet.create({
   },
   promptCard: {
     width: PROMPT_CARD_WIDTH,
-    marginRight: spacing[4],
-  },
-  promptCategoryBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.full,
-    marginBottom: spacing[3],
+    marginRight: spacing[3],
   },
   promptText: {
-    marginBottom: spacing[4],
+    lineHeight: 22,
   },
-  promptFooter: {},
   entriesList: {
     gap: spacing[3],
   },

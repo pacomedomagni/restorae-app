@@ -1,8 +1,8 @@
 /**
  * HomeScreen
  * 
- * Main home experience with mood selection, quick actions,
- * personalized recommendations, gamification, and celebrations.
+ * Main home experience with mood selection, daily ritual,
+ * personalized recommendations, and gamification.
  * 
  * Premium UX Features:
  * - Streak & level display (gamification)
@@ -10,12 +10,12 @@
  * - Progressive disclosure for mood selection
  * - Session completion celebrations
  * - Time-aware greetings and content
+ * - State-aware ritual card
  */
-import React, { useCallback, useState, useEffect, useRef } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
-  Dimensions,
   Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,16 +25,13 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
-  withTiming,
-  withDelay,
   FadeIn,
   FadeInDown,
-  FadeInUp,
-  interpolate,
   Easing,
   Layout,
 } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 import { useHaptics } from '../hooks/useHaptics';
 import { useUISounds } from '../hooks/useUISounds';
 import { useTimeAwareContent } from '../hooks/useTimeAwareContent';
@@ -46,7 +43,6 @@ import {
   AmbientBackground,
   MoodOrb,
   Button,
-  ScreenHeader,
   TabSafeScrollView,
   SOSFloatingButton,
   ForYouSection,
@@ -56,9 +52,10 @@ import {
   LevelUp,
   SessionComplete,
   CoachMarkOverlay,
-  GestureHint,
+  OfflineBanner,
+  ConnectionStatusIndicator,
 } from '../components/ui';
-import { LuxeIcon } from '../components/LuxeIcon';
+import { Logo } from '../components/Logo';
 import { Icon } from '../components/Icon';
 import { spacing, borderRadius, layout, withAlpha } from '../theme';
 import { RootStackParamList, MoodType } from '../types';
@@ -67,50 +64,9 @@ import { recommendations } from '../services/smartRecommendations';
 import { useSessionRecovery } from '../hooks/useSessionRecovery';
 import { SessionRecoveryModal } from '../components/session';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
 // =============================================================================
 // TYPES & DATA
 // =============================================================================
-interface QuickAction {
-  id: string;
-  label: string;
-  sublabel: string;
-  icon: 'breathe' | 'ground' | 'journal' | 'focus';
-  duration: string;
-  tone: 'primary' | 'warm' | 'calm';
-  route: keyof RootStackParamList;
-}
-
-const QUICK_ACTIONS: QuickAction[] = [
-  {
-    id: 'breathe',
-    label: 'Breathe',
-    sublabel: 'Find calm',
-    icon: 'breathe',
-    duration: '3 min',
-    tone: 'primary',
-    route: 'QuickReset',
-  },
-  {
-    id: 'ground',
-    label: 'Ground',
-    sublabel: 'Be present',
-    icon: 'ground',
-    duration: '4 min',
-    tone: 'warm',
-    route: 'Grounding',
-  },
-  {
-    id: 'journal',
-    label: 'Reflect',
-    sublabel: 'Write freely',
-    icon: 'journal',
-    duration: '5 min',
-    tone: 'calm',
-    route: 'Journal',
-  },
-];
 
 // Primary moods shown initially (reduced cognitive load for anxious users)
 const PRIMARY_MOODS: { id: MoodType; label: string }[] = [
@@ -133,93 +89,6 @@ const ALL_MOODS: { id: MoodType; label: string }[] = [
 ];
 
 // =============================================================================
-// QUICK ACTION CARD
-// =============================================================================
-interface QuickActionCardProps {
-  action: QuickAction;
-  index: number;
-  onPress: () => void;
-}
-
-function QuickActionCard({ action, index, onPress }: QuickActionCardProps) {
-  const { colors, reduceMotion } = useTheme();
-  const scale = useSharedValue(1);
-  const { impactLight } = useHaptics();
-
-  const toneColor =
-    action.tone === 'warm'
-      ? colors.accentWarm
-      : action.tone === 'calm'
-      ? colors.accentCalm
-      : colors.accentPrimary;
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const handlePressIn = () => {
-    scale.value = withSpring(0.95, { damping: 15, stiffness: 400 });
-  };
-
-  const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 12, stiffness: 300 });
-  };
-
-  const handlePress = async () => {
-    await impactLight();
-    onPress();
-  };
-
-  return (
-    <Animated.View
-      entering={
-        reduceMotion
-          ? undefined
-          : FadeInUp.delay(200 + index * 50)
-              .duration(350)
-              .easing(Easing.out(Easing.ease))
-      }
-      style={styles.quickActionWrapper}
-    >
-      <Pressable
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        onPress={handlePress}
-        accessibilityRole="button"
-        accessibilityLabel={`${action.label}, ${action.sublabel}, ${action.duration}`}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-      >
-        <Animated.View style={animatedStyle}>
-          <GlassCard variant="elevated" padding="md" glow={action.tone}>
-            <View style={styles.quickActionContent}>
-              <View
-                style={[
-                  styles.quickActionIcon,
-                  { backgroundColor: withAlpha(toneColor, 0.15) },
-                ]}
-              >
-                <LuxeIcon name={action.icon} size={24} color={toneColor} />
-              </View>
-              <Text variant="headlineSmall" color="ink" style={styles.quickActionLabel}>
-                {action.label}
-              </Text>
-              <Text variant="bodySmall" color="inkMuted">
-                {action.sublabel}
-              </Text>
-              <View style={styles.quickActionMeta}>
-                <Text variant="labelSmall" style={{ color: toneColor }}>
-                  {action.duration}
-                </Text>
-              </View>
-            </View>
-          </GlassCard>
-        </Animated.View>
-      </Pressable>
-    </Animated.View>
-  );
-}
-
-// =============================================================================
 // HOME SCREEN
 // =============================================================================
 export function HomeScreen() {
@@ -227,7 +96,7 @@ export function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { impactMedium, impactLight, notificationSuccess } = useHaptics();
   const { playTap, playSuccess, playTransition } = useUISounds();
-  const { shouldShowCoachMark, markAsShown, COACH_MARKS } = useCoachMarks();
+  const { shouldShowCoachMark, markAsShown } = useCoachMarks();
 
   // Session recovery hook
   const {
@@ -241,10 +110,10 @@ export function HomeScreen() {
   const [userName, setUserName] = useState<string>('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showAllMoods, setShowAllMoods] = useState(false);
+  const [ritualCompletedToday, setRitualCompletedToday] = useState(false);
 
   // Coach mark states
   const [showForYouCoachMark, setShowForYouCoachMark] = useState(false);
-  const [showQuickActionsCoachMark, setShowQuickActionsCoachMark] = useState(false);
   const [showMoodCoachMark, setShowMoodCoachMark] = useState(false);
 
   // Celebration states
@@ -257,13 +126,15 @@ export function HomeScreen() {
   const [showSessionComplete, setShowSessionComplete] = useState(false);
   const [sessionXP, setSessionXP] = useState(0);
 
-  // Track if we just returned from a session
-  const lastSessionRef = useRef<string | null>(null);
-
-  // Load user preferences
+  // Load user preferences and ritual status
   const loadUserData = useCallback(async () => {
     const name = await AsyncStorage.getItem('@restorae/user_name');
     if (name) setUserName(name);
+    
+    // Check if ritual was completed today
+    const lastRitualDate = await AsyncStorage.getItem('@restorae/last_ritual_date');
+    const today = new Date().toDateString();
+    setRitualCompletedToday(lastRitualDate === today);
   }, []);
 
   // Check for pending celebrations when screen focuses
@@ -331,8 +202,6 @@ export function HomeScreen() {
         setShowMoodCoachMark(true);
       } else if (shouldShowCoachMark('home_for_you')) {
         setShowForYouCoachMark(true);
-      } else if (shouldShowCoachMark('home_quick_actions')) {
-        setShowQuickActionsCoachMark(true);
       }
     }, 1500);
 
@@ -375,15 +244,10 @@ export function HomeScreen() {
     setShowAllMoods(!showAllMoods);
   };
 
-  const handleQuickAction = (route: keyof RootStackParamList) => {
-    playTap();
-    playTransition();
-    navigation.navigate(route as any);
-  };
-
   const handleStartRitual = async () => {
     await impactMedium();
     playSuccess();
+    // Mark ritual as started (completion will be tracked by the ritual screen)
     const hour = new Date().getHours();
     if (hour < 17) {
       navigation.navigate('MorningRitual');
@@ -426,6 +290,9 @@ export function HomeScreen() {
       {/* Living ambient background */}
       <AmbientBackground variant={timeContent.backgroundVariant} intensity="normal" />
 
+      {/* Offline indicator */}
+      <OfflineBanner variant="floating" />
+
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <TabSafeScrollView
           style={styles.scrollView}
@@ -433,23 +300,24 @@ export function HomeScreen() {
           onRefresh={handleRefresh}
           refreshing={isRefreshing}
         >
-          {/* Header - Reduced size for better hierarchy */}
+          {/* Header - Clean with subtle branding */}
           <Animated.View
             entering={reduceMotion ? undefined : FadeIn.duration(500)}
             style={styles.header}
           >
             <View style={styles.greetingRow}>
-              <View>
-                <Text variant="labelSmall" color="inkFaint" style={styles.eyebrow}>
-                  {timeContent.emoji} RESTORAE
-                </Text>
-                <Text variant="headlineLarge" color="ink">
-                  {timeContent.greeting}
-                </Text>
-                <Text variant="bodySmall" color="inkMuted" style={{ marginTop: 4 }}>
+              <View style={styles.greetingContent}>
+                <View style={styles.greetingTitleRow}>
+                  <Text variant="headlineLarge" color="ink">
+                    {timeContent.greeting}
+                  </Text>
+                  <ConnectionStatusIndicator variant="dot" size="sm" />
+                </View>
+                <Text variant="bodySmall" color="inkMuted" style={{ marginTop: 2 }}>
                   {timeContent.message.subheadline}
                 </Text>
               </View>
+              <Logo size="small" />
             </View>
           </Animated.View>
 
@@ -511,79 +379,51 @@ export function HomeScreen() {
             </GlassCard>
           </Animated.View>
 
-          {/* Daily Ritual Card */}
-          <Animated.View
-            entering={
-              reduceMotion
-                ? undefined
-                : FadeInDown.delay(250).duration(350).easing(Easing.out(Easing.ease))
-            }
-          >
-            <GlassCard variant="elevated" padding="lg" glow="warm">
-              <View style={styles.ritualHeader}>
-                <View>
-                  <Text variant="labelSmall" color="inkFaint">
-                    TODAY'S RITUAL
-                  </Text>
-                  <Text variant="headlineMedium" color="ink" style={styles.ritualTitle}>
-                    {new Date().getHours() < 17 ? 'Morning Reset' : 'Evening Wind-Down'}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.ritualBadge,
-                    { backgroundColor: withAlpha(colors.accentPrimary, 0.15) },
-                  ]}
+          {/* Daily Ritual Card - State aware */}
+          {!ritualCompletedToday && (
+            <Animated.View
+              entering={
+                reduceMotion
+                  ? undefined
+                  : FadeInDown.delay(200).duration(350).easing(Easing.out(Easing.ease))
+              }
+              style={styles.ritualSection}
+            >
+              <GlassCard variant="elevated" padding="md" glow="warm">
+                <Pressable
+                  onPress={handleStartRitual}
+                  style={styles.ritualContent}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Start ${new Date().getHours() < 17 ? 'morning' : 'evening'} ritual, 6 minutes`}
                 >
-                  <Text variant="labelSmall" style={{ color: colors.accentPrimary }}>
-                    6 min
-                  </Text>
-                </View>
-              </View>
-              
-              <Text variant="bodyMedium" color="inkMuted" style={styles.ritualDescription}>
-                {new Date().getHours() < 17
-                  ? 'A gentle sequence to set your tone for the day ahead.'
-                  : 'Release the day with softness, ease, and intention.'}
-              </Text>
-
-              <Button
-                variant="glow"
-                size="lg"
-                tone={new Date().getHours() < 17 ? 'warm' : 'calm'}
-                fullWidth
-                onPress={handleStartRitual}
-                style={styles.ritualButton}
-              >
-                Begin Ritual
-              </Button>
-            </GlassCard>
-          </Animated.View>
+                  <View style={styles.ritualInfo}>
+                    <Text variant="labelSmall" color="inkFaint">
+                      {new Date().getHours() < 17 ? 'MORNING' : 'EVENING'} RITUAL
+                    </Text>
+                    <Text variant="headlineSmall" color="ink" style={styles.ritualTitle}>
+                      {new Date().getHours() < 17 ? 'Start Your Day Calm' : 'Wind Down Gently'}
+                    </Text>
+                  </View>
+                  <View style={styles.ritualAction}>
+                    <View
+                      style={[
+                        styles.ritualBadge,
+                        { backgroundColor: withAlpha(colors.accentWarm, 0.15) },
+                      ]}
+                    >
+                      <Text variant="labelSmall" style={{ color: colors.accentWarm }}>
+                        6 min
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color={colors.inkMuted} />
+                  </View>
+                </Pressable>
+              </GlassCard>
+            </Animated.View>
+          )}
 
           {/* Personalized For You Section */}
           <ForYouSection currentMood={selectedMood ?? undefined} userName={userName} />
-
-          {/* Quick Actions */}
-          <View style={styles.quickActionsSection}>
-            <Animated.View
-              entering={reduceMotion ? undefined : FadeIn.delay(350).duration(300)}
-            >
-              <Text variant="labelSmall" color="inkFaint" style={styles.sectionLabel}>
-                QUICK TOOLS
-              </Text>
-            </Animated.View>
-            
-            <View style={styles.quickActionsGrid}>
-              {QUICK_ACTIONS.map((action, index) => (
-                <QuickActionCard
-                  key={action.id}
-                  action={action}
-                  index={index}
-                  onPress={() => handleQuickAction(action.route)}
-                />
-              ))}
-            </View>
-          </View>
         </TabSafeScrollView>
       </SafeAreaView>
 
@@ -647,23 +487,6 @@ export function HomeScreen() {
           onDismiss={() => {
             markAsShown('home_for_you');
             setShowForYouCoachMark(false);
-            // Chain to next coach mark
-            setTimeout(() => {
-              if (shouldShowCoachMark('home_quick_actions')) {
-                setShowQuickActionsCoachMark(true);
-              }
-            }, 500);
-          }}
-        />
-      )}
-
-      {showQuickActionsCoachMark && (
-        <CoachMarkOverlay
-          markId="home_quick_actions"
-          visible={showQuickActionsCoachMark}
-          onDismiss={() => {
-            markAsShown('home_quick_actions');
-            setShowQuickActionsCoachMark(false);
           }}
         />
       )}
@@ -695,95 +518,73 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: layout.screenPaddingHorizontal,
+    paddingBottom: spacing[6],
   },
   header: {
-    paddingTop: spacing[4],
-    paddingBottom: spacing[4],
+    paddingTop: spacing[2],
+    paddingBottom: spacing[3],
   },
   greetingRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
-  eyebrow: {
-    marginBottom: spacing[1],
-    letterSpacing: 2,
+  greetingContent: {
+    flex: 1,
+  },
+  greetingTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
   },
   streakBannerContainer: {
     marginBottom: spacing[4],
   },
   moodSection: {
-    marginBottom: spacing[6],
+    marginBottom: spacing[4],
   },
   moodPrompt: {
     marginBottom: spacing[1],
   },
   moodSubtitle: {
-    marginBottom: spacing[5],
+    marginBottom: spacing[4],
   },
   moodGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: spacing[4],
+    gap: spacing[3],
   },
   expandButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing[1],
-    marginTop: spacing[5],
+    marginTop: spacing[4],
     paddingVertical: spacing[2],
   },
-  ritualHeader: {
+  ritualSection: {
+    marginBottom: spacing[4],
+  },
+  ritualContent: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+  },
+  ritualInfo: {
+    flex: 1,
   },
   ritualTitle: {
     marginTop: spacing[1],
+  },
+  ritualAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
   },
   ritualBadge: {
     paddingHorizontal: spacing[3],
     paddingVertical: spacing[1],
     borderRadius: borderRadius.full,
-  },
-  ritualDescription: {
-    marginTop: spacing[3],
-    marginBottom: spacing[5],
-  },
-  ritualButton: {
-    marginTop: spacing[2],
-  },
-  quickActionsSection: {
-    marginTop: spacing[6],
-  },
-  sectionLabel: {
-    marginBottom: spacing[4],
-    letterSpacing: 2,
-  },
-  quickActionsGrid: {
-    flexDirection: 'row',
-    gap: spacing[3],
-  },
-  quickActionWrapper: {
-    flex: 1,
-  },
-  quickActionContent: {
-    alignItems: 'center',
-  },
-  quickActionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing[3],
-  },
-  quickActionLabel: {
-    marginBottom: spacing[1],
-  },
-  quickActionMeta: {
-    marginTop: spacing[2],
   },
 });
