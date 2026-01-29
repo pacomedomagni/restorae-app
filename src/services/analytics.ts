@@ -16,8 +16,11 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import logger from './logger';
 
-// API Base URL
-const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl || 'http://localhost:3001/api/v1';
+// API Base URL - Use environment variable with proper fallback
+const API_ROOT = (process.env.EXPO_PUBLIC_API_URL || (__DEV__
+  ? 'http://localhost:3001'
+  : 'https://api.restorae.kouakoudomagni.com')).replace(/\/+$/, '');
+const API_BASE_URL = `${API_ROOT}/api/v1`;
 
 // Types
 export interface AnalyticsEvent {

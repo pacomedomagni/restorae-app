@@ -4,6 +4,43 @@
  * Sleep stories with calming narratives, ambient sounds,
  * and professional voice narration.
  */
+import { ImageSourcePropType } from 'react-native';
+
+// Local story artwork images (Unsplash - royalty-free)
+export const STORY_ARTWORK = {
+  'quiet-forest': require('../../../assets/stories/quiet-forest.jpg'),
+  'train-alps': require('../../../assets/stories/train-alps.jpg'),
+  'rainy-cottage': require('../../../assets/stories/rainy-cottage.jpg'),
+  'starlight-garden': require('../../../assets/stories/starlight-garden.jpg'),
+  'ocean-lighthouse': require('../../../assets/stories/ocean-lighthouse.jpg'),
+  'japanese-garden': require('../../../assets/stories/japanese-garden.jpg'),
+  'northern-lights': require('../../../assets/stories/northern-lights.jpg'),
+  'moonlit-boat': require('../../../assets/stories/moonlit-boat.jpg'),
+  'lavender-fields': require('../../../assets/stories/lavender-fields.jpg'),
+  'cloud-castle': require('../../../assets/stories/cloud-castle.jpg'),
+  'mountain-cabin': require('../../../assets/stories/mountain-cabin.jpg'),
+  'bali-temple': require('../../../assets/stories/bali-temple.jpg'),
+  'desert-stars': require('../../../assets/stories/desert-stars.jpg'),
+  'irish-coast': require('../../../assets/stories/irish-coast.jpg'),
+  'enchanted-library': require('../../../assets/stories/enchanted-library.jpg'),
+  'tuscany-vineyard': require('../../../assets/stories/tuscany-vineyard.jpg'),
+  'sleepy-village': require('../../../assets/stories/sleepy-village.jpg'),
+  'body-scan-sleep': require('../../../assets/stories/body-scan-sleep.jpg'),
+  'ocean-soundscape': require('../../../assets/stories/ocean-soundscape.jpg'),
+  'rain-soundscape': require('../../../assets/stories/rain-soundscape.jpg'),
+  'forest-soundscape': require('../../../assets/stories/forest-soundscape.jpg'),
+  'night-soundscape': require('../../../assets/stories/night-soundscape.jpg'),
+  'fireplace-soundscape': require('../../../assets/stories/fireplace-soundscape.jpg'),
+  'alice-wonderland': require('../../../assets/stories/alice-wonderland.jpg'),
+  'wind-willows': require('../../../assets/stories/wind-willows.jpg'),
+} as const;
+
+export type StoryArtworkId = keyof typeof STORY_ARTWORK;
+
+// Helper to get local artwork for a story
+export function getStoryArtwork(storyId: string): ImageSourcePropType | undefined {
+  return STORY_ARTWORK[storyId as StoryArtworkId];
+}
 
 export interface BedtimeStory {
   id: string;
@@ -14,6 +51,7 @@ export interface BedtimeStory {
   duration: number; // minutes
   audioUrl: string;
   artworkUrl?: string;
+  artworkLocal?: ImageSourcePropType; // Local bundled image
   category: StoryCategory;
   tags: string[];
   isPremium: boolean;

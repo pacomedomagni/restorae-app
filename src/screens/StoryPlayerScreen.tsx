@@ -51,7 +51,7 @@ import { Text, GlassCard, Button, ExitConfirmationModal, CoachMarkOverlay, Gestu
 import { Icon } from '../components/Icon';
 import { spacing, borderRadius } from '../theme';
 import { RootStackParamList } from '../types';
-import { getStoryById, formatDuration, SLEEP_TIMER_OPTIONS, BedtimeStory, mapApiStoryToLocal, ApiStory } from '../data/bedtimeStories';
+import { getStoryById, formatDuration, SLEEP_TIMER_OPTIONS, BedtimeStory, mapApiStoryToLocal, ApiStory, getStoryArtwork } from '../data/bedtimeStories';
 import { navigationHelpers } from '../services/navigationHelpers';
 import { api } from '../services/api';
 
@@ -426,21 +426,39 @@ export function StoryPlayerScreen() {
       <StatusBar barStyle="light-content" />
       
       {/* Background with artwork blur */}
-      {story.artworkUrl ? (
-        <>
-          <Image
-            source={{ uri: story.artworkUrl }}
-            style={styles.backgroundImage}
-            blurRadius={50}
-          />
-          <View style={styles.backgroundOverlay} />
-        </>
-      ) : (
-        <LinearGradient
-          colors={['#1a1a2e', '#16213e', '#0f3460']}
-          style={StyleSheet.absoluteFill}
-        />
-      )}
+      {(() => {
+        const localArtwork = getStoryArtwork(story.id);
+        if (localArtwork) {
+          return (
+            <>
+              <Image
+                source={localArtwork}
+                style={styles.backgroundImage}
+                blurRadius={50}
+              />
+              <View style={styles.backgroundOverlay} />
+            </>
+          );
+        } else if (story.artworkUrl) {
+          return (
+            <>
+              <Image
+                source={{ uri: story.artworkUrl }}
+                style={styles.backgroundImage}
+                blurRadius={50}
+              />
+              <View style={styles.backgroundOverlay} />
+            </>
+          );
+        } else {
+          return (
+            <LinearGradient
+              colors={['#1a1a2e', '#16213e', '#0f3460']}
+              style={StyleSheet.absoluteFill}
+            />
+          );
+        }
+      })()}
 
       <SafeAreaView style={styles.safeArea}>
         {/* Header */}
@@ -485,17 +503,32 @@ export function StoryPlayerScreen() {
             entering={reduceMotion ? undefined : FadeInDown.delay(150).duration(500)}
             style={[styles.artworkContainer, artworkAnimatedStyle]}
           >
-            {story.artworkUrl ? (
-              <Image
-                source={{ uri: story.artworkUrl }}
-                style={styles.artwork}
-                resizeMode="cover"
-              />
-            ) : (
-              <View style={[styles.artwork, { backgroundColor: '#2a2a4a' }]}>
-                <Text style={{ fontSize: 80 }}>🌙</Text>
-              </View>
-            )}
+            {(() => {
+              const localArtwork = getStoryArtwork(story.id);
+              if (localArtwork) {
+                return (
+                  <Image
+                    source={localArtwork}
+                    style={styles.artwork}
+                    resizeMode="cover"
+                  />
+                );
+              } else if (story.artworkUrl) {
+                return (
+                  <Image
+                    source={{ uri: story.artworkUrl }}
+                    style={styles.artwork}
+                    resizeMode="cover"
+                  />
+                );
+              } else {
+                return (
+                  <View style={[styles.artwork, { backgroundColor: '#2a2a4a' }]}>
+                    <Text style={{ fontSize: 80 }}>🌙</Text>
+                  </View>
+                );
+              }
+            })()}
           </Animated.View>
 
           {/* Story info */}

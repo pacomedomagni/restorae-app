@@ -53,6 +53,7 @@ import {
   formatDuration,
   BedtimeStory,
   StoryCategory,
+  getStoryArtwork,
 } from '../data/bedtimeStories';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -185,17 +186,32 @@ function FeaturedStoryCard({ story, onPress }: FeaturedCardProps) {
     >
       <Animated.View style={[styles.featuredCard, animatedStyle]}>
         <View style={styles.featuredImageContainer}>
-          {story.artworkUrl ? (
-            <Image
-              source={{ uri: story.artworkUrl }}
-              style={styles.featuredImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={[styles.featuredImage, { backgroundColor: colors.surfaceSubtle }]}>
-              <Text style={{ fontSize: 48 }}>🌙</Text>
-            </View>
-          )}
+          {(() => {
+            const localArtwork = getStoryArtwork(story.id);
+            if (localArtwork) {
+              return (
+                <Image
+                  source={localArtwork}
+                  style={styles.featuredImage}
+                  resizeMode="cover"
+                />
+              );
+            } else if (story.artworkUrl) {
+              return (
+                <Image
+                  source={{ uri: story.artworkUrl }}
+                  style={styles.featuredImage}
+                  resizeMode="cover"
+                />
+              );
+            } else {
+              return (
+                <View style={[styles.featuredImage, { backgroundColor: colors.surfaceSubtle }]}>
+                  <Text style={{ fontSize: 48 }}>🌙</Text>
+                </View>
+              );
+            }
+          })()}
           <LinearGradient
             colors={['transparent', 'rgba(0,0,0,0.8)']}
             style={styles.featuredGradient}
@@ -282,17 +298,32 @@ function StoryCard({ story, index, onPress }: StoryCardProps) {
             <View style={styles.storyCardInner}>
               {/* Artwork */}
               <View style={styles.storyArtworkContainer}>
-                {story.artworkUrl ? (
-                  <Image
-                    source={{ uri: story.artworkUrl }}
-                    style={styles.storyArtwork}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View style={[styles.storyArtwork, { backgroundColor: moodColors[story.mood] }]}>
-                    <Text style={{ fontSize: 32 }}>🌙</Text>
-                  </View>
-                )}
+                {(() => {
+                  const localArtwork = getStoryArtwork(story.id);
+                  if (localArtwork) {
+                    return (
+                      <Image
+                        source={localArtwork}
+                        style={styles.storyArtwork}
+                        resizeMode="cover"
+                      />
+                    );
+                  } else if (story.artworkUrl) {
+                    return (
+                      <Image
+                        source={{ uri: story.artworkUrl }}
+                        style={styles.storyArtwork}
+                        resizeMode="cover"
+                      />
+                    );
+                  } else {
+                    return (
+                      <View style={[styles.storyArtwork, { backgroundColor: moodColors[story.mood] }]}>
+                        <Text style={{ fontSize: 32 }}>🌙</Text>
+                      </View>
+                    );
+                  }
+                })()}
                 
                 {isLocked && (
                   <View style={[styles.miniLockBadge, { backgroundColor: colors.accentWarm }]}>
