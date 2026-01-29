@@ -16,6 +16,9 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import logger from './logger';
 
+// API Base URL
+const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl || 'http://localhost:3001/api/v1';
+
 // Types
 export interface AnalyticsEvent {
   name: string;
@@ -412,25 +415,36 @@ class AnalyticsService {
     await this.saveQueue();
 
     try {
-      // Send to your analytics backend
-      // In production, replace with actual API call
-      if (!__DEV__) {
-        // await api.post('/analytics/events', {
-        //   events: eventsToSend,
-        //   userId: this.userId,
-        //   anonymousId: this.anonymousId,
-        //   userProperties: this.userProperties,
-        // });
+      // Send to analytics backend
+      const response = await fetch(`${API_BASE_URL}/analytics/events`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          events: eventsToSend,
+          userId: this.userId,
+          anonymousId: this.anonymousId,
+          userProperties: this.userProperties,
+          deviceInfo: this.superProperties,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Analytics flush failed: ${response.status}`);
       }
 
       if (__DEV__) {
-        logger.info(`[Analytics] Flushed ${eventsToSend.length} events`);
+        logger.info(`[Analytics] Flushed ${eventsToSend.length} events to backend`);
       }
     } catch (error) {
       // Re-add events to queue on failure
       this.eventQueue = [...eventsToSend, ...this.eventQueue];
       await this.saveQueue();
-      logger.error('Analytics flush failed:', error);
+      
+      if (__DEV__) {
+        logger.warn('Analytics flush failed, events re-queued:', error);
+      }
     }
   }
 
