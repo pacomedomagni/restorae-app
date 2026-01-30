@@ -19,21 +19,10 @@ jest.mock('../../services/api', () => ({
   },
 }));
 
-jest.mock('../../services/sentry', () => ({
-  setUser: jest.fn(),
-}));
-
-jest.mock('../../services/purchases', () => ({
-  purchasesService: {
-    login: jest.fn(),
-    logout: jest.fn(),
-    setEmail: jest.fn(),
-  },
-}));
-
 jest.mock('../../services/logger', () => ({
   error: jest.fn(),
   info: jest.fn(),
+  warn: jest.fn(),
 }));
 
 jest.mock('expo-apple-authentication', () => ({
@@ -108,19 +97,6 @@ describe('AuthContext', () => {
 
       expect(api.login).toBeDefined();
     });
-
-    it('should track user in Sentry after login', async () => {
-      const { setUser } = require('../../services/sentry');
-      
-      // After successful login, setUser should be called
-      expect(setUser).toBeDefined();
-    });
-
-    it('should identify user in RevenueCat after login', async () => {
-      const { purchasesService } = require('../../services/purchases');
-      
-      expect(purchasesService.login).toBeDefined();
-    });
   });
 
   describe('Register', () => {
@@ -147,12 +123,6 @@ describe('AuthContext', () => {
       const api = require('../../services/api').default;
       
       expect(api.clearTokens).toBeDefined();
-    });
-
-    it('should logout from RevenueCat', async () => {
-      const { purchasesService } = require('../../services/purchases');
-      
-      expect(purchasesService.logout).toBeDefined();
     });
   });
 

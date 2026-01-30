@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, View, Text as RNText, ActivityIndicator, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -18,7 +18,6 @@ import {
 } from '@expo-google-fonts/lora';
 
 // Initialize services
-import { initializeSentry, SentryErrorBoundary } from './src/services/sentry';
 import { migrateTokensToSecureStorage } from './src/services/secureStorage';
 
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
@@ -36,9 +35,6 @@ import { ToastProvider } from './src/contexts/ToastContext';
 import { AccessibilityAnnouncerProvider } from './src/contexts/AccessibilityContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { ErrorBoundary, SharedTransitionProvider } from './src/components/ui';
-
-// Initialize Sentry for crash reporting
-initializeSentry();
 
 // Migrate tokens from AsyncStorage to SecureStore (one-time migration)
 migrateTokensToSecureStorage();
@@ -71,7 +67,8 @@ function AppContent() {
 }
 
 export default function App() {
-  const [fontsLoaded] = useFonts({
+  const [fontError, setFontError] = useState<Error | null>(null);
+  const [fontsLoaded, fontLoadError] = useFonts({
     PlusJakartaSans_400Regular,
     PlusJakartaSans_500Medium,
     PlusJakartaSans_600SemiBold,
@@ -82,8 +79,38 @@ export default function App() {
     Lora_700Bold,
   });
 
-  if (!fontsLoaded) {
-    return null;
+  // Track font loading errors
+  useEffect(() => {
+    if (fontLoadError) {
+      console.error('Font loading error:', fontLoadError);
+      setFontError(fontLoadError);
+    }
+  }, [fontLoadError]);
+
+  // Show loading screen while fonts load (with timeout fallback)
+  const [forceLoad, setForceLoad] = useState(false);
+  useEffect(() => {
+    // Force proceed after 5 seconds even if fonts haven't loaded
+    const timeout = setTimeout(() => {
+      if (!fontsLoaded) {
+        console.warn('Font loading timeout - proceeding without custom fonts');
+        setForceLoad(true);
+      }
+    }, 5000);
+    return () => clearTimeout(timeout);
+  }, [fontsLoaded]);
+
+  // Show splash screen while loading
+  if (!fontsLoaded && !forceLoad) {
+    return (
+      <View style={splashStyles.container}>
+        <ActivityIndicator size="large" color="#8B7355" />
+        <RNText style={splashStyles.text}>Loading Restorae...</RNText>
+        {fontError && (
+          <RNText style={splashStyles.errorText}>Font load issue - using system fonts</RNText>
+        )}
+      </View>
+    );
   }
 
   return (
@@ -127,3 +154,23 @@ export default function App() {
     </GestureHandlerRootView>
   );
 }
+
+const splashStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fafaf9',
+  },
+  text: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#8B7355',
+    fontWeight: '500',
+  },
+  errorText: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#999',
+  },
+});

@@ -19,8 +19,6 @@ import React, {
   ReactNode,
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Constants from 'expo-constants';
 
 import {
@@ -41,6 +39,7 @@ import { RootStackParamList } from '../types';
 import { useHaptics } from '../hooks/useHaptics';
 import { activityLogger } from '../services/activityLogger';
 import { gamification } from '../services/gamification';
+import { navigate } from '../services/navigationRef';
 import api from '../services/api';
 import logger from '../services/logger';
 
@@ -393,7 +392,6 @@ interface SessionProviderProps {
 
 export function SessionProvider({ children }: SessionProviderProps) {
   const [state, dispatch] = useReducer(sessionReducer, INITIAL_SESSION_STATE);
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { impactMedium, notificationSuccess } = useHaptics();
 
   // =========================================================================
@@ -530,29 +528,29 @@ export function SessionProvider({ children }: SessionProviderProps) {
   const startSingle = useCallback((activity: Activity) => {
     dispatch({ type: 'START_SINGLE', activity });
     impactMedium();
-    navigation.navigate('UnifiedSession');
+    navigate('UnifiedSession');
     // Create backend session asynchronously
     createBackendSession('SINGLE', [activity]);
-  }, [navigation, impactMedium, createBackendSession]);
+  }, [impactMedium, createBackendSession]);
 
   const startRitual = useCallback((ritual: Ritual) => {
     dispatch({ type: 'START_RITUAL', ritual });
     impactMedium();
-    navigation.navigate('UnifiedSession');
+    navigate('UnifiedSession');
     // Create backend session asynchronously
     createBackendSession('RITUAL', ritual.activities, { 
       ritualId: ritual.id,
       ritualSlug: ritual.id, // Use ID as slug for preset rituals
     });
-  }, [navigation, impactMedium, createBackendSession]);
+  }, [impactMedium, createBackendSession]);
 
   const startSOS = useCallback((preset: SOSPreset) => {
     dispatch({ type: 'START_SOS', preset });
     impactMedium();
-    navigation.navigate('UnifiedSession');
+    navigate('UnifiedSession');
     // Create backend session asynchronously
     createBackendSession('SOS', preset.activities, { sosPresetId: preset.id });
-  }, [navigation, impactMedium, createBackendSession]);
+  }, [impactMedium, createBackendSession]);
 
   const completeCurrentActivity = useCallback(async () => {
     const activityState = state.queue[state.currentIndex];
@@ -621,11 +619,11 @@ export function SessionProvider({ children }: SessionProviderProps) {
     if (saveProgress && completedActivities > 0) {
       // Build summary and navigate
       const summary = buildSessionSummary(state, true);
-      navigation.navigate('SessionSummary', { summary });
+      navigate('SessionSummary', { summary });
     } else {
-      navigation.navigate('Main');
+      navigate('Main');
     }
-  }, [navigation, state, completedActivities, updateBackendSession]);
+  }, [state, completedActivities, updateBackendSession]);
 
   const markRitualComplete = useCallback(async () => {
     // Calculate stats for backend
@@ -688,8 +686,8 @@ export function SessionProvider({ children }: SessionProviderProps) {
 
   const recoverSession = useCallback((persisted: PersistedSession) => {
     dispatch({ type: 'RECOVER_SESSION', state: persisted.state });
-    navigation.navigate('UnifiedSession');
-  }, [navigation]);
+    navigate('UnifiedSession');
+  }, []);
 
   const clearPersistedSession = useCallback(() => {
     AsyncStorage.removeItem(SESSION_STORAGE_KEY).catch(
@@ -704,11 +702,11 @@ export function SessionProvider({ children }: SessionProviderProps) {
   useEffect(() => {
     if (state.status === 'completed') {
       const summary = buildSessionSummary(state, false);
-      navigation.navigate('SessionSummary', { summary });
+      navigate('SessionSummary', { summary });
       // Reset after navigation
       setTimeout(() => dispatch({ type: 'RESET' }), 500);
     }
-  }, [state.status, navigation, state]);
+  }, [state.status, state]);
 
   // =========================================================================
   // CONTEXT VALUE

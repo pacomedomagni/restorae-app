@@ -13,6 +13,7 @@ import Animated, {
 import { useHaptics } from '../hooks/useHaptics';
 import { withAlpha } from '../theme';
 import { ErrorBoundary } from '../components/ui';
+import { navigationRef } from '../services/navigationRef';
 
 const ONBOARDING_COMPLETE_KEY = '@restorae/onboarding_complete';
 
@@ -362,7 +363,7 @@ export function RootNavigator() {
   // Show auth screens if not authenticated
   if (!isAuthenticated) {
     return (
-      <NavigationContainer theme={navigationTheme}>
+      <NavigationContainer ref={navigationRef} theme={navigationTheme}>
         <AuthNavigator />
       </NavigationContainer>
     );
@@ -376,7 +377,7 @@ export function RootNavigator() {
       errorTitle="Something went wrong"
       errorDescription="The app encountered an unexpected error. Please restart and try again."
     >
-      <NavigationContainer theme={navigationTheme}>
+      <NavigationContainer ref={navigationRef} theme={navigationTheme}>
         <Stack.Navigator
           initialRouteName={initialRouteName}
           screenOptions={{

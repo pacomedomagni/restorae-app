@@ -39,14 +39,30 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
 
-  // Load saved preference on mount
+  // Load saved preference on mount with error handling
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((saved) => {
-      if (saved === 'light' || saved === 'dark' || saved === 'system') {
-        setModeState(saved);
+    AsyncStorage.getItem(STORAGE_KEY)
+      .then((saved) => {
+        if (saved === 'light' || saved === 'dark' || saved === 'system') {
+          setModeState(saved);
+        }
+      })
+      .catch((error) => {
+        console.warn('Failed to load theme preference:', error);
+      })
+      .finally(() => {
+        setIsLoaded(true);
+      });
+    
+    // Fallback timeout in case AsyncStorage hangs
+    const timeout = setTimeout(() => {
+      if (!isLoaded) {
+        console.warn('Theme loading timeout - using default');
+        setIsLoaded(true);
       }
-      setIsLoaded(true);
-    });
+    }, 3000);
+    
+    return () => clearTimeout(timeout);
   }, []);
 
   useEffect(() => {

@@ -6,8 +6,6 @@ import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import api, { User, AuthTokens } from '../services/api';
-import { setUser as setSentryUser } from '../services/sentry';
-import { purchasesService } from '../services/purchases';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -139,19 +137,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await api.login(email, password);
       
-      // Track user in Sentry
-      setSentryUser({ id: response.user.id, email: response.user.email, name: response.user.name });
-      
-      // Identify user in RevenueCat
-      try {
-        await purchasesService.login(response.user.id);
-        if (response.user.email) {
-          await purchasesService.setEmail(response.user.email);
-        }
-      } catch (e) {
-        logger.warn('RevenueCat login failed:', { error: e instanceof Error ? e.message : String(e) });
-      }
-      
       setState({
         user: response.user,
         isAuthenticated: true,
@@ -169,19 +154,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await api.register(email, password, name);
       
-      // Track user in Sentry
-      setSentryUser({ id: response.user.id, email: response.user.email, name: response.user.name });
-      
-      // Identify user in RevenueCat
-      try {
-        await purchasesService.login(response.user.id);
-        if (response.user.email) {
-          await purchasesService.setEmail(response.user.email);
-        }
-      } catch (e) {
-        logger.warn('RevenueCat login failed:', { error: e instanceof Error ? e.message : String(e) });
-      }
-      
       setState({
         user: response.user,
         isAuthenticated: true,
@@ -198,16 +170,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState(prev => ({ ...prev, isLoading: true }));
     try {
       await api.logout();
-      
-      // Clear Sentry user
-      setSentryUser(null);
-      
-      // Logout from RevenueCat
-      try {
-        await purchasesService.logout();
-      } catch (e) {
-        logger.warn('RevenueCat logout failed:', { error: e instanceof Error ? e.message : String(e) });
-      }
     } finally {
       setState({
         user: null,

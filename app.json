@@ -2,7 +2,7 @@
   "expo": {
     "name": "Restorae",
     "slug": "restorae",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "scheme": "restorae",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,9 +16,8 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.restorae.app",
+      "buildNumber": "20",
       "associatedDomains": [
-        "applinks:restorae.app",
-        "applinks:www.restorae.app",
         "applinks:restorae.app",
         "applinks:www.restorae.app"
       ],
@@ -70,7 +69,8 @@
           "icon": "./assets/notification-icon.png",
           "color": "#8B7355"
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {

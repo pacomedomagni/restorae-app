@@ -76,27 +76,55 @@ interface LogoIconProps {
   veinColor: string;
 }
 
-function LogoIcon({ size, primaryColor, secondaryColor, veinColor }: LogoIconProps) {
+function LogoIcon({ size, primaryColor, secondaryColor }: LogoIconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 48 48" fill="none">
       <Defs>
-        <LinearGradient id="leafGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <LinearGradient id="flowerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
           <Stop offset="0%" stopColor={primaryColor} />
           <Stop offset="100%" stopColor={secondaryColor} />
         </LinearGradient>
       </Defs>
-      {/* Main leaf shape - organic, flowing form */}
+      {/* Flower/bush shape - multiple petals radiating from center */}
+      {/* Top petal */}
       <Path
-        d="M24 4C14 4 8 12 8 22C8 32 14 40 24 44C24 44 20 36 20 28C20 20 24 14 32 12C40 10 44 14 44 14C44 14 40 4 24 4Z"
-        fill="url(#leafGradient)"
+        d="M24 4C20 4 17 8 17 13C17 18 20 22 24 22C28 22 31 18 31 13C31 8 28 4 24 4Z"
+        fill="url(#flowerGradient)"
       />
-      {/* Central vein - subtle, natural */}
+      {/* Top-right petal */}
       <Path
-        d="M24 44C24 44 28 38 30 30C32 22 30 16 30 16"
-        stroke={veinColor}
-        strokeWidth="2"
-        strokeLinecap="round"
-        opacity={0.5}
+        d="M36 10C33 7 28 7 25 10C22 13 22 18 25 21C28 24 33 24 36 21C39 18 39 13 36 10Z"
+        fill="url(#flowerGradient)"
+        opacity={0.9}
+      />
+      {/* Top-left petal */}
+      <Path
+        d="M12 10C15 7 20 7 23 10C26 13 26 18 23 21C20 24 15 24 12 21C9 18 9 13 12 10Z"
+        fill="url(#flowerGradient)"
+        opacity={0.9}
+      />
+      {/* Bottom-right petal */}
+      <Path
+        d="M38 24C35 21 30 21 27 24C24 27 24 32 27 35C30 38 35 38 38 35C41 32 41 27 38 24Z"
+        fill="url(#flowerGradient)"
+        opacity={0.85}
+      />
+      {/* Bottom-left petal */}
+      <Path
+        d="M10 24C13 21 18 21 21 24C24 27 24 32 21 35C18 38 13 38 10 35C7 32 7 27 10 24Z"
+        fill="url(#flowerGradient)"
+        opacity={0.85}
+      />
+      {/* Bottom petal */}
+      <Path
+        d="M24 26C20 26 17 30 17 35C17 40 20 44 24 44C28 44 31 40 31 35C31 30 28 26 24 26Z"
+        fill="url(#flowerGradient)"
+        opacity={0.8}
+      />
+      {/* Center circle */}
+      <Path
+        d="M24 18C21 18 18 21 18 24C18 27 21 30 24 30C27 30 30 27 30 24C30 21 27 18 24 18Z"
+        fill={secondaryColor}
       />
     </Svg>
   );
@@ -129,7 +157,6 @@ export function Logo({
         size={config.icon}
         primaryColor={colors.accentPrimary}
         secondaryColor={colors.accentPrimaryHover}
-        veinColor={colors.inkInverse}
       />
       {showText && (
         <Text
