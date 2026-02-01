@@ -102,7 +102,7 @@ function CategoryPill({ category, isActive, onPress }: CategoryPillProps) {
   }));
 
   const handlePressIn = () => {
-    scale.value = withSpring(0.95, { damping: 15, stiffness: 400 });
+    scale.value = withSpring(0.97, { damping: 15, stiffness: 400 });
   };
 
   const handlePressOut = () => {

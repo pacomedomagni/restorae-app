@@ -124,7 +124,7 @@ function RecommendationCard({ recommendation, index, onPress }: RecommendationCa
   }));
 
   const handlePressIn = () => {
-    scale.value = withSpring(0.96, { damping: 20, stiffness: 400 });
+    scale.value = withSpring(0.97, { damping: 20, stiffness: 400 });
   };
 
   const handlePressOut = () => {
@@ -326,10 +326,13 @@ export function ForYouSection({ currentMood, userName }: ForYouSectionProps) {
   );
 
   return (
-    <View style={styles.container}>
+    <Animated.View 
+      entering={reduceMotion ? undefined : FadeInDown.delay(250).duration(400)}
+      style={styles.container}
+    >
       {/* Section Header */}
       <Animated.View
-        entering={reduceMotion ? undefined : FadeIn.delay(200).duration(400)}
+        entering={reduceMotion ? undefined : FadeInDown.delay(300).duration(400)}
         style={styles.header}
       >
         <View style={styles.headerLeft}>
@@ -350,26 +353,30 @@ export function ForYouSection({ currentMood, userName }: ForYouSectionProps) {
           <DailyInsightCard />
 
           {/* Recommendations Carousel */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.carouselContent}
-            decelerationRate="fast"
-            snapToInterval={170}
-            snapToAlignment="start"
+          <Animated.View
+            entering={reduceMotion ? undefined : FadeInDown.delay(400).duration(400)}
           >
-            {recs.map((rec, index) => (
-              <RecommendationCard
-                key={rec.id}
-                recommendation={rec}
-                index={index}
-                onPress={() => handleRecommendationPress(rec)}
-              />
-            ))}
-          </ScrollView>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.carouselContent}
+              decelerationRate="fast"
+              snapToInterval={170}
+              snapToAlignment="start"
+            >
+              {recs.map((rec, index) => (
+                <RecommendationCard
+                  key={rec.id}
+                  recommendation={rec}
+                  index={index}
+                  onPress={() => handleRecommendationPress(rec)}
+                />
+              ))}
+            </ScrollView>
+          </Animated.View>
         </>
       )}
-    </View>
+    </Animated.View>
   );
 }
 

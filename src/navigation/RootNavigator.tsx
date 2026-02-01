@@ -216,21 +216,17 @@ function MainTabs() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          position: 'absolute',
-          left: spacing[4],
-          right: spacing[4],
-          bottom: spacing[4],
-          height: layout.tabBarHeight - spacing[4],
-          paddingTop: spacing[2],
+          height: layout.tabBarHeight,
+          paddingTop: spacing[1],
           paddingBottom: spacing[4],
-          borderRadius: 28,
           backgroundColor: colors.canvasElevated,
-          borderTopWidth: 0,
-          shadowColor: colors.shadowStrong,
-          shadowOffset: { width: 0, height: 10 },
-          shadowOpacity: 0.12,
-          shadowRadius: 18,
-          elevation: 12,
+          borderTopWidth: 1,
+          borderTopColor: withAlpha(colors.border, 0.5),
+          shadowColor: colors.shadow,
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.08,
+          shadowRadius: 8,
+          elevation: 8,
         },
         tabBarActiveTintColor: colors.accentPrimary,
         tabBarInactiveTintColor: colors.inkFaint,
@@ -261,24 +257,10 @@ function MainTabs() {
         component={ToolsScreen}
         options={{
           tabBarLabel: 'Tools',
-          tabBarAccessibilityLabel: 'Tools tab - Breathing, grounding, and focus exercises',
+          tabBarAccessibilityLabel: 'Tools tab - Breathing, grounding, focus, and stories',
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.tabIconContainer, focused && { backgroundColor: withAlpha(color, 0.12) }]}>
               <Icon name="tools" size={22} color={color} />
-            </View>
-          ),
-        }}
-        listeners={{ tabPress: impactLight }}
-      />
-      <Tab.Screen
-        name="StoriesTab"
-        component={StoriesScreen}
-        options={{
-          tabBarLabel: 'Stories',
-          tabBarAccessibilityLabel: 'Stories tab - Sleep stories and soundscapes',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={[styles.tabIconContainer, focused && { backgroundColor: withAlpha(color, 0.12) }]}>
-              <Icon name="stories" size={22} color={color} />
             </View>
           ),
         }}

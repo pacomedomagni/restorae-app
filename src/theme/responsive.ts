@@ -179,13 +179,13 @@ export const safeArea = {
 // =============================================================================
 /**
  * Get responsive orb/icon sizes based on screen size
- * Sized for comfortable touch targets without dominating the UI
+ * Sized for comfortable touch targets while being compact
  */
 export const getResponsiveOrbSize = (): { sm: number; md: number; lg: number } => {
-  if (device.isLargeTablet) return { sm: 56, md: 72, lg: 96 };
-  if (device.isTablet) return { sm: 52, md: 68, lg: 88 };
-  if (device.isSmallPhone) return { sm: 44, md: 56, lg: 72 };
-  return { sm: 48, md: 64, lg: 80 };  // Standard: 64px is comfortable without being chunky
+  if (device.isLargeTablet) return { sm: 48, md: 60, lg: 80 };
+  if (device.isTablet) return { sm: 44, md: 56, lg: 72 };
+  if (device.isSmallPhone) return { sm: 36, md: 44, lg: 56 };
+  return { sm: 40, md: 52, lg: 64 };  // Reduced: compact but still accessible
 };
 
 /**

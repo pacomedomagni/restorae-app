@@ -74,6 +74,7 @@ export function UnifiedSessionScreen() {
     transitionTo,
     showProgressDrawer,
     showExitConfirmation,
+    sessionStartTime,
     // Computed
     currentActivity,
     progress,
@@ -93,23 +94,39 @@ export function UnifiedSessionScreen() {
     completeTransition,
   } = useSession();
 
+  // Calculate elapsed time in minutes
+  const elapsedMinutes = sessionStartTime 
+    ? Math.floor((Date.now() - sessionStartTime) / 60000) 
+    : 0;
+  const shouldConfirmExit = elapsedMinutes >= 3;
+
   // Handle hardware back button
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
       if (status === 'in-progress' || status === 'paused') {
-        setShowExitConfirmation(true);
+        // Only show confirmation for sessions longer than 3 minutes
+        if (shouldConfirmExit) {
+          setShowExitConfirmation(true);
+        } else {
+          exitSession(false); // Exit immediately for short sessions
+        }
         return true;
       }
       return false;
     });
 
     return () => backHandler.remove();
-  }, [status, setShowExitConfirmation]);
+  }, [status, shouldConfirmExit, setShowExitConfirmation, exitSession]);
 
   // Handle close button press
   const handleClose = useCallback(() => {
-    setShowExitConfirmation(true);
-  }, [setShowExitConfirmation]);
+    // Only show confirmation for sessions longer than 3 minutes
+    if (shouldConfirmExit) {
+      setShowExitConfirmation(true);
+    } else {
+      exitSession(false); // Exit immediately for short sessions
+    }
+  }, [shouldConfirmExit, setShowExitConfirmation, exitSession]);
 
   // Handle exit confirmation
   const handleExitConfirm = useCallback(() => {

@@ -153,8 +153,9 @@ export function MoodOrb({
   }, [selected, selectedValue, glowOpacity]);
 
   const handlePressIn = () => {
-    pressScale.value = withSpring(0.92, { damping: 15, stiffness: 400 });
+    pressScale.value = withSpring(0.97, { damping: 15, stiffness: 400 });
     glowOpacity.value = withTiming(0.7, { duration: 100 });
+  };
   };
 
   const handlePressOut = () => {

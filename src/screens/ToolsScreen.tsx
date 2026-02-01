@@ -51,13 +51,13 @@ const CARD_WIDTH = (SCREEN_WIDTH - layout.screenPaddingHorizontal * 2 - spacing[
 // =============================================================================
 // TYPES & DATA
 // =============================================================================
-type ToolCategory = 'all' | 'breathe' | 'body' | 'mind' | 'emergency';
+type ToolCategory = 'all' | 'breathe' | 'body' | 'mind' | 'sleep' | 'emergency';
 
 interface Tool {
   id: string;
   name: string;
   description: string;
-  icon: 'breathe' | 'ground' | 'reset' | 'focus' | 'journal' | 'sos';
+  icon: 'breathe' | 'ground' | 'reset' | 'focus' | 'journal' | 'sos' | 'stories';
   duration: string;
   category: ToolCategory;
   tone: 'primary' | 'warm' | 'calm';
@@ -109,6 +109,16 @@ const TOOLS: Tool[] = [
     route: 'FocusSelect',
   },
   {
+    id: 'stories',
+    name: 'Sleep Stories',
+    description: 'Calming stories and soundscapes for sleep',
+    icon: 'stories',
+    duration: '10-30 min',
+    category: 'sleep',
+    tone: 'calm',
+    route: 'Stories',
+  },
+  {
     id: 'situational',
     name: 'Situational',
     description: '10 guides for specific moments',
@@ -135,6 +145,7 @@ const CATEGORIES: { id: ToolCategory; label: string }[] = [
   { id: 'breathe', label: 'Breathe' },
   { id: 'body', label: 'Body' },
   { id: 'mind', label: 'Mind' },
+  { id: 'sleep', label: 'Sleep' },
   { id: 'emergency', label: 'SOS' },
 ];
 
@@ -153,7 +164,7 @@ function CategoryPill({ category, isActive, onPress }: CategoryPillProps) {
   const scale = useSharedValue(1);
 
   const handlePressIn = () => {
-    scale.value = withSpring(0.95, { damping: 15, stiffness: 400 });
+    scale.value = withSpring(0.97, { damping: 15, stiffness: 400 });
   };
 
   const handlePressOut = () => {
@@ -228,7 +239,7 @@ function ToolCard({ tool, index, onPress, onLongPress, compact = false }: ToolCa
       : colors.accentPrimary;
 
   const handlePressIn = () => {
-    scale.value = withSpring(0.96, { damping: 15, stiffness: 400 });
+    scale.value = withSpring(0.97, { damping: 15, stiffness: 400 });
   };
 
   const handlePressOut = () => {

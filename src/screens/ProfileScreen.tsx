@@ -105,7 +105,7 @@ function SettingRow({ setting, index, onPress }: SettingRowProps) {
   const scale = useSharedValue(1);
 
   const handlePressIn = () => {
-    scale.value = withSpring(0.98, { damping: 15, stiffness: 400 });
+    scale.value = withSpring(0.97, { damping: 15, stiffness: 400 });
   };
 
   const handlePressOut = () => {

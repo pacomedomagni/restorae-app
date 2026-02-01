@@ -118,7 +118,7 @@ function PromptCard({ prompt, index, onPress }: PromptCardProps) {
   const color = categoryColors[prompt.category];
 
   const handlePressIn = () => {
-    scale.value = withSpring(0.96, { damping: 15, stiffness: 400 });
+    scale.value = withSpring(0.97, { damping: 15, stiffness: 400 });
   };
 
   const handlePressOut = () => {

@@ -223,7 +223,7 @@ function XPProgressBar({ level }: { level: UserLevel }) {
 }
 
 // =============================================================================
-// STREAK BANNER
+// STREAK BANNER (Simplified - streak only, no level/XP)
 // =============================================================================
 
 export function StreakBanner({ onPress }: StreakBannerProps) {
@@ -231,14 +231,12 @@ export function StreakBanner({ onPress }: StreakBannerProps) {
   const { impactLight } = useHaptics();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [streak, setStreak] = useState<StreakData | null>(null);
-  const [level, setLevel] = useState<UserLevel | null>(null);
   const [isAtRisk, setIsAtRisk] = useState(false);
   const scale = useSharedValue(1);
 
   useEffect(() => {
     gamification.initialize().then(() => {
       setStreak(gamification.getStreak());
-      setLevel(gamification.getLevel());
       setIsAtRisk(gamification.isStreakAtRisk());
     });
   }, []);
@@ -248,7 +246,7 @@ export function StreakBanner({ onPress }: StreakBannerProps) {
   }));
 
   const handlePressIn = () => {
-    scale.value = withSpring(0.98, { damping: 20, stiffness: 400 });
+    scale.value = withSpring(0.97, { damping: 20, stiffness: 400 });
   };
 
   const handlePressOut = () => {
@@ -265,7 +263,10 @@ export function StreakBanner({ onPress }: StreakBannerProps) {
     }
   };
 
-  if (!streak || !level) return null;
+  if (!streak) return null;
+  
+  // Don't show banner if no streak started yet
+  if (streak.currentStreak === 0) return null;
 
   return (
     <Animated.View
@@ -276,7 +277,7 @@ export function StreakBanner({ onPress }: StreakBannerProps) {
         onPressOut={handlePressOut}
         onPress={handlePress}
         accessibilityRole="button"
-        accessibilityLabel={`${streak.currentStreak} day streak, Level ${level.level} ${level.title}`}
+        accessibilityLabel={`${streak.currentStreak} day streak`}
       >
         <Animated.View style={animatedStyle}>
           <View
@@ -285,27 +286,30 @@ export function StreakBanner({ onPress }: StreakBannerProps) {
               { backgroundColor: withAlpha(colors.canvasElevated, 0.6) },
             ]}
           >
-            {/* Left side - Streak */}
+            {/* Streak Badge */}
             <StreakBadge days={streak.currentStreak} isAtRisk={isAtRisk} />
 
-            {/* Right side - Level & XP */}
+            {/* Simple encouragement text */}
             <View style={styles.rightSection}>
-              <View style={styles.levelRow}>
-                <LevelBadge level={level} />
-                <Text variant="labelMedium" color="ink" style={styles.levelTitle}>
-                  {level.title}
-                </Text>
-              </View>
-              <XPProgressBar level={level} />
+              <Text variant="bodyMedium" color="ink">
+                {getStreakMessage(streak.currentStreak, isAtRisk)}
+              </Text>
             </View>
-
-            {/* Chevron indicator */}
-            <Text style={styles.chevron}>›</Text>
           </View>
         </Animated.View>
       </Pressable>
     </Animated.View>
   );
+}
+
+// Simple encouragement messages
+function getStreakMessage(days: number, isAtRisk: boolean): string {
+  if (isAtRisk) return "Don't lose your streak!";
+  if (days >= 30) return "Incredible consistency!";
+  if (days >= 14) return "Two weeks strong!";
+  if (days >= 7) return "One week of wellness!";
+  if (days >= 3) return "Keep it going!";
+  return "You're building a habit!";
 }
 
 // =============================================================================
@@ -333,46 +337,6 @@ const styles = StyleSheet.create({
   },
   rightSection: {
     flex: 1,
-  },
-  levelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-    marginBottom: spacing[2],
-  },
-  levelBadge: {},
-  levelBadgeInner: {
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: borderRadius.md,
-    overflow: 'hidden',
-  },
-  levelShimmer: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: borderRadius.md,
-  },
-  levelTitle: {},
-  xpContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-  },
-  xpBar: {
-    flex: 1,
-    height: 6,
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  xpProgress: {
-    height: '100%',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  xpText: {},
-  chevron: {
-    fontSize: 20,
-    color: '#666',
-    marginLeft: spacing[1],
   },
 });
 

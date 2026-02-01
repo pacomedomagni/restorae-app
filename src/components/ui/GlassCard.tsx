@@ -67,7 +67,7 @@ export function GlassCard({
 
   const handlePressIn = useCallback(() => {
     if (onPress && !disabled) {
-      scale.value = withSpring(0.985, { damping: 20, stiffness: 400 });
+      scale.value = withSpring(0.97, { damping: 20, stiffness: 400 });
       pressed.value = withSpring(1, { damping: 20, stiffness: 300 });
     }
   }, [onPress, disabled, scale, pressed]);
