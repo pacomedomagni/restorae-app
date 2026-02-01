@@ -223,7 +223,7 @@ export function StoryPlayerScreen() {
         }
       } catch (error) {
         // Keep using local data on error (already set as initial state)
-        console.log('Using local story data:', error);
+        console.warn('Using local story data:', error);
       }
     };
     

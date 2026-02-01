@@ -2,8 +2,6 @@
  * API Service Tests
  * Comprehensive test coverage for the API client
  */
-import { secureStorage, SECURE_KEYS } from '../../services/secureStorage';
-
 // Mock dependencies
 jest.mock('../../services/secureStorage', () => ({
   secureStorage: {
@@ -11,7 +9,7 @@ jest.mock('../../services/secureStorage', () => ({
     setItem: jest.fn(),
     removeItem: jest.fn(),
     saveTokens: jest.fn(),
-    clearAll: jest.fn(),
+    clearTokens: jest.fn(),
   },
   SECURE_KEYS: {
     ACCESS_TOKEN: 'access_token',
@@ -61,10 +59,12 @@ jest.mock('axios', () => ({
 describe('API Service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.resetModules();
   });
 
   describe('Authentication', () => {
     it('should store tokens after successful login', async () => {
+      const { secureStorage } = jest.requireMock('../../services/secureStorage');
       const mockResponse = {
         data: {
           user: { id: '123', email: 'test@example.com' },
@@ -75,34 +75,38 @@ describe('API Service', () => {
 
       mockAxiosInstance.post.mockResolvedValueOnce(mockResponse);
 
-      // Import after mocks are set up
       const api = require('../../services/api').default;
-      
-      // Verify saveTokens was called with correct values
-      expect(secureStorage.saveTokens).toBeDefined();
+      await api.login('test@example.com', 'password');
+
+      expect(secureStorage.saveTokens).toHaveBeenCalledWith('access_123', 'refresh_123');
     });
 
     it('should clear tokens on logout', async () => {
+      const { secureStorage } = jest.requireMock('../../services/secureStorage');
+      const AsyncStorage = jest.requireMock('@react-native-async-storage/async-storage');
       const api = require('../../services/api').default;
       
       await api.clearTokens();
-      
-      expect(secureStorage.removeItem).toHaveBeenCalledWith(SECURE_KEYS.ACCESS_TOKEN);
-      expect(secureStorage.removeItem).toHaveBeenCalledWith(SECURE_KEYS.REFRESH_TOKEN);
+
+      expect(secureStorage.clearTokens).toHaveBeenCalled();
+      expect(AsyncStorage.removeItem).toHaveBeenCalledWith('user');
     });
 
     it('should check for valid token', async () => {
+      const { secureStorage, SECURE_KEYS } = jest.requireMock('../../services/secureStorage');
       (secureStorage.getItem as jest.Mock).mockResolvedValueOnce('valid_token');
       
       const api = require('../../services/api').default;
       const hasToken = await api.hasValidToken();
       
       expect(secureStorage.getItem).toHaveBeenCalledWith(SECURE_KEYS.ACCESS_TOKEN);
+      expect(hasToken).toBe(true);
     });
   });
 
   describe('Request Interceptors', () => {
     it('should add authorization header when token exists', () => {
+      require('../../services/api').default;
       // Verify interceptors are set up
       expect(mockAxiosInstance.interceptors.request.use).toHaveBeenCalled();
     });
@@ -110,6 +114,7 @@ describe('API Service', () => {
 
   describe('Error Handling', () => {
     it('should handle 401 errors and attempt token refresh', () => {
+      require('../../services/api').default;
       // Verify response interceptor is set up for error handling
       expect(mockAxiosInstance.interceptors.response.use).toHaveBeenCalled();
     });
@@ -117,6 +122,7 @@ describe('API Service', () => {
 
   describe('API Endpoints', () => {
     it('should have correct base URL structure', () => {
+      require('../../services/api').default;
       const axios = require('axios');
       expect(axios.create).toHaveBeenCalled();
     });

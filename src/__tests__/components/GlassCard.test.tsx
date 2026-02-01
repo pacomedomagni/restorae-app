@@ -10,6 +10,8 @@ jest.mock('../../contexts/ThemeContext', () => ({
     colors: {
       canvasElevated: '#FFF7EF',
       border: '#E1D1C2',
+      ink: '#1F1A16',
+      inkInverse: '#FFFFFF',
       accentWarm: '#C8924A',
       accentCalm: '#7B8C86',
       accentPrimary: '#1F4D3A',

@@ -54,7 +54,7 @@ jest.mock('@sentry/react-native', () => ({
   wrap: (component) => component,
   reactNavigationIntegration: jest.fn(),
   reactNativeTracingIntegration: jest.fn(),
-}));
+}), { virtual: true });
 
 // Mock RevenueCat
 jest.mock('react-native-purchases', () => ({
@@ -68,7 +68,7 @@ jest.mock('react-native-purchases', () => ({
   setLogLevel: jest.fn(),
   LOG_LEVEL: { DEBUG: 0 },
   addCustomerInfoUpdateListener: jest.fn(() => ({ remove: jest.fn() })),
-}));
+}), { virtual: true });
 
 // Mock expo-notifications
 jest.mock('expo-notifications', () => ({
@@ -82,6 +82,7 @@ jest.mock('expo-notifications', () => ({
 // Silence console warnings during tests
 global.console = {
   ...console,
+  log: jest.fn(),
   warn: jest.fn(),
   error: jest.fn(),
 };
