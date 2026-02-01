@@ -79,3 +79,9 @@ export { useSessionRecovery } from './useSessionRecovery';
 
 // Optimistic updates
 export { useOptimisticUpdate, useOptimisticList } from './useOptimisticUpdate';
+
+// Breathing transitions for emotional flow
+export { useBreathingTransition, TransitionOverlay } from './useBreathingTransition';
+
+// Contextual micro-copy that responds to emotional state
+export { useContextualCopy } from './useContextualCopy';

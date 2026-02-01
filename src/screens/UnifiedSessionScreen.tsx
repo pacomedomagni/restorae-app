@@ -2,8 +2,10 @@
  * UnifiedSessionScreen
  * 
  * The main session screen that renders the appropriate player
- * based on the current activity type. Handles transitions,
- * progress tracking, and exit confirmation.
+ * based on the current activity type. Now enhanced with:
+ * - SessionFlowManager for adaptive mid-session check-ins
+ * - Emotional flow integration
+ * - Breathing transitions between activities
  */
 import React, { useCallback, useEffect } from 'react';
 import { View, StyleSheet, BackHandler } from 'react-native';
@@ -13,8 +15,15 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 
 import { useTheme } from '../contexts/ThemeContext';
 import { useSession } from '../contexts/SessionContext';
+import { useEmotionalFlow } from '../contexts/EmotionalFlowContext';
 import { AmbientBackground, ExitConfirmationModal } from '../components/ui';
-import { SessionHeader, ActivityTransition, ProgressDrawer } from '../components/session';
+import { 
+  SessionHeader, 
+  ActivityTransition, 
+  ProgressDrawer,
+  SessionFlowProvider,
+  SessionFlowManager 
+} from '../components/session';
 import {
   BreathingPlayer,
   GroundingPlayer,
@@ -259,71 +268,89 @@ export function UnifiedSessionScreen() {
   // Map queue to activities for ProgressDrawer
   const queueActivities = queue.map(q => q.activity);
 
+  // Determine session type for flow manager
+  const sessionType = currentActivity.type as 'breathing' | 'grounding' | 'focus' | 'journal' | 'reset';
+  
+  // Estimated duration for flow manager
+  const estimatedDuration = estimatedTimeRemaining + elapsedMinutes;
+
   return (
     <View style={[styles.container, { backgroundColor: colors.canvas }]}>
       <AmbientBackground variant={getAmbientVariant()} intensity="subtle" />
 
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        {/* Header */}
-        <SessionHeader
-          mode={mode}
-          activityName={currentActivity.name}
-          sessionName={sessionName}
-          progress={progress}
-          completedCount={completedActivities}
-          totalCount={queue.length}
-          onClose={handleClose}
-          onProgressTap={toggleProgressDrawer}
-        />
+      <SessionFlowProvider
+        config={{
+          sessionType,
+          estimatedDuration,
+          allowMidSessionCheckins: true,
+          checkInInterval: 5, // Check in every 5 minutes
+          allowDirectionChange: mode !== 'sos', // SOS is fixed, others can adapt
+        }}
+      >
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+          {/* Header */}
+          <SessionHeader
+            mode={mode}
+            activityName={currentActivity.name}
+            sessionName={sessionName}
+            progress={progress}
+            completedCount={completedActivities}
+            totalCount={queue.length}
+            onClose={handleClose}
+            onProgressTap={toggleProgressDrawer}
+          />
 
-        {/* Main Content - Player */}
-        <View style={styles.playerContainer}>
-          <Animated.View
-            key={`player-${currentActivity.id}-${currentIndex}`}
-            entering={reduceMotion ? undefined : FadeIn.duration(400)}
-            exiting={reduceMotion ? undefined : FadeOut.duration(200)}
-            style={styles.playerWrapper}
-          >
-            {renderPlayer()}
-          </Animated.View>
-        </View>
-      </SafeAreaView>
+          {/* Main Content - Player with Flow Manager */}
+          <SessionFlowManager>
+            <View style={styles.playerContainer}>
+              <Animated.View
+                key={`player-${currentActivity.id}-${currentIndex}`}
+                entering={reduceMotion ? undefined : FadeIn.duration(400)}
+                exiting={reduceMotion ? undefined : FadeOut.duration(200)}
+                style={styles.playerWrapper}
+              >
+                {renderPlayer()}
+              </Animated.View>
+            </View>
+          </SessionFlowManager>
+        </SafeAreaView>
 
-      {/* Transition Overlay */}
-      {isTransitioning && transitionTo && (
-        <ActivityTransition
-          completedActivity={currentActivity}
-          nextActivity={transitionTo}
+        {/* Transition Overlay */}
+        {isTransitioning && transitionTo && (
+          <ActivityTransition
+            completedActivity={currentActivity}
+            nextActivity={transitionTo}
+            currentIndex={currentIndex}
+            total={queue.length}
+            onContinue={handleTransitionComplete}
+            onEnd={() => exitSession(true)}
+          />
+        )}
+
+        {/* Progress Drawer */}
+        <ProgressDrawer
+          visible={showProgressDrawer}
+          queue={queueActivities}
           currentIndex={currentIndex}
-          total={queue.length}
-          onContinue={handleTransitionComplete}
-          onEnd={() => exitSession(true)}
+          onClose={toggleProgressDrawer}
+          onJumpTo={canSkip ? skipActivity : undefined}
         />
-      )}
 
-      {/* Progress Drawer */}
-      <ProgressDrawer
-        visible={showProgressDrawer}
-        queue={queueActivities}
-        currentIndex={currentIndex}
-        onClose={toggleProgressDrawer}
-        onJumpTo={canSkip ? skipActivity : undefined}
-      />
-
-      {/* Exit Confirmation Modal */}
-      <ExitConfirmationModal
-        visible={showExitConfirmation}
-        onConfirm={handleExitConfirm}
-        onCancel={handleExitCancel}
-        title={mode === 'ritual' ? 'Exit Ritual?' : mode === 'sos' ? 'Exit SOS?' : 'Exit Session?'}
-        message={
-          completedActivities > 0
-            ? `You've completed ${completedActivities} ${completedActivities === 1 ? 'activity' : 'activities'}. Your progress will be saved.`
-            : 'Are you sure you want to exit? Your progress will be lost.'
-        }
-        confirmText="Exit"
-        cancelText="Continue"
-      />
+        {/* Exit Confirmation Modal */}
+        <ExitConfirmationModal
+          visible={showExitConfirmation}
+          onConfirm={handleExitConfirm}
+          onCancel={handleExitCancel}
+          title={mode === 'ritual' ? 'Exit Ritual?' : mode === 'sos' ? 'Exit SOS?' : 'Exit Session?'}
+          message={
+            completedActivities > 0
+              ? `You've completed ${completedActivities} ${completedActivities === 1 ? 'activity' : 'activities'}. Your progress will be saved.`
+              : 'Are you sure you want to exit? Your progress will be lost.'
+          }
+          confirmText="Exit"
+          cancelText="Continue"
+        />
+      </SessionFlowProvider>
     </View>
   );
 }

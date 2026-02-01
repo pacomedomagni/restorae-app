@@ -5,9 +5,10 @@
  * and personalized recommendations.
  * 
  * UX Features:
- * - Simple streak display (minimal gamification)
+ * - Emotional flow system integration
+ * - Contextual, journey-aware micro-copy
+ * - Mood acknowledgment before navigation
  * - Personalized "For You" recommendations
- * - Simplified mood selection (4 options only)
  * - Time-aware greetings and content
  * - State-aware ritual card
  */
@@ -34,8 +35,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useHaptics } from '../hooks/useHaptics';
 import { useUISounds } from '../hooks/useUISounds';
 import { useTimeAwareContent } from '../hooks/useTimeAwareContent';
+import { useContextualCopy } from '../hooks/useContextualCopy';
 import { useTheme } from '../contexts/ThemeContext';
 import { useCoachMarks } from '../contexts/CoachMarkContext';
+import { useEmotionalFlow } from '../contexts/EmotionalFlowContext';
 import {
   Text,
   GlassCard,
@@ -83,6 +86,23 @@ export function HomeScreen() {
   const { impactMedium, impactLight, notificationSuccess } = useHaptics();
   const { playTap, playSuccess, playTransition } = useUISounds();
   const { shouldShowCoachMark, markAsShown } = useCoachMarks();
+  
+  // Emotional flow system
+  const { 
+    setMood: setEmotionalMood, 
+    acknowledgeMood,
+    setFlowState,
+    hasRecentSession,
+    temperature,
+  } = useEmotionalFlow();
+  
+  // Contextual copy for dynamic, journey-aware text
+  const { 
+    getGreeting, 
+    getMoodPrompt, 
+    journeySubtitle,
+    needsGentleness,
+  } = useContextualCopy();
 
   // Session recovery hook
   const {
@@ -163,6 +183,10 @@ export function HomeScreen() {
 
   // Use time-aware content for personalization
   const timeContent = useTimeAwareContent(userName);
+  
+  // Get contextual greeting and mood prompt
+  const contextualGreeting = getGreeting({ userName });
+  const moodPromptText = getMoodPrompt();
 
   // Pull to refresh handler
   const handleRefresh = async () => {
@@ -179,16 +203,22 @@ export function HomeScreen() {
     playTap();
     setSelectedMood(mood);
     
+    // Set mood in emotional flow system - this influences the entire app
+    setEmotionalMood(mood, 'medium', 'home_checkin');
+    acknowledgeMood();
+    
     // Record mood for personalization learning
     recommendations.recordMood(mood);
     
-    // Brief visual confirmation before navigation (user can see selection)
+    // Save last mood
     await AsyncStorage.setItem('@restorae/last_mood', mood);
-    // Allow user to see their selection before navigating
+    
+    // Navigate to acknowledgment screen for a moment of presence
+    // This creates the "breathing pause" before moving forward
     playTransition();
     setTimeout(() => {
-      navigation.navigate('MoodCheckin', { mood });
-    }, 400);
+      navigation.navigate('MoodAcknowledgment', { mood });
+    }, 300);
   };
 
   const handleStartRitual = async () => {
@@ -229,7 +259,7 @@ export function HomeScreen() {
           onRefresh={handleRefresh}
           refreshing={isRefreshing}
         >
-          {/* Header - Clean with subtle branding */}
+          {/* Header - Contextual, journey-aware greeting */}
           <Animated.View
             entering={reduceMotion ? undefined : FadeIn.duration(500)}
             style={styles.header}
@@ -238,12 +268,12 @@ export function HomeScreen() {
               <View style={styles.greetingContent}>
                 <View style={styles.greetingTitleRow}>
                   <Text variant="headlineLarge" color="ink">
-                    {timeContent.greeting}
+                    {contextualGreeting}
                   </Text>
                   <ConnectionStatusIndicator variant="dot" size="sm" />
                 </View>
                 <Text variant="bodySmall" color="inkMuted" style={{ marginTop: 2 }}>
-                  {timeContent.message.subheadline}
+                  {journeySubtitle}
                 </Text>
               </View>
               <Logo size="small" />
@@ -261,10 +291,10 @@ export function HomeScreen() {
           >
             <GlassCard variant="hero" padding="lg">
               <Text variant="headlineMedium" color="ink" style={styles.moodPrompt}>
-                How are you feeling?
+                {moodPromptText}
               </Text>
               <Text variant="bodyMedium" color="inkMuted" style={styles.moodSubtitle}>
-                Take a moment to check in with yourself
+                {needsGentleness ? "There's no rush" : "Take a moment to check in"}
               </Text>
 
               {isLoading ? (

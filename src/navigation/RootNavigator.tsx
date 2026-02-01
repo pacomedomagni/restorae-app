@@ -88,6 +88,7 @@ import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 
 // Mood & Ritual Screens
 import MoodHistoryScreen from '../screens/MoodHistoryScreen';
+import { MoodAcknowledgmentScreen } from '../screens/MoodAcknowledgmentScreen';
 import CreateRitualScreen from '../screens/CreateRitualScreen';
 import CustomRitualSessionScreen from '../screens/CustomRitualSessionScreen';
 import JournalSearchScreen from '../screens/JournalSearchScreen';
@@ -396,6 +397,15 @@ export function RootNavigator() {
           name="MoodCheckin" 
           component={MoodCheckinScreen} 
           options={{ animation: 'fade_from_bottom' }} 
+        />
+        <Stack.Screen 
+          name="MoodAcknowledgment" 
+          component={MoodAcknowledgmentScreen} 
+          options={{ 
+            animation: 'fade',
+            presentation: 'transparentModal',
+            gestureEnabled: false,
+          }} 
         />
         <Stack.Screen 
           name="MoodSelect" 

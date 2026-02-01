@@ -165,6 +165,7 @@ export type RootStackParamList = {
   Support: undefined;
   EditProfile: undefined;
   MoodCheckin: { mood?: MoodType; moodId?: string; moodLabel?: string };
+  MoodAcknowledgment: { mood?: MoodType };
   MoodSelect: undefined;
   MoodResult: { 
     mood?: MoodType; 

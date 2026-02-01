@@ -1,11 +1,10 @@
 /**
- * MoodResultScreen - Enhanced with gamification integration
+ * MoodResultScreen - Emotional Flow Enhanced
  * 
- * UX Improvements:
- * - XP reward for mood check-in
- * - Streak tracking
- * - Celebration animations
- * - Personalized suggestions
+ * Part of the breathing flow system:
+ * - Records session completion in emotional flow
+ * - Contextual messages based on journey
+ * - Personalized suggestions with smart recommendations
  */
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
@@ -16,7 +15,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useTheme } from '../contexts/ThemeContext';
 import { useMood } from '../contexts/MoodContext';
-import { useHaptics } from '../hooks/useHaptics';
+import { useEmotionalFlow } from '../contexts/EmotionalFlowContext';
+import { useHaptics, useContextualCopy } from '../hooks';
 import { Text, Button, GlassCard, AmbientBackground, MoodOrb, Confetti } from '../components/ui';
 import { spacing, layout, withAlpha } from '../theme';
 import { gamification, Achievement } from '../services/gamification';
@@ -76,6 +76,8 @@ const MOOD_LABELS: Record<MoodType, string> = {
 export function MoodResultScreen() {
   const { reduceMotion, colors } = useTheme();
   const { addMoodEntry } = useMood();
+  const { recordSessionComplete } = useEmotionalFlow();
+  const { getEncouragement, getMoodAcknowledgment } = useContextualCopy();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'MoodResult'>>();
   const { notificationSuccess } = useHaptics();
@@ -83,6 +85,10 @@ export function MoodResultScreen() {
   const mood = (route.params?.mood || 'calm') as MoodType;
   const note = route.params?.note;
   const moodInfo = MOOD_DATA[mood] || MOOD_DATA.calm;
+  
+  // Get contextual messaging
+  const acknowledgment = getMoodAcknowledgment(mood);
+  const encouragement = getEncouragement();
 
   const [showConfetti, setShowConfetti] = useState(false);
   const [xpEarned, setXpEarned] = useState(0);
@@ -112,6 +118,9 @@ export function MoodResultScreen() {
       
       // Record mood for recommendations
       recommendations.recordMood(mood);
+      
+      // Record in emotional flow (mood check-in counts as a micro-session)
+      recordSessionComplete('mood', mood);
 
       // Log activity to backend
       await activityLogger.logActivity({
@@ -207,7 +216,7 @@ export function MoodResultScreen() {
           <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(300).duration(400)}>
             <GlassCard variant="elevated" padding="lg" glow="calm">
               <Text variant="headlineLarge" color="ink" align="center">
-                {moodInfo.message}
+                {acknowledgment}
               </Text>
               <Text variant="bodyLarge" color="inkMuted" align="center" style={styles.suggestion}>
                 {moodInfo.suggestion}

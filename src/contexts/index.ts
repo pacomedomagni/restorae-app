@@ -47,6 +47,22 @@ export type {
 export { CoachMarkProvider, useCoachMarks, COACH_MARKS } from './CoachMarkContext';
 export type { CoachMarkId, CoachMark } from './CoachMarkContext';
 
+// Emotional Flow System - The heart of the experience
+export { 
+  EmotionalFlowProvider, 
+  useEmotionalFlow, 
+  useEmotionalTemperature 
+} from './EmotionalFlowContext';
+export type { 
+  EmotionalIntensity, 
+  FlowState, 
+  AmbientMood, 
+  EmotionalMoment,
+  EmotionalPattern,
+  EmotionalJourney,
+  EmotionalTemperature,
+} from './EmotionalFlowContext';
+
 // Toast notifications
 export { ToastProvider, useToast } from './ToastContext';
 

@@ -1,10 +1,10 @@
 /**
- * MoodCheckinScreen - Consistent UI with visual mood continuity
+ * MoodCheckinScreen - Emotional Flow Enhanced
  * 
- * UX Improvements:
- * - Optional badge for note field
- * - Character counter with auto-save indication
- * - Improved form labels
+ * Now part of the breathing flow system:
+ * - Receives user after acknowledgment pause
+ * - Contextual prompts based on mood and journey
+ * - Gentle transitions to results
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, StyleSheet, TextInput } from 'react-native';
@@ -13,6 +13,7 @@ import Animated, { FadeIn, FadeInDown, FadeInUp, ZoomIn } from 'react-native-rea
 import { useNavigation, useRoute, NavigationProp, RouteProp } from '@react-navigation/native';
 
 import { useTheme } from '../contexts/ThemeContext';
+import { useEmotionalFlow } from '../contexts/EmotionalFlowContext';
 import { 
   Text, 
   Button, 
@@ -25,7 +26,7 @@ import {
   OptionalBadge,
 } from '../components/ui';
 import { spacing, layout } from '../theme';
-import { useHaptics } from '../hooks/useHaptics';
+import { useHaptics, useContextualCopy } from '../hooks';
 import type { RootStackParamList, MoodType } from '../types';
 
 const MOOD_LABELS: Record<MoodType, string> = {
@@ -45,12 +46,19 @@ export function MoodCheckinScreen() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'MoodCheckin'>>();
   const { notificationSuccess } = useHaptics();
+  const { emotionalState } = useEmotionalFlow();
+  const { getJournalPrompt, getEncouragement } = useContextualCopy();
+  
   const [note, setNote] = useState('');
   const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const mood = (route.params?.mood || 'calm') as MoodType;
   const palette = colors;
+  
+  // Contextual prompts based on mood and journey
+  const journalPrompt = getJournalPrompt(mood);
+  const encouragement = getEncouragement();
 
   // Auto-save simulation
   const triggerAutoSave = useCallback(() => {
@@ -122,7 +130,7 @@ export function MoodCheckinScreen() {
               Feeling {MOOD_LABELS[mood].toLowerCase()}
             </Text>
             <Text variant="bodyMedium" color="inkMuted" align="center" style={styles.subtitle}>
-              What's contributing to this feeling?
+              {journalPrompt}
             </Text>
           </Animated.View>
 
@@ -141,7 +149,7 @@ export function MoodCheckinScreen() {
                   styles.textInput,
                   { color: palette.ink, borderColor: palette.border }
                 ]}
-                placeholder="Write about what's on your mind..."
+                placeholder={journalPrompt}
                 placeholderTextColor={palette.inkMuted}
                 multiline
                 numberOfLines={6}

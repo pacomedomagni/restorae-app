@@ -31,6 +31,7 @@ import { RitualsProvider } from './src/contexts/RitualsContext';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { CoachMarkProvider } from './src/contexts/CoachMarkContext';
 import { SessionProvider } from './src/contexts/SessionContext';
+import { EmotionalFlowProvider } from './src/contexts/EmotionalFlowContext';
 import { ToastProvider } from './src/contexts/ToastContext';
 import { AccessibilityAnnouncerProvider } from './src/contexts/AccessibilityContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
@@ -126,20 +127,22 @@ export default function App() {
                       <RitualsProvider>
                         <AppLockProvider>
                           <CoachMarkProvider>
-                            <SessionProvider>
-                              <ToastProvider>
-                                <AccessibilityAnnouncerProvider>
-                                  <SharedTransitionProvider>
-                                    <ErrorBoundary
-                                    errorTitle="Something went wrong"
-                                    errorDescription="Restorae encountered an unexpected error. Please restart the app."
-                                  >
-                                    <AppContent />
-                                  </ErrorBoundary>
-                                  </SharedTransitionProvider>
-                                </AccessibilityAnnouncerProvider>
-                              </ToastProvider>
-                            </SessionProvider>
+                            <EmotionalFlowProvider>
+                              <SessionProvider>
+                                <ToastProvider>
+                                  <AccessibilityAnnouncerProvider>
+                                    <SharedTransitionProvider>
+                                      <ErrorBoundary
+                                      errorTitle="Something went wrong"
+                                      errorDescription="Restorae encountered an unexpected error. Please restart the app."
+                                    >
+                                      <AppContent />
+                                    </ErrorBoundary>
+                                    </SharedTransitionProvider>
+                                  </AccessibilityAnnouncerProvider>
+                                </ToastProvider>
+                              </SessionProvider>
+                            </EmotionalFlowProvider>
                           </CoachMarkProvider>
                         </AppLockProvider>
                       </RitualsProvider>
