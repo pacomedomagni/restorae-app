@@ -109,3 +109,10 @@ export { ConnectionStatusIndicator } from './ConnectionStatusIndicator';
 
 // Smooth content transitions (skeleton to content)
 export { SmoothContentTransition } from './Skeleton';
+
+// Premium UX Components
+export { QuickAccessBar } from './QuickAccessBar';
+export { MilestoneToast } from './MilestoneToast';
+export { SuccessToast } from './SuccessToast';
+export { PremiumEmptyState } from './PremiumEmptyState';
+export { FavoriteButton } from './FavoriteButton';

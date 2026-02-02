@@ -338,6 +338,37 @@ const styles = StyleSheet.create({
   rightSection: {
     flex: 1,
   },
+  levelBadge: {
+    justifyContent: 'center',
+  },
+  levelBadgeInner: {
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: borderRadius.md,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  levelShimmer: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.15,
+  },
+  xpContainer: {
+    marginTop: spacing[1],
+  },
+  xpBar: {
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  xpProgress: {
+    height: '100%',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  xpText: {
+    marginTop: spacing[1],
+  },
 });
 
 export default StreakBanner;

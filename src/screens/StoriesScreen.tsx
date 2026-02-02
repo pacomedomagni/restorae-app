@@ -38,7 +38,7 @@ import {
   GlassCard,
   AmbientBackground,
   TabSafeScrollView,
-  EmptyState,
+  PremiumEmptyState,
   Skeleton,
   SkeletonCard,
   OfflineBanner,
@@ -559,10 +559,11 @@ export function StoriesScreen() {
                 ))}
               </View>
             ) : (
-              <EmptyState
-                icon="reset"
+              <PremiumEmptyState
+                variant="search"
                 title="No stories found"
-                description="Try selecting a different category"
+                subtitle="Try selecting a different category to explore more content"
+                compact
               />
             )}
           </View>

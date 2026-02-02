@@ -106,24 +106,27 @@ describe('API Service', () => {
 
   describe('Request Interceptors', () => {
     it('should add authorization header when token exists', () => {
-      require('../../services/api').default;
+      const api = require('../../services/api').default;
       // Verify interceptors are set up
+      expect(api).toBeDefined();
       expect(mockAxiosInstance.interceptors.request.use).toHaveBeenCalled();
     });
   });
 
   describe('Error Handling', () => {
     it('should handle 401 errors and attempt token refresh', () => {
-      require('../../services/api').default;
+      const api = require('../../services/api').default;
       // Verify response interceptor is set up for error handling
+      expect(api).toBeDefined();
       expect(mockAxiosInstance.interceptors.response.use).toHaveBeenCalled();
     });
   });
 
   describe('API Endpoints', () => {
     it('should have correct base URL structure', () => {
-      require('../../services/api').default;
+      const api = require('../../services/api').default;
       const axios = require('axios');
+      expect(api).toBeDefined();
       expect(axios.create).toHaveBeenCalled();
     });
   });

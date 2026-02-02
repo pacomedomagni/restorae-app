@@ -13,7 +13,6 @@ import Animated, { FadeIn, FadeInDown, FadeInUp, ZoomIn } from 'react-native-rea
 import { useNavigation, useRoute, NavigationProp, RouteProp } from '@react-navigation/native';
 
 import { useTheme } from '../contexts/ThemeContext';
-import { useEmotionalFlow } from '../contexts/EmotionalFlowContext';
 import { 
   Text, 
   Button, 
@@ -46,7 +45,6 @@ export function MoodCheckinScreen() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'MoodCheckin'>>();
   const { notificationSuccess } = useHaptics();
-  const { emotionalState } = useEmotionalFlow();
   const { getJournalPrompt, getEncouragement } = useContextualCopy();
   
   const [note, setNote] = useState('');

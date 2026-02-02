@@ -177,15 +177,21 @@ const MOOD_CATEGORIES = {
   challenging: ['anxious', 'low', 'tough'] as MoodType[],
 };
 
-const MOOD_ENERGY = {
-  high: ['energized', 'anxious'] as MoodType[],
-  medium: ['good', 'tough'] as MoodType[],
-  low: ['calm', 'low'] as MoodType[],
-};
-
 // =============================================================================
 // HELPERS
 // =============================================================================
+
+function isMoodType(value: unknown): value is MoodType {
+  return (
+    typeof value === 'string' &&
+    (MOOD_CATEGORIES.positive.includes(value as MoodType) ||
+      MOOD_CATEGORIES.challenging.includes(value as MoodType))
+  );
+}
+
+function isEmotionalIntensity(value: unknown): value is EmotionalIntensity {
+  return value === 'low' || value === 'medium' || value === 'high';
+}
 
 function calculateAmbientMood(mood: MoodType | null, intensity: EmotionalIntensity): AmbientMood {
   if (!mood) return 'neutral';
@@ -312,17 +318,20 @@ function emotionalFlowReducer(
 ): EmotionalFlowState {
   switch (action.type) {
     case 'HYDRATE': {
+      const hydratedMood = action.payload.currentMood ?? state.currentMood;
+      const hydratedIntensity = action.payload.currentIntensity ?? state.currentIntensity;
+      const hasPersistedData = Object.keys(action.payload).length > 0;
+      const nextFlowState: FlowState = hasPersistedData ? 'returning' : 'arriving';
+
       return {
         ...state,
         ...action.payload,
         isHydrated: true,
-        // Recalculate temperature based on hydrated mood
-        temperature: calculateTemperature(
-          action.payload.currentMood ?? state.currentMood,
-          action.payload.currentIntensity ?? state.currentIntensity,
-          'arriving'
-        ),
-        flowState: 'returning',
+        isAcknowledgingMood: false,
+        pendingAcknowledgment: null,
+        flowState: nextFlowState,
+        ambientMood: calculateAmbientMood(hydratedMood, hydratedIntensity),
+        temperature: calculateTemperature(hydratedMood, hydratedIntensity, nextFlowState),
       };
     }
 
@@ -489,6 +498,7 @@ interface EmotionalFlowContextType extends EmotionalFlowState {
   completeAcknowledgment: () => void;
   setFlowState: (state: FlowState) => void;
   completeSession: () => void;
+  recordSessionComplete: (sessionType: string, mood?: MoodType) => void;
   updateJourney: (updates: Partial<EmotionalJourney>) => void;
   recordReliefMoment: () => void;
   
@@ -509,18 +519,61 @@ const EmotionalFlowContext = createContext<EmotionalFlowContextType | undefined>
 
 const STORAGE_KEY = '@restorae/emotional_flow';
 
-async function persistState(state: EmotionalFlowState) {
+type PersistedEmotionalFlowStateV1 = {
+  v: 1;
+  currentMood: MoodType | null;
+  currentIntensity: EmotionalIntensity;
+  recentMoments: EmotionalMoment[];
+  lastSessionCompletedAt: number | null;
+  lastMoodCheckInAt: number | null;
+  journey: EmotionalJourney;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function normalizeJourney(value: unknown): EmotionalJourney {
+  if (!isRecord(value)) return DEFAULT_JOURNEY;
+
+  return {
+    ...DEFAULT_JOURNEY,
+    startDate: typeof value.startDate === 'string' ? value.startDate : null,
+    totalCheckIns: typeof value.totalCheckIns === 'number' ? value.totalCheckIns : 0,
+    totalSessions: typeof value.totalSessions === 'number' ? value.totalSessions : 0,
+    reliefMoments: typeof value.reliefMoments === 'number' ? value.reliefMoments : 0,
+    goals: Array.isArray(value.goals) ? (value.goals.filter((g) => typeof g === 'string') as string[]) : [],
+    insights: Array.isArray(value.insights)
+      ? (value.insights.filter((i) => typeof i === 'string') as string[])
+      : [],
+  };
+}
+
+function normalizeMoments(value: unknown): EmotionalMoment[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .filter((m): m is Record<string, unknown> => isRecord(m))
+    .map((m) => {
+      const mood = isMoodType(m.mood) ? m.mood : null;
+      if (!mood) return null;
+
+      const intensity: EmotionalIntensity = isEmotionalIntensity(m.intensity) ? m.intensity : 'medium';
+      return {
+        mood,
+        intensity,
+        timestamp: typeof m.timestamp === 'number' ? m.timestamp : Date.now(),
+        ...(typeof m.context === 'string' ? { context: m.context } : {}),
+        acknowledged: typeof m.acknowledged === 'boolean' ? m.acknowledged : false,
+      } as EmotionalMoment;
+    })
+    .filter((m): m is EmotionalMoment => m !== null)
+    .slice(0, 30);
+}
+
+async function persistState(persisted: PersistedEmotionalFlowStateV1) {
   try {
-    const persistable = {
-      currentMood: state.currentMood,
-      currentIntensity: state.currentIntensity,
-      recentMoments: state.recentMoments.slice(0, 30),
-      lastSessionCompletedAt: state.lastSessionCompletedAt,
-      lastMoodCheckInAt: state.lastMoodCheckInAt,
-      journey: state.journey,
-      patterns: state.patterns,
-    };
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(persistable));
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
   } catch (e) {
     console.warn('Failed to persist emotional flow state:', e);
   }
@@ -530,7 +583,30 @@ async function loadState(): Promise<Partial<EmotionalFlowState> | null> {
   try {
     const json = await AsyncStorage.getItem(STORAGE_KEY);
     if (json) {
-      return JSON.parse(json);
+      const parsed: unknown = JSON.parse(json);
+      if (!isRecord(parsed)) return null;
+
+      const legacyOrV1 = parsed;
+
+      const currentMood = isMoodType(legacyOrV1.currentMood) ? legacyOrV1.currentMood : null;
+      const currentIntensity: EmotionalIntensity = isEmotionalIntensity(legacyOrV1.currentIntensity)
+        ? legacyOrV1.currentIntensity
+        : 'medium';
+      const recentMoments = normalizeMoments(legacyOrV1.recentMoments);
+      const journey = normalizeJourney(legacyOrV1.journey);
+      const lastSessionCompletedAt =
+        typeof legacyOrV1.lastSessionCompletedAt === 'number' ? legacyOrV1.lastSessionCompletedAt : null;
+      const lastMoodCheckInAt =
+        typeof legacyOrV1.lastMoodCheckInAt === 'number' ? legacyOrV1.lastMoodCheckInAt : null;
+
+      return {
+        currentMood,
+        currentIntensity,
+        recentMoments,
+        journey,
+        lastSessionCompletedAt,
+        lastMoodCheckInAt,
+      };
     }
   } catch (e) {
     console.warn('Failed to load emotional flow state:', e);
@@ -642,19 +718,51 @@ export function EmotionalFlowProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // Persist state changes
+  const persistableState: PersistedEmotionalFlowStateV1 = useMemo(
+    () => ({
+      v: 1,
+      currentMood: state.currentMood,
+      currentIntensity: state.currentIntensity,
+      recentMoments: state.recentMoments.slice(0, 30),
+      lastSessionCompletedAt: state.lastSessionCompletedAt,
+      lastMoodCheckInAt: state.lastMoodCheckInAt,
+      journey: state.journey,
+    }),
+    [
+      state.currentMood,
+      state.currentIntensity,
+      state.recentMoments,
+      state.lastSessionCompletedAt,
+      state.lastMoodCheckInAt,
+      state.journey,
+    ]
+  );
+
+  // Persist meaningful state changes (avoid persisting computed patterns every minute)
   useEffect(() => {
     if (state.isHydrated) {
-      persistState(state);
+      persistState(persistableState);
     }
-  }, [state]);
+  }, [state.isHydrated, persistableState]);
 
-  // Update patterns periodically
+  // Update patterns on relevant changes
   useEffect(() => {
     if (state.isHydrated) {
       dispatch({ type: 'UPDATE_PATTERNS' });
     }
   }, [state.recentMoments.length, state.isHydrated]);
+
+  // Update time-based patterns periodically
+  useEffect(() => {
+    if (!state.isHydrated) return;
+
+    dispatch({ type: 'UPDATE_PATTERNS' });
+    const intervalId = setInterval(() => {
+      dispatch({ type: 'UPDATE_PATTERNS' });
+    }, 60 * 1000);
+
+    return () => clearInterval(intervalId);
+  }, [state.isHydrated]);
 
   // Actions
   const setMood = useCallback((mood: MoodType, intensity?: EmotionalIntensity, context?: string) => {
@@ -674,6 +782,10 @@ export function EmotionalFlowProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const completeSession = useCallback(() => {
+    dispatch({ type: 'COMPLETE_SESSION' });
+  }, []);
+
+  const recordSessionComplete = useCallback((_sessionType: string, _mood?: MoodType) => {
     dispatch({ type: 'COMPLETE_SESSION' });
   }, []);
 
@@ -723,6 +835,7 @@ export function EmotionalFlowProvider({ children }: { children: ReactNode }) {
     completeAcknowledgment,
     setFlowState,
     completeSession,
+    recordSessionComplete,
     updateJourney,
     recordReliefMoment,
     needsGentleness,
@@ -738,6 +851,7 @@ export function EmotionalFlowProvider({ children }: { children: ReactNode }) {
     completeAcknowledgment,
     setFlowState,
     completeSession,
+    recordSessionComplete,
     updateJourney,
     recordReliefMoment,
     needsGentleness,

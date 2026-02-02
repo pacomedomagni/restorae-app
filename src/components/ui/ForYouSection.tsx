@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import Animated, {
   FadeIn,
+  FadeInDown,
   FadeInRight,
   FadeInUp,
   useSharedValue,

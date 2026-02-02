@@ -73,7 +73,6 @@ interface LogoIconProps {
   size: number;
   primaryColor: string;
   secondaryColor: string;
-  veinColor: string;
 }
 
 function LogoIcon({ size, primaryColor, secondaryColor }: LogoIconProps) {

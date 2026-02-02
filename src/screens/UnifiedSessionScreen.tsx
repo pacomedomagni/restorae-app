@@ -6,8 +6,9 @@
  * - SessionFlowManager for adaptive mid-session check-ins
  * - Emotional flow integration
  * - Breathing transitions between activities
+ * - Milestone celebrations at progress points
  */
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, StyleSheet, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useKeepAwake } from 'expo-keep-awake';
@@ -16,7 +17,7 @@ import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useTheme } from '../contexts/ThemeContext';
 import { useSession } from '../contexts/SessionContext';
 import { useEmotionalFlow } from '../contexts/EmotionalFlowContext';
-import { AmbientBackground, ExitConfirmationModal } from '../components/ui';
+import { AmbientBackground, ExitConfirmationModal, MilestoneToast } from '../components/ui';
 import { 
   SessionHeader, 
   ActivityTransition, 
@@ -39,6 +40,7 @@ import {
   ResetConfig 
 } from '../types/session';
 import { useHaptics } from '../hooks/useHaptics';
+import { useSessionMilestones } from '../hooks/useSessionMilestones';
 import { spacing } from '../theme';
 
 // =============================================================================
@@ -71,6 +73,17 @@ export function UnifiedSessionScreen() {
   useKeepAwake();
   const { colors, reduceMotion } = useTheme();
   const { impactMedium } = useHaptics();
+
+  // Milestone celebrations
+  const {
+    currentMilestone,
+    showMilestone,
+    checkMilestone,
+    dismissMilestone,
+    reset: resetMilestones,
+  } = useSessionMilestones({
+    sessionType: 'breathing', // Will be dynamically set based on activity
+  });
 
   const {
     mode,
@@ -108,6 +121,20 @@ export function UnifiedSessionScreen() {
     ? Math.floor((Date.now() - sessionStartTime) / 60000) 
     : 0;
   const shouldConfirmExit = elapsedMinutes >= 3;
+
+  // Check for milestones when progress changes
+  useEffect(() => {
+    if (progress > 0) {
+      checkMilestone(progress * 100); // Convert 0-1 to 0-100
+    }
+  }, [progress, checkMilestone]);
+
+  // Reset milestones when session starts fresh
+  useEffect(() => {
+    if (status === 'idle') {
+      resetMilestones();
+    }
+  }, [status, resetMilestones]);
 
   // Handle hardware back button
   useEffect(() => {
@@ -350,6 +377,15 @@ export function UnifiedSessionScreen() {
           confirmText="Exit"
           cancelText="Continue"
         />
+
+        {/* Milestone Celebration Toast */}
+        {currentMilestone && (
+          <MilestoneToast
+            visible={showMilestone}
+            milestone={currentMilestone}
+            onDismiss={dismissMilestone}
+          />
+        )}
       </SessionFlowProvider>
     </View>
   );

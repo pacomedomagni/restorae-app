@@ -446,7 +446,9 @@ class AnalyticsService {
       await this.saveQueue();
       
       if (__DEV__) {
-        logger.warn('Analytics flush failed, events re-queued:', error);
+        logger.warn('Analytics flush failed, events re-queued', {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     }
   }

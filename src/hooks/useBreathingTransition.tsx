@@ -229,7 +229,7 @@ export function useBreathingTransition(): BreathingTransitionReturn {
 
       // Navigate after out animation + pause
       setTimeout(() => {
-        // @ts-ignore - dynamic navigation
+        // @ts-expect-error - dynamic navigation
         navigation.navigate(screen, params);
 
         // Haptic at end

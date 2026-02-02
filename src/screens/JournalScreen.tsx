@@ -33,7 +33,7 @@ import { useJournal } from '../contexts/JournalContext';
 import {
   Text,
   AmbientBackground,
-  Modal,
+  SwipeableModal,
 } from '../components/ui';
 import { spacing, layout, withAlpha } from '../theme';
 import { RootStackParamList } from '../types';
@@ -98,7 +98,7 @@ export function JournalScreen() {
   const { colors, isDark, reduceMotion } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { impactMedium, notificationSuccess } = useHaptics();
-  const { addEntry } = useJournal();
+  const { createEntry } = useJournal();
 
   const [content, setContent] = useState('');
   const [showInfoModal, setShowInfoModal] = useState(false);
@@ -115,9 +115,10 @@ export function JournalScreen() {
     await impactMedium();
     
     try {
-      await addEntry({
+      await createEntry({
         content: content.trim(),
-        createdAt: new Date().toISOString(),
+        isEncrypted: false,
+        isLocked: false,
       });
       await notificationSuccess();
       setContent('');
@@ -127,7 +128,7 @@ export function JournalScreen() {
     } finally {
       setIsSaving(false);
     }
-  }, [content, hasContent, isSaving, addEntry, impactMedium, notificationSuccess]);
+  }, [content, hasContent, isSaving, createEntry, impactMedium, notificationSuccess]);
 
   const handleSearch = () => {
     navigation.navigate('JournalSearch');
@@ -211,12 +212,15 @@ export function JournalScreen() {
       </SafeAreaView>
 
       {/* Info Modal */}
-      <Modal
+      <SwipeableModal
         visible={showInfoModal}
-        onClose={() => setShowInfoModal(false)}
-        title="Your Journal"
+        onDismiss={() => setShowInfoModal(false)}
+        heightRatio={0.45}
       >
         <View style={styles.infoContent}>
+          <Text variant="headlineSmall" color="ink" style={{ marginBottom: spacing[3] }}>
+            Your Journal
+          </Text>
           <Text variant="bodyMedium" color="ink" style={styles.infoParagraph}>
             This is your private space. Write freely without judgment.
           </Text>
@@ -252,7 +256,7 @@ export function JournalScreen() {
             </Text>
           </Pressable>
         </View>
-      </Modal>
+      </SwipeableModal>
     </View>
   );
 }

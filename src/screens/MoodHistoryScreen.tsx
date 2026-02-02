@@ -29,7 +29,7 @@ import {
   AmbientBackground,
   ScreenHeader,
   MoodOrb,
-  EmptyState,
+  PremiumEmptyState,
   SkeletonMoodEntry,
   SkeletonWeeklyActivity,
   SkeletonStatCard,
@@ -434,12 +434,12 @@ export function MoodHistoryScreen() {
                 <SkeletonMoodEntry />
               </>
             ) : filteredEntries.length === 0 ? (
-              <EmptyState
-                icon="journal"
+              <PremiumEmptyState
+                variant="mood"
                 title="No mood entries yet"
-                description="Start tracking your mood to see your emotional journey here. It only takes a moment."
-                encouragement="Your feelings matter"
-                variant="card"
+                subtitle="Start tracking your mood to see your emotional journey here. It only takes a moment."
+                actionLabel="Check in now"
+                onAction={() => {/* Navigate to mood check-in */}}
               />
             ) : (
               filteredEntries.slice(0, 20).map((entry, index) => (

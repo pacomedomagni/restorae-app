@@ -81,7 +81,19 @@ export { useSessionRecovery } from './useSessionRecovery';
 export { useOptimisticUpdate, useOptimisticList } from './useOptimisticUpdate';
 
 // Breathing transitions for emotional flow
-export { useBreathingTransition, TransitionOverlay } from './useBreathingTransition';
+export { useBreathingTransition } from './useBreathingTransition';
 
 // Contextual micro-copy that responds to emotional state
 export { useContextualCopy } from './useContextualCopy';
+
+// Favorites/Quick Access
+export { useFavorites, type FavoriteItem } from './useFavorites';
+
+// Time-adaptive theming (color temperature based on time of day)
+export { useTimeAdaptiveTheme, type TimeOfDay as AdaptiveTimeOfDay } from './useTimeAdaptiveTheme';
+
+// Session milestone celebrations
+export { useSessionMilestones, type Milestone, type MilestoneType } from './useSessionMilestones';
+
+// Smart haptics (time & context aware)
+export { useSmartHaptics, type HapticIntensity, type HapticContext } from './useSmartHaptics';

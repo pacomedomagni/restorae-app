@@ -8,12 +8,13 @@ interface LuxeIconProps {
   color?: string;
 }
 
-type LuxeIconName =
+export type LuxeIconName =
   | 'breathe'
   | 'ground'
   | 'reset'
   | 'focus'
   | 'journal'
+  | 'stories'
   | 'sos'
   | 'tools';
 
@@ -54,6 +55,15 @@ export function LuxeIcon({ name, size = 24, color }: LuxeIconProps) {
         <Line x1="12" y1="12" x2="20" y2="12" stroke={stroke} strokeWidth="1.4" strokeLinecap="round" />
         <Line x1="12" y1="16" x2="20" y2="16" stroke={stroke} strokeWidth="1.4" strokeLinecap="round" />
         <Line x1="12" y1="20" x2="18" y2="20" stroke={stroke} strokeWidth="1.4" strokeLinecap="round" />
+      </Svg>
+    ),
+    stories: (
+      <Svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+        <Rect x="7" y="8" width="18" height="18" rx="3" stroke={stroke} strokeWidth="1.6" />
+        <Line x1="12" y1="12" x2="20" y2="12" stroke={stroke} strokeWidth="1.4" strokeLinecap="round" />
+        <Line x1="12" y1="16" x2="20" y2="16" stroke={stroke} strokeWidth="1.4" strokeLinecap="round" />
+        <Circle cx="24" cy="10" r="4" stroke={stroke} strokeWidth="1.4" />
+        <Path d="M26 10C26 8.9 25.1 8 24 8" stroke={stroke} strokeWidth="1.4" strokeLinecap="round" />
       </Svg>
     ),
     sos: (

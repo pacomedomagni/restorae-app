@@ -7,6 +7,15 @@ import { light, dark, gradients, shadows, ColorTokens, GradientTokens, ShadowTok
 // TYPES
 // =============================================================================
 type ThemeMode = 'light' | 'dark' | 'system';
+export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night';
+
+interface TimeAdaptiveState {
+  timeOfDay: TimeOfDay;
+  warmOverlay: string;
+  warmOverlayIntensity: number;
+  isNightMode: boolean;
+  shouldReduceBlueLight: boolean;
+}
 
 interface ThemeContextType {
   // Current resolved colors
@@ -18,6 +27,9 @@ interface ThemeContextType {
   mode: ThemeMode;
   isDark: boolean;
   reduceMotion: boolean;
+  
+  // Time-adaptive state
+  timeAdaptive: TimeAdaptiveState;
   
   // Actions
   setMode: (mode: ThemeMode) => void;
@@ -31,6 +43,50 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 const STORAGE_KEY = '@restorae/theme_mode';
 
 // =============================================================================
+// TIME-ADAPTIVE HELPERS
+// =============================================================================
+function getTimeOfDay(hour: number): TimeOfDay {
+  if (hour >= 5 && hour < 11) return 'morning';
+  if (hour >= 11 && hour < 17) return 'afternoon';
+  if (hour >= 17 && hour < 21) return 'evening';
+  return 'night';
+}
+
+function getTimeAdaptiveState(hour: number, isDark: boolean): TimeAdaptiveState {
+  const timeOfDay = getTimeOfDay(hour);
+  
+  let warmOverlay: string;
+  let warmOverlayIntensity: number;
+  
+  switch (timeOfDay) {
+    case 'morning':
+      warmOverlay = isDark ? 'rgba(111, 160, 139, 0.03)' : 'rgba(31, 77, 58, 0.02)';
+      warmOverlayIntensity = 0.02;
+      break;
+    case 'afternoon':
+      warmOverlay = 'transparent';
+      warmOverlayIntensity = 0;
+      break;
+    case 'evening':
+      warmOverlay = isDark ? 'rgba(224, 178, 122, 0.04)' : 'rgba(200, 146, 74, 0.03)';
+      warmOverlayIntensity = 0.04;
+      break;
+    case 'night':
+      warmOverlay = isDark ? 'rgba(224, 178, 122, 0.06)' : 'rgba(200, 146, 74, 0.05)';
+      warmOverlayIntensity = 0.06;
+      break;
+  }
+  
+  return {
+    timeOfDay,
+    warmOverlay,
+    warmOverlayIntensity,
+    isNightMode: timeOfDay === 'night',
+    shouldReduceBlueLight: timeOfDay === 'night' || timeOfDay === 'evening',
+  };
+}
+
+// =============================================================================
 // PROVIDER
 // =============================================================================
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -38,6 +94,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<ThemeMode>('light');
   const [isLoaded, setIsLoaded] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
+  const [currentHour, setCurrentHour] = useState(new Date().getHours());
 
   // Load saved preference on mount with error handling
   useEffect(() => {
@@ -65,6 +122,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(timeout);
   }, []);
 
+  // Update current hour every minute for time-adaptive theme
+  useEffect(() => {
+    const updateHour = () => setCurrentHour(new Date().getHours());
+    const interval = setInterval(updateHour, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
     const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
@@ -85,6 +149,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return mode === 'dark';
   }, [mode, systemScheme]);
 
+  // Compute time-adaptive state
+  const timeAdaptive = useMemo(() => 
+    getTimeAdaptiveState(currentHour, isDark),
+    [currentHour, isDark]
+  );
+
   // Memoize theme values for performance
   const value = useMemo<ThemeContextType>(() => ({
     colors: isDark ? dark : light,
@@ -93,8 +163,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     mode,
     isDark,
     reduceMotion,
+    timeAdaptive,
     setMode,
-  }), [isDark, mode, reduceMotion]);
+  }), [isDark, mode, reduceMotion, timeAdaptive]);
 
   // Prevent flash of wrong theme
   if (!isLoaded) {

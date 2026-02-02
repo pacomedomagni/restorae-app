@@ -51,6 +51,16 @@ export type CheckInTrigger =
   | 'user_pause'      // User paused
   | 'struggle_detected'; // Detected user might be struggling
 
+export interface SessionFlowConfig {
+  sessionType: 'breathing' | 'grounding' | 'focus' | 'journal' | 'reset';
+  /** Estimated duration in minutes */
+  estimatedDuration: number;
+  allowMidSessionCheckins?: boolean;
+  /** Check-in interval in minutes */
+  checkInInterval?: number;
+  allowDirectionChange?: boolean;
+}
+
 export interface CheckInResponse {
   feeling: 'better' | 'same' | 'struggling';
   wantsToAdjust: boolean;
@@ -111,6 +121,7 @@ const SessionFlowContext = createContext<SessionFlowContextType | undefined>(und
 
 interface SessionFlowProviderProps {
   children: ReactNode;
+  config?: SessionFlowConfig;
   /** Minimum time before first check-in (seconds) */
   minTimeBeforeCheckIn?: number;
   /** Enable automatic check-ins */
@@ -119,15 +130,20 @@ interface SessionFlowProviderProps {
 
 export function SessionFlowProvider({
   children,
+  config,
   minTimeBeforeCheckIn = 180, // 3 minutes
   autoCheckIn = true,
 }: SessionFlowProviderProps) {
   const { currentMood, temperature, needsGentleness, recordReliefMoment } = useEmotionalFlow();
+
+  const effectiveAutoCheckIn = config?.allowMidSessionCheckins === false ? false : autoCheckIn;
+  const effectiveMinTimeBeforeCheckIn =
+    typeof config?.checkInInterval === 'number' ? config.checkInInterval * 60 : minTimeBeforeCheckIn;
   
   const [state, setState] = useState<SessionFlowState>({
     phase: 'beginning',
     elapsedSeconds: 0,
-    estimatedTotalSeconds: 0,
+    estimatedTotalSeconds: config ? Math.round(config.estimatedDuration * 60) : 0,
     checkInsShown: 0,
     lastCheckInAt: null,
     lastCheckInResponse: null,
@@ -139,6 +155,14 @@ export function SessionFlowProvider({
 
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [checkInTrigger, setCheckInTrigger] = useState<CheckInTrigger | null>(null);
+
+  useEffect(() => {
+    if (!config) return;
+    setState((prev) => ({
+      ...prev,
+      estimatedTotalSeconds: Math.round(config.estimatedDuration * 60),
+    }));
+  }, [config]);
 
   // Start a session
   const startSession = useCallback((estimatedSeconds: number) => {
@@ -234,7 +258,7 @@ export function SessionFlowProvider({
 
   // Auto check-in logic
   useEffect(() => {
-    if (!autoCheckIn || showCheckIn) return;
+    if (!effectiveAutoCheckIn || showCheckIn) return;
     
     const { elapsedSeconds, lastCheckInAt, estimatedTotalSeconds, phase } = state;
     
@@ -251,12 +275,12 @@ export function SessionFlowProvider({
     if (
       progress >= 0.4 && 
       progress <= 0.7 && 
-      timeSinceLastCheckIn >= minTimeBeforeCheckIn &&
+      timeSinceLastCheckIn >= effectiveMinTimeBeforeCheckIn &&
       state.checkInsShown === 0
     ) {
       triggerCheckIn('time_elapsed');
     }
-  }, [state, showCheckIn, autoCheckIn, minTimeBeforeCheckIn, triggerCheckIn]);
+  }, [state, showCheckIn, effectiveAutoCheckIn, effectiveMinTimeBeforeCheckIn, triggerCheckIn]);
 
   // Computed values
   const progressPercent = useMemo(() => {
@@ -337,6 +361,27 @@ export function useSessionFlow() {
     throw new Error('useSessionFlow must be used within SessionFlowProvider');
   }
   return context;
+}
+
+// =============================================================================
+// MANAGER WRAPPER
+// =============================================================================
+
+export function SessionFlowManager({ children }: { children: ReactNode }) {
+  const { shouldShowCheckIn, respondToCheckIn, dismissCheckIn, checkInTrigger } = useSessionFlow();
+
+  return (
+    <View style={{ flex: 1 }}>
+      {children}
+      {shouldShowCheckIn && (
+        <MidSessionCheckIn
+          onRespond={respondToCheckIn}
+          onDismiss={dismissCheckIn}
+          trigger={checkInTrigger}
+        />
+      )}
+    </View>
+  );
 }
 
 // =============================================================================

@@ -40,8 +40,10 @@ import {
   CoachMarkOverlay,
   GestureHint,
   OfflineBanner,
+  FavoriteButton,
 } from '../components/ui';
 import { LuxeIcon } from '../components/LuxeIcon';
+import { useFavorites, FavoriteItem } from '../hooks/useFavorites';
 import { spacing, borderRadius, layout, withAlpha } from '../theme';
 import { RootStackParamList } from '../types';
 
@@ -223,9 +225,11 @@ interface ToolCardProps {
   onPress: () => void;
   onLongPress?: () => void;
   compact?: boolean;
+  isFavorite?: boolean;
+  onFavoriteToggle?: () => void;
 }
 
-function ToolCard({ tool, index, onPress, onLongPress, compact = false }: ToolCardProps) {
+function ToolCard({ tool, index, onPress, onLongPress, compact = false, isFavorite = false, onFavoriteToggle }: ToolCardProps) {
   const { colors, reduceMotion } = useTheme();
   const { impactLight, impactMedium } = useHaptics();
   const { playTap } = useUISounds();
@@ -291,6 +295,17 @@ function ToolCard({ tool, index, onPress, onLongPress, compact = false }: ToolCa
             padding={compact ? 'md' : 'lg'}
             glow={tool.tone}
           >
+            {/* Favorite Button - Top Right */}
+            {onFavoriteToggle && (
+              <View style={styles.favoriteButtonContainer}>
+                <FavoriteButton
+                  isFavorite={isFavorite}
+                  onToggle={onFavoriteToggle}
+                  size={compact ? 'sm' : 'md'}
+                />
+              </View>
+            )}
+            
             <View style={[styles.toolIconContainer, { backgroundColor: withAlpha(toneColor, 0.12) }]}>
               <LuxeIcon name={tool.icon} size={compact ? 22 : 28} color={toneColor} />
             </View>
@@ -442,6 +457,38 @@ export function ToolsScreen() {
   const { shouldShowCoachMark, markAsShown, COACH_MARKS } = useCoachMarks();
   const { impactLight } = useHaptics();
   
+  // Favorites system
+  const { favorites, isFavorite, addFavorite, removeFavorite } = useFavorites();
+  
+  const [activeCategory, setActiveCategory] = useState<ToolCategory>('all');
+  const [contextMenuTool, setContextMenuTool] = useState<Tool | null>(null);
+  const [showContextMenu, setShowContextMenu] = useState(false);
+  const [showToolsCoachMark, setShowToolsCoachMark] = useState(false);
+  const [showLongPressHint, setShowLongPressHint] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Toggle favorite for a tool
+  const handleFavoriteToggle = useCallback((tool: Tool) => {
+    const favoriteItem: FavoriteItem = {
+      id: tool.id,
+      type: tool.route === 'BreathingSelect' ? 'breathing' : 
+            tool.route === 'GroundingSelect' ? 'grounding' :
+            tool.route === 'ResetSelect' ? 'reset' :
+            tool.route === 'FocusSelect' ? 'focus' :
+            tool.route === 'Stories' ? 'story' : 'tool',
+      name: tool.name,
+      icon: tool.icon,
+      route: tool.route,
+      routeParams: tool.routeParams,
+    };
+    
+    if (isFavorite(tool.id)) {
+      removeFavorite(tool.id);
+    } else {
+      addFavorite(favoriteItem);
+    }
+  }, [isFavorite, addFavorite, removeFavorite]);
+  
   const [activeCategory, setActiveCategory] = useState<ToolCategory>('all');
   const [contextMenuTool, setContextMenuTool] = useState<Tool | null>(null);
   const [showContextMenu, setShowContextMenu] = useState(false);
@@ -566,6 +613,8 @@ export function ToolsScreen() {
                 compact
                 onPress={() => handleToolPress(tool)}
                 onLongPress={() => handleToolLongPress(tool)}
+                isFavorite={isFavorite(tool.id)}
+                onFavoriteToggle={() => handleFavoriteToggle(tool)}
               />
             ))}
           </View>
@@ -736,6 +785,12 @@ const styles = StyleSheet.create({
   },
   toolCardCompact: {
     width: CARD_WIDTH,
+  },
+  favoriteButtonContainer: {
+    position: 'absolute',
+    top: spacing[2],
+    right: spacing[2],
+    zIndex: 10,
   },
   toolIconContainer: {
     width: 48,

@@ -55,6 +55,7 @@ import {
   ConnectionStatusIndicator,
   SkeletonMoodOrb,
   SkeletonRitualCard,
+  QuickAccessBar,
 } from '../components/ui';
 import { Logo } from '../components/Logo';
 import { Icon } from '../components/Icon';
@@ -280,6 +281,9 @@ export function HomeScreen() {
             </View>
           </Animated.View>
 
+          {/* Quick Access Bar - Pinned/favorite tools */}
+          <QuickAccessBar />
+
           {/* Mood Selection - PRIMARY FOCUS */}
           <Animated.View
             entering={
@@ -368,8 +372,6 @@ export function HomeScreen() {
                   </Pressable>
                 </GlassCard>
               )}
-            </Animated.View>
-          )}
             </Animated.View>
           )}
 

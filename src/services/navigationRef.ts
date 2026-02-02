@@ -15,13 +15,14 @@ export const navigationRef = createNavigationContainerRef<RootStackParamList>();
  * Navigate to a screen from anywhere in the app
  */
 export function navigate<RouteName extends keyof RootStackParamList>(
-  name: RouteName,
-  params?: RootStackParamList[RouteName]
+  ...args: undefined extends RootStackParamList[RouteName]
+    ? [screen: RouteName, params?: RootStackParamList[RouteName]]
+    : [screen: RouteName, params: RootStackParamList[RouteName]]
 ) {
   if (navigationRef.isReady()) {
-    navigationRef.navigate(name, params as any);
+    navigationRef.navigate(...(args as any));
   } else {
-    console.warn('Navigation not ready, cannot navigate to:', name);
+    console.warn('Navigation not ready, cannot navigate to:', args[0]);
   }
 }
 

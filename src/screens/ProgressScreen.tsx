@@ -46,7 +46,7 @@ import {
   AmbientBackground,
   ScreenHeader,
   TabSafeScrollView,
-  EmptyState,
+  PremiumEmptyState,
   SkeletonActivityRings,
   SkeletonWeeklyActivity,
   SkeletonAchievement,
@@ -407,9 +407,11 @@ function AchievementsShowcase() {
           <Text variant="labelSmall" color="inkFaint" style={styles.cardLabel}>
             ACHIEVEMENTS
           </Text>
-          <EmptyState
+          <PremiumEmptyState
+            variant="general"
             title="No achievements yet"
-            description="Complete activities to unlock achievements and track your wellness journey"
+            subtitle="Complete activities to unlock achievements and track your wellness journey"
+            compact
           />
         </GlassCard>
       </Animated.View>

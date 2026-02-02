@@ -29,7 +29,7 @@ import {
   GlassCard, 
   AmbientBackground, 
   ScreenHeader,
-  EmptyState,
+  PremiumEmptyState,
   SkeletonJournalEntry,
 } from '../components/ui';
 import { spacing, layout, withAlpha } from '../theme';
@@ -224,19 +224,12 @@ export function JournalEntriesScreen() {
               entering={reduceMotion ? undefined : FadeIn.duration(400)}
               style={styles.emptyContainer}
             >
-              <EmptyState
-                icon="journal"
-                title="No entries yet"
-                description="Start journaling to capture your thoughts, reflections, and moments of gratitude."
-                action={
-                  <Button 
-                    onPress={() => navigation.navigate('JournalEntry', { mode: 'new' })}
-                    variant="primary"
-                    size="md"
-                  >
-                    Write your first entry
-                  </Button>
-                }
+              <PremiumEmptyState
+                variant="journal"
+                title="Your story starts here"
+                subtitle="Capture your thoughts, reflections, and moments of gratitude in your private journal."
+                actionLabel="Write your first entry"
+                onAction={() => navigation.navigate('JournalEntry', { mode: 'new' })}
               />
             </Animated.View>
           )}

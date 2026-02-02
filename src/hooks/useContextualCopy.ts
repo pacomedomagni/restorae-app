@@ -161,6 +161,60 @@ const MOOD_PROMPTS = {
   ],
 };
 
+const JOURNAL_PROMPTS: Record<MoodType, string[]> = {
+  energized: [
+    "What do you want to do with this energy?",
+    "Where would you like to direct your focus?",
+  ],
+  calm: [
+    "What feels steady or clear right now?",
+    "What are you noticing in this moment?",
+  ],
+  good: [
+    "What’s supporting you today?",
+    "What would you like to remember from this feeling?",
+  ],
+  anxious: [
+    "What’s feeling loud right now?",
+    "What might help you feel a little safer?",
+  ],
+  low: [
+    "What would gentleness look like today?",
+    "What’s one small thing you can offer yourself?",
+  ],
+  tough: [
+    "What’s been hardest lately?",
+    "What do you need most right now?",
+  ],
+};
+
+const MOOD_ACKNOWLEDGMENTS: Record<MoodType, string[]> = {
+  energized: [
+    "Noted. Let’s use that energy with care.",
+    "Energy can be a resource—let’s work with it.",
+  ],
+  calm: [
+    "Thank you for checking in. Let’s stay with this calm.",
+    "Noted. A calm moment is worth honoring.",
+  ],
+  good: [
+    "I’m glad you’re feeling good. Let’s build on it.",
+    "Noted. This is a good moment to acknowledge.",
+  ],
+  anxious: [
+    "Thank you for sharing that. Let’s move gently.",
+    "Noted. We can take this one breath at a time.",
+  ],
+  low: [
+    "Thank you for naming that. We’ll go softly.",
+    "Noted. You don’t have to push through this alone.",
+  ],
+  tough: [
+    "Thank you for being honest. Let’s take this step by step.",
+    "Noted. It’s okay to be having a hard time.",
+  ],
+};
+
 // Session starting messages
 const SESSION_START = {
   default: [
@@ -355,6 +409,14 @@ export function useContextualCopy() {
     return pickRandom(MOOD_PROMPTS.default);
   }, [patterns, flowState, hasRecentSession, isInChallengingState]);
 
+  const getJournalPrompt = useCallback((mood: MoodType): string => {
+    return pickRandom(JOURNAL_PROMPTS[mood]);
+  }, []);
+
+  const getMoodAcknowledgment = useCallback((mood: MoodType): string => {
+    return pickRandom(MOOD_ACKNOWLEDGMENTS[mood]);
+  }, []);
+
   // Get session start message
   const getSessionStartMessage = useCallback((options: CopyOptions = {}): string => {
     const mood = options.mood || currentMood;
@@ -439,6 +501,8 @@ export function useContextualCopy() {
         return getGreeting(options);
       case 'home_mood_prompt':
         return getMoodPrompt(options);
+      case 'journal_prompt':
+        return getJournalPrompt(options.mood || currentMood || 'calm');
       case 'session_start':
         return getSessionStartMessage(options);
       case 'session_mid_checkin':
@@ -457,6 +521,7 @@ export function useContextualCopy() {
   }, [
     getGreeting,
     getMoodPrompt,
+    getJournalPrompt,
     getSessionStartMessage,
     getMidSessionCheckin,
     getEncouragement,
@@ -486,9 +551,11 @@ export function useContextualCopy() {
     getCopy,
     getGreeting,
     getMoodPrompt,
+    getJournalPrompt,
     getSessionStartMessage,
     getMidSessionCheckin,
     getEncouragement,
+    getMoodAcknowledgment,
     getToolSuggestion,
     getGentleNudge,
     getStreakMessage,
