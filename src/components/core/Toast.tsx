@@ -4,14 +4,9 @@
  * Temporary notifications with auto-dismiss.
  */
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-  runOnJS,
   FadeIn,
   FadeOut,
 } from 'react-native-reanimated';
@@ -132,26 +127,28 @@ export function Toast({ toast, onHide, colors, isDark }: ToastProps) {
   const icon = getIcon();
 
   return (
-    <Animated.View
-      entering={FadeIn.duration(200).springify()}
-      exiting={FadeOut.duration(150)}
-      style={[
-        styles.toast,
-        {
-          backgroundColor: colors.surfaceElevated,
-          ...shadows.md,
-        },
-      ]}
-    >
-      <Ionicons name={icon.name} size={20} color={icon.color} />
-      <Text
-        variant="bodyMedium"
-        style={[styles.message, { color: colors.textPrimary }]}
-        numberOfLines={2}
+    <Pressable onPress={onHide} accessibilityRole="button" accessibilityLabel="Dismiss notification">
+      <Animated.View
+        entering={FadeIn.duration(200).springify()}
+        exiting={FadeOut.duration(150)}
+        style={[
+          styles.toast,
+          {
+            backgroundColor: colors.surfaceElevated,
+            ...shadows.md,
+          },
+        ]}
       >
-        {toast.message}
-      </Text>
-    </Animated.View>
+        <Ionicons name={icon.name} size={20} color={icon.color} />
+        <Text
+          variant="bodyMedium"
+          style={[styles.message, { color: colors.textPrimary }]}
+          numberOfLines={2}
+        >
+          {toast.message}
+        </Text>
+      </Animated.View>
+    </Pressable>
   );
 }
 

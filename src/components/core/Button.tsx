@@ -19,7 +19,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Text } from './Text';
-import { spacing, radius, layout, withAlpha } from '../../theme/tokens';
+import { spacing, radius, layout } from '../../theme/tokens';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 

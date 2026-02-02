@@ -4,13 +4,12 @@
  * Unified text input with variants and states.
  * Supports multiline, character count, and validation.
  */
-import React, { useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   TextInput,
   TextInputProps,
   StyleSheet,
-  Pressable,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -57,7 +56,6 @@ export function Input({
   multiline,
   ...props
 }: InputProps) {
-  const [isFocused, setIsFocused] = useState(false);
   const borderColor = useSharedValue(colors.border);
 
   const animatedBorderStyle = useAnimatedStyle(() => ({
@@ -65,13 +63,11 @@ export function Input({
   }));
 
   const handleFocus = useCallback((e: any) => {
-    setIsFocused(true);
     borderColor.value = withTiming(colors.actionPrimary, { duration: 150 });
     onFocus?.(e);
   }, [colors.actionPrimary, onFocus]);
 
   const handleBlur = useCallback((e: any) => {
-    setIsFocused(false);
     borderColor.value = withTiming(
       error ? colors.error : colors.border,
       { duration: 150 }

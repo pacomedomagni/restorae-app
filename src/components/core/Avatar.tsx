@@ -6,7 +6,7 @@
 import React from 'react';
 import { View, StyleSheet, Image } from 'react-native';
 import { Text } from './Text';
-import { radius, withAlpha } from '../../theme/tokens';
+import { withAlpha } from '../../theme/tokens';
 
 interface AvatarProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';

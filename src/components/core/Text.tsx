@@ -5,7 +5,7 @@
  * Supports accessibility and dynamic type.
  */
 import React from 'react';
-import { Text as RNText, TextProps as RNTextProps, StyleSheet, Platform } from 'react-native';
+import { Text as RNText, TextProps as RNTextProps } from 'react-native';
 import { fontFamily, fontSize, lineHeight } from '../../theme/tokens';
 
 export type TextVariant =
@@ -117,7 +117,7 @@ const variantStyles: Record<TextVariant, object> = {
 
 export function Text({
   variant = 'bodyMedium',
-  color = 'primary',
+  color: _color = 'primary',
   align = 'left',
   style,
   children,

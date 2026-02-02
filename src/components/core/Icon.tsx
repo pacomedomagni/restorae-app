@@ -4,7 +4,6 @@
  * Unified icon wrapper for consistent sizing and styling.
  */
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 export type IconName = keyof typeof Ionicons.glyphMap;

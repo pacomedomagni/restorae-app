@@ -5,7 +5,7 @@
  * Replaces GlassCard with simpler, more maintainable implementation.
  */
 import React, { useCallback } from 'react';
-import { StyleSheet, Pressable, View, ViewStyle } from 'react-native';
+import { Pressable, ViewStyle } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -140,5 +140,3 @@ export function Card({
     </Animated.View>
   );
 }
-
-const styles = StyleSheet.create({});
