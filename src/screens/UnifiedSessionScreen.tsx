@@ -1,399 +1,146 @@
 /**
- * UnifiedSessionScreen
+ * UnifiedSessionScreen - Simplified
  * 
- * The main session screen that renders the appropriate player
- * based on the current activity type. Now enhanced with:
- * - SessionFlowManager for adaptive mid-session check-ins
- * - Emotional flow integration
- * - Breathing transitions between activities
- * - Milestone celebrations at progress points
+ * Renders the active session based on SessionContext.
+ * For now, this is a simplified placeholder that works with the new flow.
  */
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, StyleSheet, BackHandler } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { useKeepAwake } from 'expo-keep-awake';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 import { useTheme } from '../contexts/ThemeContext';
 import { useSession } from '../contexts/SessionContext';
-import { useEmotionalFlow } from '../contexts/EmotionalFlowContext';
-import { AmbientBackground, ExitConfirmationModal, MilestoneToast } from '../components/ui';
-import { 
-  SessionHeader, 
-  ActivityTransition, 
-  ProgressDrawer,
-  SessionFlowProvider,
-  SessionFlowManager 
-} from '../components/session';
-import {
-  BreathingPlayer,
-  GroundingPlayer,
-  FocusPlayer,
-  JournalPromptPlayer,
-  ResetPlayer,
-} from '../components/players';
-import { 
-  BreathingConfig, 
-  GroundingConfig, 
-  FocusConfig, 
-  JournalConfig, 
-  ResetConfig 
-} from '../types/session';
-import { useHaptics } from '../hooks/useHaptics';
-import { useSessionMilestones } from '../hooks/useSessionMilestones';
-import { spacing } from '../theme';
+import { Text, Button, Card } from '../components/core';
+import { BreathingGuide } from '../components/domain/BreathingGuide';
+import { spacing, radius, withAlpha, layout } from '../theme/tokens';
 
-// =============================================================================
-// TYPE GUARDS
-// =============================================================================
-function isBreathingConfig(config: any): config is BreathingConfig {
-  return config?.type === 'breathing';
-}
-
-function isGroundingConfig(config: any): config is GroundingConfig {
-  return config?.type === 'grounding';
-}
-
-function isFocusConfig(config: any): config is FocusConfig {
-  return config?.type === 'focus';
-}
-
-function isJournalConfig(config: any): config is JournalConfig {
-  return config?.type === 'journal';
-}
-
-function isResetConfig(config: any): config is ResetConfig {
-  return config?.type === 'reset';
-}
-
-// =============================================================================
-// COMPONENT
-// =============================================================================
 export function UnifiedSessionScreen() {
   useKeepAwake();
-  const { colors, reduceMotion } = useTheme();
-  const { impactMedium } = useHaptics();
-
-  // Milestone celebrations
-  const {
-    currentMilestone,
-    showMilestone,
-    checkMilestone,
-    dismissMilestone,
-    reset: resetMilestones,
-  } = useSessionMilestones({
-    sessionType: 'breathing', // Will be dynamically set based on activity
-  });
-
-  const {
-    mode,
-    status,
-    queue,
-    currentIndex,
-    ritualName,
-    sosPresetName,
-    isTransitioning,
-    transitionTo,
-    showProgressDrawer,
-    showExitConfirmation,
-    sessionStartTime,
-    // Computed
-    currentActivity,
-    progress,
-    completedActivities,
-    remainingActivities,
-    isLastActivity,
-    canSkip,
-    estimatedTimeRemaining,
-    // Actions
-    completeCurrentActivity,
-    skipCurrentActivity,
-    skipActivity,
-    markRitualComplete,
-    toggleProgressDrawer,
-    setShowExitConfirmation,
-    exitSession,
-    completeTransition,
-  } = useSession();
-
-  // Calculate elapsed time in minutes
-  const elapsedMinutes = sessionStartTime 
-    ? Math.floor((Date.now() - sessionStartTime) / 60000) 
-    : 0;
-  const shouldConfirmExit = elapsedMinutes >= 3;
-
-  // Check for milestones when progress changes
-  useEffect(() => {
-    if (progress > 0) {
-      checkMilestone(progress * 100); // Convert 0-1 to 0-100
-    }
-  }, [progress, checkMilestone]);
-
-  // Reset milestones when session starts fresh
-  useEffect(() => {
-    if (status === 'idle') {
-      resetMilestones();
-    }
-  }, [status, resetMilestones]);
-
-  // Handle hardware back button
-  useEffect(() => {
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (status === 'in-progress' || status === 'paused') {
-        // Only show confirmation for sessions longer than 3 minutes
-        if (shouldConfirmExit) {
-          setShowExitConfirmation(true);
-        } else {
-          exitSession(false); // Exit immediately for short sessions
-        }
-        return true;
-      }
-      return false;
-    });
-
-    return () => backHandler.remove();
-  }, [status, shouldConfirmExit, setShowExitConfirmation, exitSession]);
-
-  // Handle close button press
-  const handleClose = useCallback(() => {
-    // Only show confirmation for sessions longer than 3 minutes
-    if (shouldConfirmExit) {
-      setShowExitConfirmation(true);
-    } else {
-      exitSession(false); // Exit immediately for short sessions
-    }
-  }, [shouldConfirmExit, setShowExitConfirmation, exitSession]);
-
-  // Handle exit confirmation
-  const handleExitConfirm = useCallback(() => {
-    exitSession(true); // Save progress
-  }, [exitSession]);
-
-  // Handle exit cancel
-  const handleExitCancel = useCallback(() => {
-    setShowExitConfirmation(false);
-  }, [setShowExitConfirmation]);
-
-  // Handle activity completion
-  const handleActivityComplete = useCallback(() => {
-    completeCurrentActivity();
-  }, [completeCurrentActivity]);
-
-  // Handle transition complete
-  const handleTransitionComplete = useCallback(() => {
-    completeTransition();
-  }, [completeTransition]);
-
-  // Get session name for header
-  const sessionName = mode === 'ritual' ? ritualName : mode === 'sos' ? sosPresetName : undefined;
-
-  // Determine ambient background variant based on activity type
-  const getAmbientVariant = (): 'calm' | 'focus' | 'energize' | undefined => {
-    if (!currentActivity) return 'calm';
-    switch (currentActivity.type) {
-      case 'focus':
-        return 'focus';
-      case 'journal':
-        return 'calm';
-      case 'reset':
-        return 'energize';
-      default:
-        return 'calm';
-    }
-  };
-
-  // If no activity (shouldn't happen but safety check)
-  if (!currentActivity || mode === 'idle') {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.canvas }]}>
-        <SafeAreaView style={styles.safeArea}>
-          <Animated.View
-            entering={reduceMotion ? undefined : FadeIn.duration(300)}
-            style={styles.emptyContainer}
-          >
-            {/* This shouldn't happen, but show a message just in case */}
-          </Animated.View>
-        </SafeAreaView>
-      </View>
-    );
-  }
-
-  // Render the appropriate player based on activity type
-  const renderPlayer = () => {
-    if (!currentActivity) return null;
-    const config = currentActivity.config;
-
-    const commonProps = {
-      autoStart: true,
-      onComplete: handleActivityComplete,
-    };
-
-    switch (currentActivity.type) {
-      case 'breathing':
-        if (isBreathingConfig(config)) {
-          return (
-            <BreathingPlayer
-              {...commonProps}
-              patternId={config.patternId}
-            />
-          );
-        }
-        return null;
-
-      case 'grounding':
-        if (isGroundingConfig(config)) {
-          return (
-            <GroundingPlayer
-              {...commonProps}
-              techniqueId={config.techniqueId || 'five-senses'}
-            />
-          );
-        }
-        return null;
-
-      case 'focus':
-        if (isFocusConfig(config)) {
-          return (
-            <FocusPlayer
-              {...commonProps}
-              duration={config.targetMinutes}
-            />
-          );
-        }
-        return null;
-
-      case 'journal':
-        if (isJournalConfig(config)) {
-          const prompts = config.prompts || (config.prompt ? [{ id: '1', prompt: config.prompt }] : undefined);
-          return (
-            <JournalPromptPlayer
-              {...commonProps}
-              prompts={prompts}
-              showTextInput={config.showTextInput}
-              reflectionDuration={config.reflectionDuration}
-            />
-          );
-        }
-        return null;
-
-      case 'reset':
-        if (isResetConfig(config)) {
-          return (
-            <ResetPlayer
-              {...commonProps}
-              exerciseId={config.exerciseId}
-            />
-          );
-        }
-        return null;
-
-      default:
-        return null;
-    }
-  };
-
-  // Map queue to activities for ProgressDrawer
-  const queueActivities = queue.map(q => q.activity);
-
-  // Determine session type for flow manager
-  const sessionType = currentActivity.type as 'breathing' | 'grounding' | 'focus' | 'journal' | 'reset';
+  const navigation = useNavigation();
+  const { colors, isDark } = useTheme();
+  const { status, currentActivity, completeCurrentActivity, exitSession } = useSession();
   
-  // Estimated duration for flow manager
-  const estimatedDuration = estimatedTimeRemaining + elapsedMinutes;
+  const [isPaused, setIsPaused] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+
+  // Timer
+  useEffect(() => {
+    if (isPaused || status !== 'active') return;
+    
+    const interval = setInterval(() => {
+      setElapsed(prev => prev + 1);
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [isPaused, status]);
+
+  const handlePause = useCallback(async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setIsPaused(!isPaused);
+  }, [isPaused]);
+
+  const handleComplete = useCallback(async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    completeCurrentActivity?.();
+    navigation.goBack();
+  }, [completeCurrentActivity, navigation]);
+
+  const handleExit = useCallback(async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    exitSession?.();
+    navigation.goBack();
+  }, [exitSession, navigation]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const activityType = currentActivity?.type || 'breathing';
+  const activityName = currentActivity?.name || 'Session';
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.canvas }]}>
-      <AmbientBackground variant={getAmbientVariant()} intensity="subtle" />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView style={styles.safeArea}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Pressable onPress={handleExit} hitSlop={12}>
+            <Ionicons name="close" size={24} color={colors.textSecondary} />
+          </Pressable>
+          <Text variant="titleMedium" style={{ color: colors.textPrimary }}>
+            {activityName}
+          </Text>
+          <View style={{ width: 24 }} />
+        </View>
 
-      <SessionFlowProvider
-        config={{
-          sessionType,
-          estimatedDuration,
-          allowMidSessionCheckins: true,
-          checkInInterval: 5, // Check in every 5 minutes
-          allowDirectionChange: mode !== 'sos', // SOS is fixed, others can adapt
-        }}
-      >
-        <SafeAreaView style={styles.safeArea} edges={['top']}>
-          {/* Header */}
-          <SessionHeader
-            mode={mode}
-            activityName={currentActivity.name}
-            sessionName={sessionName}
-            progress={progress}
-            completedCount={completedActivities}
-            totalCount={queue.length}
-            onClose={handleClose}
-            onProgressTap={toggleProgressDrawer}
-          />
-
-          {/* Main Content - Player with Flow Manager */}
-          <SessionFlowManager>
-            <View style={styles.playerContainer}>
-              <Animated.View
-                key={`player-${currentActivity.id}-${currentIndex}`}
-                entering={reduceMotion ? undefined : FadeIn.duration(400)}
-                exiting={reduceMotion ? undefined : FadeOut.duration(200)}
-                style={styles.playerWrapper}
-              >
-                {renderPlayer()}
-              </Animated.View>
+        {/* Main Content */}
+        <View style={styles.content}>
+          {activityType === 'breathing' && (
+            <BreathingGuide
+              pattern="calm"
+              isActive={!isPaused}
+              colors={colors}
+            />
+          )}
+          
+          {activityType !== 'breathing' && (
+            <View style={styles.genericSession}>
+              <Ionicons
+                name={
+                  activityType === 'grounding' ? 'earth' :
+                  activityType === 'focus' ? 'eye' :
+                  activityType === 'journal' ? 'create' :
+                  'leaf'
+                }
+                size={64}
+                color={colors.actionPrimary}
+              />
+              <Text variant="headlineMedium" style={{ color: colors.textPrimary, marginTop: spacing.lg }}>
+                {activityName}
+              </Text>
             </View>
-          </SessionFlowManager>
-        </SafeAreaView>
+          )}
 
-        {/* Transition Overlay */}
-        {isTransitioning && transitionTo && (
-          <ActivityTransition
-            completedActivity={currentActivity}
-            nextActivity={transitionTo}
-            currentIndex={currentIndex}
-            total={queue.length}
-            onContinue={handleTransitionComplete}
-            onEnd={() => exitSession(true)}
-          />
-        )}
+          {/* Timer */}
+          <Text variant="displayMedium" style={[styles.timer, { color: colors.textPrimary }]}>
+            {formatTime(elapsed)}
+          </Text>
+        </View>
 
-        {/* Progress Drawer */}
-        <ProgressDrawer
-          visible={showProgressDrawer}
-          queue={queueActivities}
-          currentIndex={currentIndex}
-          onClose={toggleProgressDrawer}
-          onJumpTo={canSkip ? skipActivity : undefined}
-        />
+        {/* Controls */}
+        <View style={styles.controls}>
+          <Pressable
+            onPress={handlePause}
+            style={[styles.controlButton, { backgroundColor: withAlpha(colors.surfaceElevated, 0.8) }]}
+          >
+            <Ionicons
+              name={isPaused ? 'play' : 'pause'}
+              size={32}
+              color={colors.textPrimary}
+            />
+          </Pressable>
 
-        {/* Exit Confirmation Modal */}
-        <ExitConfirmationModal
-          visible={showExitConfirmation}
-          onConfirm={handleExitConfirm}
-          onCancel={handleExitCancel}
-          title={mode === 'ritual' ? 'Exit Ritual?' : mode === 'sos' ? 'Exit SOS?' : 'Exit Session?'}
-          message={
-            completedActivities > 0
-              ? `You've completed ${completedActivities} ${completedActivities === 1 ? 'activity' : 'activities'}. Your progress will be saved.`
-              : 'Are you sure you want to exit? Your progress will be lost.'
-          }
-          confirmText="Exit"
-          cancelText="Continue"
-        />
-
-        {/* Milestone Celebration Toast */}
-        {currentMilestone && (
-          <MilestoneToast
-            visible={showMilestone}
-            milestone={currentMilestone}
-            onDismiss={dismissMilestone}
-          />
-        )}
-      </SessionFlowProvider>
+          <Button
+            variant="primary"
+            size="lg"
+            onPress={handleComplete}
+            colors={colors}
+            style={styles.completeButton}
+          >
+            Complete Session
+          </Button>
+        </View>
+      </SafeAreaView>
     </View>
   );
 }
 
-// =============================================================================
-// STYLES
-// =============================================================================
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -401,16 +148,40 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  emptyContainer: {
-    flex: 1,
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: layout.screenPadding,
+    paddingVertical: spacing.md,
+  },
+  content: {
+    flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: layout.screenPadding,
   },
-  playerContainer: {
-    flex: 1,
+  genericSession: {
+    alignItems: 'center',
   },
-  playerWrapper: {
-    flex: 1,
+  timer: {
+    marginTop: spacing['2xl'],
+  },
+  controls: {
+    paddingHorizontal: layout.screenPadding,
+    paddingBottom: spacing['2xl'],
+    alignItems: 'center',
+    gap: spacing.lg,
+  },
+  controlButton: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  completeButton: {
+    width: '100%',
   },
 });
 

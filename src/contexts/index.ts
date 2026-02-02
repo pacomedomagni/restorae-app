@@ -1,7 +1,7 @@
 /**
- * Contexts Index
+ * Contexts Index - Cleaned Up
  * 
- * Export all context providers and hooks
+ * Export all context providers and hooks for the new flow.
  */
 
 // Auth
@@ -21,47 +21,16 @@ export type { SubscriptionTier, SubscriptionState } from './SubscriptionContext'
 export { AudioProvider, useAudio, useFocusAudio, AMBIENT_SOUNDS_DATA } from './AudioContext';
 export type { AmbientSound } from './AudioContext';
 
-// Journal
+// Journal (legacy - used by JournalEntryScreen)
 export { JournalProvider, useJournal } from './JournalContext';
 export type { JournalEntry } from './JournalContext';
 
-// Mood
+// Mood (legacy - for data compatibility)
 export { MoodProvider, useMood } from './MoodContext';
 export type { MoodEntry, MoodStats, WeeklyGoal } from './MoodContext';
 
-// App Lock
-export { AppLockProvider, useAppLock } from './AppLockContext';
-export type { LockMethod } from './AppLockContext';
-
-// Rituals
-export { RitualsProvider, useRituals } from './RitualsContext';
-export type { 
-  CustomRitual, 
-  RitualStep, 
-  RitualCompletion, 
-  TimeOfDay, 
-  DayOfWeek 
-} from './RitualsContext';
-
-// Coach Marks (first-time user guidance)
-export { CoachMarkProvider, useCoachMarks, COACH_MARKS } from './CoachMarkContext';
-export type { CoachMarkId, CoachMark } from './CoachMarkContext';
-
-// Emotional Flow System - The heart of the experience
-export { 
-  EmotionalFlowProvider, 
-  useEmotionalFlow, 
-  useEmotionalTemperature 
-} from './EmotionalFlowContext';
-export type { 
-  EmotionalIntensity, 
-  FlowState, 
-  AmbientMood, 
-  EmotionalMoment,
-  EmotionalPattern,
-  EmotionalJourney,
-  EmotionalTemperature,
-} from './EmotionalFlowContext';
+// Session (for UnifiedSessionScreen)
+export { SessionProvider, useSession } from './SessionContext';
 
 // Toast notifications
 export { ToastProvider, useToast } from './ToastContext';
@@ -73,3 +42,14 @@ export {
   useStateAnnouncement,
   useConnectionAnnouncement,
 } from './AccessibilityContext';
+
+// ============================================
+// NEW REVAMPED CONTEXTS
+// ============================================
+
+// Ambient - Environmental & user state
+export { AmbientProvider, useAmbient } from './AmbientContext';
+
+// Journey - Progress, timeline, and stats
+export { JourneyProvider, useJourney } from './JourneyContext';
+export type { TimelineEntry, TimelineEntryType, WeeklyStats } from './JourneyContext';

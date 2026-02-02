@@ -20,21 +20,22 @@ import {
 // Initialize services
 import { migrateTokensToSecureStorage } from './src/services/secureStorage';
 
+// Contexts
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
+import { AuthProvider } from './src/contexts/AuthContext';
 import { PreferencesProvider } from './src/contexts/PreferencesContext';
 import { SubscriptionProvider } from './src/contexts/SubscriptionContext';
 import { AudioProvider } from './src/contexts/AudioContext';
 import { JournalProvider } from './src/contexts/JournalContext';
 import { MoodProvider } from './src/contexts/MoodContext';
-import { AppLockProvider } from './src/contexts/AppLockContext';
-import { RitualsProvider } from './src/contexts/RitualsContext';
-import { AuthProvider } from './src/contexts/AuthContext';
-import { CoachMarkProvider } from './src/contexts/CoachMarkContext';
 import { SessionProvider } from './src/contexts/SessionContext';
-import { EmotionalFlowProvider } from './src/contexts/EmotionalFlowContext';
 import { ToastProvider } from './src/contexts/ToastContext';
 import { AccessibilityAnnouncerProvider } from './src/contexts/AccessibilityContext';
-import { RootNavigator } from './src/navigation/RootNavigator';
+import { AmbientProvider } from './src/contexts/AmbientContext';
+import { JourneyProvider } from './src/contexts/JourneyContext';
+
+// Navigation & UI
+import { NewRootNavigator } from './src/navigation/NewRootNavigator';
 import { ErrorBoundary, SharedTransitionProvider } from './src/components/ui';
 
 // Migrate tokens from AsyncStorage to SecureStore (one-time migration)
@@ -61,7 +62,7 @@ function AppContent() {
     <>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
-        <RootNavigator />
+        <NewRootNavigator />
       </Animated.View>
     </>
   );
@@ -91,7 +92,6 @@ export default function App() {
   // Show loading screen while fonts load (with timeout fallback)
   const [forceLoad, setForceLoad] = useState(false);
   useEffect(() => {
-    // Force proceed after 5 seconds even if fonts haven't loaded
     const timeout = setTimeout(() => {
       if (!fontsLoaded) {
         console.warn('Font loading timeout - proceeding without custom fonts');
@@ -124,28 +124,24 @@ export default function App() {
                 <AudioProvider>
                   <JournalProvider>
                     <MoodProvider>
-                      <RitualsProvider>
-                        <AppLockProvider>
-                          <CoachMarkProvider>
-                            <EmotionalFlowProvider>
-                              <SessionProvider>
-                                <ToastProvider>
-                                  <AccessibilityAnnouncerProvider>
-                                    <SharedTransitionProvider>
-                                      <ErrorBoundary
-                                      errorTitle="Something went wrong"
-                                      errorDescription="Restorae encountered an unexpected error. Please restart the app."
-                                    >
-                                      <AppContent />
-                                    </ErrorBoundary>
-                                    </SharedTransitionProvider>
-                                  </AccessibilityAnnouncerProvider>
-                                </ToastProvider>
-                              </SessionProvider>
-                            </EmotionalFlowProvider>
-                          </CoachMarkProvider>
-                        </AppLockProvider>
-                      </RitualsProvider>
+                      <SessionProvider>
+                        <AmbientProvider>
+                          <JourneyProvider>
+                            <ToastProvider>
+                              <AccessibilityAnnouncerProvider>
+                                <SharedTransitionProvider>
+                                  <ErrorBoundary
+                                    errorTitle="Something went wrong"
+                                    errorDescription="Restorae encountered an unexpected error. Please restart the app."
+                                  >
+                                    <AppContent />
+                                  </ErrorBoundary>
+                                </SharedTransitionProvider>
+                              </AccessibilityAnnouncerProvider>
+                            </ToastProvider>
+                          </JourneyProvider>
+                        </AmbientProvider>
+                      </SessionProvider>
                     </MoodProvider>
                   </JournalProvider>
                 </AudioProvider>

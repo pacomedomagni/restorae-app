@@ -1,5 +1,5 @@
 /**
- * Restorae Type Definitions
+ * Restorae Type Definitions - New System
  */
 
 // Mood types
@@ -28,7 +28,7 @@ export interface BreathingPattern {
   duration: string;
   icon?: string;
   imageUrl?: string;
-  videoUrl?: string; // Background video loop
+  videoUrl?: string;
   category?: 'calm' | 'focus' | 'energy' | 'sleep' | 'emergency' | 'balance';
   bestFor?: string;
 }
@@ -45,22 +45,12 @@ export interface GroundingExercise {
   category: 'sensory' | 'body' | 'mental';
 }
 
-// Movement/Reset exercise
-export interface MovementExercise {
-  id: string;
-  name: string;
-  description: string;
-  duration: string;
-  steps: string[];
-  category: 'stretch' | 'shake' | 'flow';
-}
-
 // Focus session
 export interface FocusSession {
   id: string;
   name: string;
   description: string;
-  duration: number; // in minutes
+  duration: number;
   soundscape?: string;
 }
 
@@ -103,112 +93,66 @@ export interface UserPreferences {
   soundEnabled: boolean;
 }
 
-// Routine
-export interface Routine {
-  id: string;
-  name: string;
-  time: 'morning' | 'evening' | 'midday';
-  steps: RoutineStep[];
-}
+// ============================================
+// NAVIGATION TYPES - NEW SYSTEM
+// ============================================
 
-export interface RoutineStep {
-  id: string;
-  type: ToolType;
-  toolId: string;
-  order: number;
-}
+// Main 4-tab navigation
+export type MainTabParamList = {
+  SanctuaryTab: undefined;
+  JourneyTab: undefined;
+  LibraryTab: undefined;
+  YouTab: undefined;
+};
 
-// Navigation types
+// Root stack navigation
 export type RootStackParamList = {
-  Onboarding: undefined;
   Main: undefined;
-  Tool: { type: ToolType; id?: string };
-  Breathing: { patternId?: string };
-  BreathingSelect: undefined;
-  Grounding: { techniqueId?: string };
-  GroundingSelect: undefined;
-  GroundingSession: { techniqueId?: string };
-  Movement: { exerciseId: string };
-  Reset: { exerciseId?: string };
-  ResetSelect: undefined;
-  ResetSession: { exerciseId?: string };
-  Focus: { sessionId?: string };
-  FocusSelect: undefined;
-  FocusSession: { sessionId?: string; soundId?: string };
-  Journal: { promptId?: string; entryId?: string };
-  JournalEntry: { 
-    mode: 'view' | 'prompt' | 'new'; 
-    prompt?: string;
-    entryId?: string;
-    entry?: { id?: string; title?: string; content: string; };
+  Onboarding: undefined;
+  
+  // Sessions
+  Session: {
+    type: string;
+    id: string;
+    mood?: string;
   };
-  JournalEntries: undefined;
-  JournalPrompts: undefined;
-  JournalSearch: undefined;
-  Sos: { presetId?: string };
-  SOSSelect: undefined;
-  SOSSession: { presetId?: string };
-  SituationalSelect: undefined;
-  SituationalSession: { guideId?: string };
-  // Stories & Sleep
-  Stories: undefined;
-  StoryPlayer: { storyId: string };
-  // Settings
-  Settings: undefined;
-  Subscription: undefined;
-  Paywall: { feature?: string; featureName?: string };
-  Preferences: undefined;
-  Appearance: undefined;
-  SoundHaptics: undefined;
-  Reminders: undefined;
-  Privacy: undefined;
-  Support: undefined;
-  EditProfile: undefined;
-  MoodCheckin: { mood?: MoodType; moodId?: string; moodLabel?: string };
-  MoodAcknowledgment: { mood?: MoodType };
-  MoodSelect: undefined;
-  MoodResult: { 
-    mood?: MoodType; 
-    moodId?: string;
-    moodLabel?: string;
-    factors?: string[];
-    notes?: string;
-    note?: string; 
-  };
-  MoodHistory: undefined;
-  Progress: undefined;
-  ToolsMore: undefined;
-  QuickReset: undefined;
-  // Unified completion screen
+  UnifiedSession: undefined;
+  SessionSummary: { summary: any };
   SessionComplete: {
-    sessionType: 'breathing' | 'grounding' | 'reset' | 'focus' | 'journal' | 'story' | 'ritual' | 'mood';
+    sessionType: string;
     sessionName?: string;
-    duration?: number; // in seconds
+    duration?: number;
     cycles?: number;
     steps?: number;
     wordCount?: number;
     mood?: MoodType;
   };
-  Ritual: { type?: 'morning' | 'evening'; ritualId?: string };
-  RitualSession: { type: 'morning' | 'evening'; ritualId: string };
-  MorningRitual: undefined;
-  EveningRitual: undefined;
-  CreateRitual: undefined;
-  CustomRitualSession: { ritualId: string };
-  AppLock: undefined;
-  AppLockSetup: undefined;
+  
+  // Tools
+  SOSSelect: undefined;
+  SOSSession: { presetId?: string };
+  BreathingSelect: undefined;
+  Breathing: { patternId?: string };
+  GroundingSelect: undefined;
+  GroundingSession: { techniqueId?: string };
+  StoryPlayer: { storyId: string };
+  
+  // Journal
+  JournalEntry: { 
+    mode?: 'view' | 'prompt' | 'new'; 
+    prompt?: string;
+    entryId?: string;
+    entry?: { id?: string; title?: string; content: string; };
+  };
+  
+  // Settings
+  Appearance: undefined;
+  Privacy: undefined;
+  Support: undefined;
+  Reminders: undefined;
   DataSettings: undefined;
   SecuritySettings: undefined;
-  // Unified Session System
-  UnifiedSession: undefined;
-  SessionSummary: { summary: import('./session').SessionSummary };
-};
-
-export type MainTabParamList = {
-  HomeTab: undefined;
-  ToolsTab: undefined;
-  JournalTab: undefined;
-  ProfileTab: undefined;
+  EditProfile: undefined;
 };
 
 // Theme
