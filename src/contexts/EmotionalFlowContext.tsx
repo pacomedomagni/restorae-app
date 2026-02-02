@@ -302,6 +302,7 @@ type EmotionalFlowAction =
   | { type: 'ACKNOWLEDGE_MOOD' }
   | { type: 'COMPLETE_ACKNOWLEDGMENT' }
   | { type: 'SET_FLOW_STATE'; payload: FlowState }
+  | { type: 'COMPLETE_MICRO_SESSION' }
   | { type: 'COMPLETE_SESSION' }
   | { type: 'UPDATE_JOURNEY'; payload: Partial<EmotionalJourney> }
   | { type: 'RECORD_RELIEF_MOMENT' }
@@ -399,6 +400,15 @@ function emotionalFlowReducer(
         ...state,
         flowState: action.payload,
         temperature,
+      };
+    }
+
+    case 'COMPLETE_MICRO_SESSION': {
+      return {
+        ...state,
+        lastSessionCompletedAt: Date.now(),
+        flowState: 'resting',
+        temperature: calculateTemperature(state.currentMood, 'low', 'resting'),
       };
     }
 
@@ -785,7 +795,11 @@ export function EmotionalFlowProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'COMPLETE_SESSION' });
   }, []);
 
-  const recordSessionComplete = useCallback((_sessionType: string, _mood?: MoodType) => {
+  const recordSessionComplete = useCallback((sessionType: string, _mood?: MoodType) => {
+    if (sessionType === 'mood') {
+      dispatch({ type: 'COMPLETE_MICRO_SESSION' });
+      return;
+    }
     dispatch({ type: 'COMPLETE_SESSION' });
   }, []);
 

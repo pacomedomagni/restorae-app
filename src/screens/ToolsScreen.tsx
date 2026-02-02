@@ -225,11 +225,10 @@ interface ToolCardProps {
   onPress: () => void;
   onLongPress?: () => void;
   compact?: boolean;
-  isFavorite?: boolean;
-  onFavoriteToggle?: () => void;
+  favoriteItem: Omit<FavoriteItem, 'addedAt' | 'usageCount'>;
 }
 
-function ToolCard({ tool, index, onPress, onLongPress, compact = false, isFavorite = false, onFavoriteToggle }: ToolCardProps) {
+function ToolCard({ tool, index, onPress, onLongPress, compact = false, favoriteItem }: ToolCardProps) {
   const { colors, reduceMotion } = useTheme();
   const { impactLight, impactMedium } = useHaptics();
   const { playTap } = useUISounds();
@@ -296,15 +295,13 @@ function ToolCard({ tool, index, onPress, onLongPress, compact = false, isFavori
             glow={tool.tone}
           >
             {/* Favorite Button - Top Right */}
-            {onFavoriteToggle && (
-              <View style={styles.favoriteButtonContainer}>
-                <FavoriteButton
-                  isFavorite={isFavorite}
-                  onToggle={onFavoriteToggle}
-                  size={compact ? 'sm' : 'md'}
-                />
-              </View>
-            )}
+            <View style={styles.favoriteButtonContainer}>
+              <FavoriteButton
+                item={favoriteItem}
+                size={compact ? 'sm' : 'md'}
+                variant="heart"
+              />
+            </View>
             
             <View style={[styles.toolIconContainer, { backgroundColor: withAlpha(toneColor, 0.12) }]}>
               <LuxeIcon name={tool.icon} size={compact ? 22 : 28} color={toneColor} />
@@ -458,7 +455,7 @@ export function ToolsScreen() {
   const { impactLight } = useHaptics();
   
   // Favorites system
-  const { favorites, isFavorite, addFavorite, removeFavorite } = useFavorites();
+  const { isFavorite, toggleFavorite, canAddMore } = useFavorites();
   
   const [activeCategory, setActiveCategory] = useState<ToolCategory>('all');
   const [contextMenuTool, setContextMenuTool] = useState<Tool | null>(null);
@@ -467,34 +464,29 @@ export function ToolsScreen() {
   const [showLongPressHint, setShowLongPressHint] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Toggle favorite for a tool
-  const handleFavoriteToggle = useCallback((tool: Tool) => {
-    const favoriteItem: FavoriteItem = {
-      id: tool.id,
-      type: tool.route === 'BreathingSelect' ? 'breathing' : 
-            tool.route === 'GroundingSelect' ? 'grounding' :
-            tool.route === 'ResetSelect' ? 'reset' :
-            tool.route === 'FocusSelect' ? 'focus' :
-            tool.route === 'Stories' ? 'story' : 'tool',
-      name: tool.name,
-      icon: tool.icon,
-      route: tool.route,
-      routeParams: tool.routeParams,
-    };
-    
-    if (isFavorite(tool.id)) {
-      removeFavorite(tool.id);
-    } else {
-      addFavorite(favoriteItem);
-    }
-  }, [isFavorite, addFavorite, removeFavorite]);
-  
-  const [activeCategory, setActiveCategory] = useState<ToolCategory>('all');
-  const [contextMenuTool, setContextMenuTool] = useState<Tool | null>(null);
-  const [showContextMenu, setShowContextMenu] = useState(false);
-  const [showToolsCoachMark, setShowToolsCoachMark] = useState(false);
-  const [showLongPressHint, setShowLongPressHint] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const toolToFavoriteItem = useCallback(
+    (tool: Tool): Omit<FavoriteItem, 'addedAt' | 'usageCount'> => {
+      const typeMap: Record<Tool['icon'], FavoriteItem['type']> = {
+        breathe: 'breathing',
+        ground: 'grounding',
+        reset: 'reset',
+        focus: 'focus',
+        journal: 'journal',
+        stories: 'stories',
+        sos: 'sos',
+      };
+
+      return {
+        id: tool.id,
+        type: typeMap[tool.icon] ?? 'focus',
+        name: tool.name,
+        icon: tool.icon,
+        route: tool.route,
+        ...(tool.routeParams ? { routeParams: tool.routeParams } : {}),
+      };
+    },
+    []
+  );
 
   // Pull to refresh handler
   const handleRefresh = useCallback(async () => {
@@ -613,8 +605,7 @@ export function ToolsScreen() {
                 compact
                 onPress={() => handleToolPress(tool)}
                 onLongPress={() => handleToolLongPress(tool)}
-                isFavorite={isFavorite(tool.id)}
-                onFavoriteToggle={() => handleFavoriteToggle(tool)}
+                favoriteItem={toolToFavoriteItem(tool)}
               />
             ))}
           </View>
@@ -648,10 +639,16 @@ export function ToolsScreen() {
           },
           {
             id: 'favorite',
-            label: 'Add to Favorites',
+            label:
+              contextMenuTool && isFavorite(contextMenuTool.id)
+                ? 'Remove from Favorites'
+                : 'Add to Favorites',
             icon: 'heart',
+            disabled:
+              !!contextMenuTool && !isFavorite(contextMenuTool.id) && !canAddMore,
             onPress: () => {
-              // TODO: Implement favorites
+              if (!contextMenuTool) return;
+              toggleFavorite(toolToFavoriteItem(contextMenuTool));
               handleContextMenuClose();
             },
           },
