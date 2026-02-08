@@ -473,8 +473,8 @@ export function RemindersScreen() {
         message="This custom reminder will be removed."
         onConfirm={handleDeleteCustom}
         onCancel={() => setDeleteTarget(null)}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        confirmText="Delete"
+        cancelText="Cancel"
       />
 
       {/* Permission Alert */}

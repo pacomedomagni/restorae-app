@@ -34,6 +34,8 @@ import { ToastProvider } from './src/contexts/ToastContext';
 import { AccessibilityAnnouncerProvider } from './src/contexts/AccessibilityContext';
 import { AmbientProvider } from './src/contexts/AmbientContext';
 import { JourneyProvider } from './src/contexts/JourneyContext';
+import { CoachMarkProvider } from './src/contexts/CoachMarkContext';
+import { EmotionalFlowProvider } from './src/contexts/EmotionalFlowContext';
 
 // Navigation & UI
 import { NewRootNavigator } from './src/navigation/NewRootNavigator';
@@ -167,8 +169,10 @@ export default function App() {
                 <AudioProvider>
                   <JournalProvider>
                     <MoodProvider>
-                      <SessionProvider>
-                        <AmbientProvider>
+                      <EmotionalFlowProvider>
+                        <CoachMarkProvider>
+                          <SessionProvider>
+                            <AmbientProvider>
                           <JourneyProvider>
                             <ToastProvider>
                               <AccessibilityAnnouncerProvider>
@@ -184,7 +188,9 @@ export default function App() {
                             </ToastProvider>
                           </JourneyProvider>
                         </AmbientProvider>
-                      </SessionProvider>
+                          </SessionProvider>
+                        </CoachMarkProvider>
+                      </EmotionalFlowProvider>
                     </MoodProvider>
                   </JournalProvider>
                 </AudioProvider>

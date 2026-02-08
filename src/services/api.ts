@@ -354,8 +354,8 @@ class ApiClient {
 
   async updatePushToken(pushToken: string) {
     const device = this.getDeviceInfo();
-    const response = await this.client.post('/users/me/device', {
-      ...device,
+    const response = await this.client.post('/notifications/register', {
+      deviceId: device.deviceId,
       pushToken,
     });
     return response.data;

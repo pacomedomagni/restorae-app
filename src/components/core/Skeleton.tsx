@@ -4,7 +4,7 @@
  * Loading placeholder with shimmer animation.
  */
 import React, { useEffect } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import { View, StyleSheet, Dimensions, DimensionValue } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -18,7 +18,7 @@ import { radius, withAlpha } from '../../theme/tokens';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface SkeletonProps {
-  width?: number | string;
+  width?: DimensionValue;
   height?: number;
   borderRadius?: number;
   variant?: 'text' | 'circle' | 'rect' | 'card';

@@ -158,16 +158,16 @@ export function JourneyScreen() {
       <Animated.View entering={FadeIn.duration(300)} style={styles.statsRow}>
         <StatPill
           icon="play-circle-outline"
-          label={`${weeklyStats.sessionsCompleted} sessions`}
+          label={`${weeklyStats.totalSessions} sessions`}
         />
         <StatPill
           icon="time-outline"
           label={`${weeklyStats.totalMinutes} min`}
         />
-        {weeklyStats.currentStreak > 0 && (
+        {weeklyStats.streakDays > 0 && (
           <StatPill
             icon="calendar-outline"
-            label={`${weeklyStats.currentStreak} days active`}
+            label={`${weeklyStats.streakDays} days active`}
           />
         )}
       </Animated.View>

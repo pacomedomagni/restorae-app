@@ -1,10 +1,12 @@
 /**
- * Navigation Exports - New System Only
+ * Navigation Exports
  */
 
-// Main navigator (4-tab: Sanctuary, Journey, Library, You)
+// Main navigator (4-tab: Sanctuary, Journey, Practice, You)
 export { NewRootNavigator, NewRootNavigator as RootNavigator } from './NewRootNavigator';
-export type { NewMainTabParamList, NewRootStackParamList } from './NewRootNavigator';
+
+// Types come from the single source of truth
+export type { RootStackParamList, MainTabParamList } from '../types';
 
 // Default export
 export { NewRootNavigator as default } from './NewRootNavigator';

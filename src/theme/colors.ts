@@ -50,9 +50,10 @@ export const light = {
   
   // Status
   success: '#1F4D3A',
+  statusSuccess: '#1F4D3A',    // Alias for success
   statusError: '#B65A4A',      // Errors, destructive
   error: '#B65A4A',            // Alias for statusError
-  
+
   // Mood colors (for mood selector)
   moodEnergized: '#D6A16C',    // Amber
   moodCalm: '#7BA39F',         // Soft teal
@@ -117,9 +118,10 @@ export const dark = {
   
   // Status
   success: '#6FA08B',
+  statusSuccess: '#6FA08B',    // Alias for success
   statusError: '#D07A6A',      // Errors, destructive
   error: '#D07A6A',            // Alias for statusError
-  
+
   // Mood colors (for mood selector)
   moodEnergized: '#D4A373',    // Amber
   moodCalm: '#8C9E96',         // Soft teal

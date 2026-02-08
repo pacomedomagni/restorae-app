@@ -247,6 +247,27 @@ export function FocusSessionScreen() {
   // Audio
   const { startAudio, stopAudio } = useFocusAudio(selectedSound);
 
+  // Stop audio when session completes (Bug fix: audio was playing through completion)
+  useEffect(() => {
+    if (isComplete) {
+      stopAudio();
+    }
+  }, [isComplete, stopAudio]);
+
+  // Restart audio when sound changes mid-session
+  useEffect(() => {
+    if (isRunning && selectedSound && startTimeRef.current > 0) {
+      startAudio();
+    }
+  }, [selectedSound]);
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      stopAudio();
+    };
+  }, [stopAudio]);
+
   // Timer
   useEffect(() => {
     if (!isRunning || isOpenEnded) return;
@@ -443,6 +464,8 @@ export function FocusSessionScreen() {
             <Pressable
               onPress={handleStart}
               style={[styles.primaryButton, { backgroundColor: colors.accentPrimary }]}
+              accessibilityRole="button"
+              accessibilityLabel="Start focus session"
             >
               <Ionicons name="play" size={28} color={colors.inkInverse} />
               <Text variant="labelMedium" style={{ color: colors.inkInverse, marginLeft: spacing[2] }}>
@@ -455,6 +478,8 @@ export function FocusSessionScreen() {
                 <Pressable
                   onPress={handlePause}
                   style={[styles.controlButton, { backgroundColor: withAlpha(colors.canvasElevated, 0.8) }]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Pause"
                 >
                   <Ionicons name="pause" size={28} color={colors.ink} />
                 </Pressable>
@@ -462,6 +487,8 @@ export function FocusSessionScreen() {
                 <Pressable
                   onPress={handleResume}
                   style={[styles.controlButton, { backgroundColor: colors.accentPrimary }]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Resume"
                 >
                   <Ionicons name="play" size={28} color={colors.inkInverse} />
                 </Pressable>
@@ -470,6 +497,8 @@ export function FocusSessionScreen() {
               <Pressable
                 onPress={handleStop}
                 style={[styles.controlButton, { backgroundColor: withAlpha(colors.canvasElevated, 0.8) }]}
+                accessibilityRole="button"
+                accessibilityLabel="Stop focus session"
               >
                 <Ionicons name="stop" size={24} color={colors.ink} />
               </Pressable>

@@ -8,7 +8,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Pressable, TextInput, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { useKeepAwake } from 'expo-keep-awake';
 import Animated, {
   FadeIn,
@@ -26,6 +26,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 import { useTheme } from '../contexts/ThemeContext';
 import { useSession } from '../contexts/SessionContext';
@@ -327,7 +329,7 @@ function ResetRenderer({ activity, isPaused, onComplete }: ResetRendererProps) {
         <Text variant="bodyLarge" color="ink" align="center">
           {step?.instruction ?? 'Reset'}
         </Text>
-        <Text variant="displayMedium" color="accentPrimary" align="center" style={rendererStyles.resetTimer}>
+        <Text variant="displayMedium" color="accent" align="center" style={rendererStyles.resetTimer}>
           {timer}s
         </Text>
       </GlassCard>
@@ -438,7 +440,15 @@ export function UnifiedSessionScreen() {
     estimatedTimeRemaining,
   } = session;
 
+  const isFocused = useIsFocused();
   const isPaused = status === 'paused';
+
+  // Auto-pause when screen loses focus
+  useEffect(() => {
+    if (!isFocused && isActive && !isPaused) {
+      session.pauseSession();
+    }
+  }, [isFocused]);
   const queueLength = completedActivities + remainingActivities + (currentActivity ? 1 : 0);
   const currentIndex = completedActivities + 1;
 
@@ -551,11 +561,17 @@ export function UnifiedSessionScreen() {
           entering={reduceMotion ? undefined : FadeIn.duration(300)}
           style={styles.header}
         >
-          <Pressable onPress={handleExitRequest} hitSlop={12}>
+          <Pressable
+            onPress={handleExitRequest}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="End session"
+            accessibilityHint="Shows confirmation before ending"
+          >
             <Ionicons name="close" size={24} color={colors.ink} />
           </Pressable>
 
-          <View style={styles.headerCenter}>
+          <View style={styles.headerCenter} accessibilityRole="header">
             <Text variant="labelSmall" color="inkMuted">
               {currentActivity?.name ?? 'Session'}
             </Text>
@@ -567,7 +583,13 @@ export function UnifiedSessionScreen() {
           </View>
 
           {canSkip ? (
-            <Pressable onPress={handleSkip} hitSlop={12}>
+            <Pressable
+              onPress={handleSkip}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel="Skip activity"
+              accessibilityHint="Skips to the next activity in the session"
+            >
               <Text variant="labelSmall" style={{ color: colors.accentPrimary }}>
                 Skip
               </Text>
@@ -599,9 +621,17 @@ export function UnifiedSessionScreen() {
               nextActivity={session.transitionTo ?? null}
               onReady={handleTransitionReady}
             />
-          ) : (
+          ) : currentActivity ? (
             renderActivity()
-          )}
+          ) : status !== 'not-started' ? (
+            /* Completion fallback to prevent blank flash between activity end and navigation */
+            <Animated.View entering={FadeIn.duration(300)} style={rendererStyles.centered}>
+              <Ionicons name="checkmark-circle" size={64} color={colors.accentPrimary} />
+              <Text variant="headlineMedium" color="ink" style={{ marginTop: spacing[4] }}>
+                Session complete
+              </Text>
+            </Animated.View>
+          ) : null}
         </View>
 
         {/* Bottom controls */}
@@ -622,6 +652,8 @@ export function UnifiedSessionScreen() {
                 styles.pauseButton,
                 { backgroundColor: withAlpha(colors.canvasElevated, 0.8) },
               ]}
+              accessibilityRole="button"
+              accessibilityLabel={isPaused ? 'Resume session' : 'Pause session'}
             >
               <Ionicons
                 name={isPaused ? 'play' : 'pause'}
@@ -632,12 +664,14 @@ export function UnifiedSessionScreen() {
           </Animated.View>
         )}
 
-        {/* Pause overlay */}
+        {/* Pause overlay — AnimatedPressable absorbs touches to prevent passthrough */}
         {isPaused && (
-          <Animated.View
+          <AnimatedPressable
             entering={FadeIn.duration(200)}
             exiting={FadeOut.duration(200)}
             style={[styles.pauseOverlay, { backgroundColor: withAlpha(colors.canvas, 0.85) }]}
+            onPress={() => {}}
+            accessibilityRole="none"
           >
             <Ionicons name="pause-circle-outline" size={64} color={colors.inkMuted} />
             <Text variant="headlineMedium" color="ink" style={styles.pausedText}>
@@ -646,7 +680,7 @@ export function UnifiedSessionScreen() {
             <Button variant="primary" size="lg" onPress={handleTogglePause}>
               Resume
             </Button>
-          </Animated.View>
+          </AnimatedPressable>
         )}
       </SafeAreaView>
 

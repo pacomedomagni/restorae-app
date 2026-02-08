@@ -314,7 +314,6 @@ export function SOSSessionScreen() {
               variant="glow"
               size="lg"
               fullWidth
-              tone="warm"
               onPress={handleNext}
             >
               {isLastPhase ? 'Complete' : 'Next Phase'}
@@ -325,7 +324,6 @@ export function SOSSessionScreen() {
                 variant="glow"
                 size="lg"
                 fullWidth
-                tone="warm"
                 onPress={handleClose}
               >
                 I'm feeling better

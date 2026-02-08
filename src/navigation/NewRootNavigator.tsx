@@ -29,6 +29,7 @@ import { ErrorBoundary } from '../components/ui';
 import { navigationRef } from '../services/navigationRef';
 
 import { withAlpha, spacing, radius, layout } from '../theme';
+import { RootStackParamList, MainTabParamList } from '../types';
 
 // =============================================================================
 // SCREEN IMPORTS
@@ -68,85 +69,15 @@ import { PaywallScreen } from '../screens/PaywallScreen';
 import { ProgramListScreen, ProgramDetailScreen, ProgramDayCompleteScreen } from '../screens/Programs';
 import { FocusSelectScreen, FocusSessionScreen } from '../screens/Focus';
 
-// =============================================================================
-// TYPE DEFINITIONS
-// =============================================================================
-
-export type NewMainTabParamList = {
-  SanctuaryTab: undefined;
-  JourneyTab: undefined;
-  LibraryTab: undefined;
-  YouTab: undefined;
-};
-
-export type NewRootStackParamList = {
-  Main: undefined;
-  Onboarding: undefined;
-  // Session bridge - receives simple params and sets up SessionContext
-  Session: {
-    type: string;
-    id: string;
-    mood?: string;
-  };
-  // Actual session screen managed by SessionContext
-  UnifiedSession: undefined;
-  SessionSummary: {
-    duration: number;
-    type: string;
-  };
-  SessionComplete: {
-    duration: number;
-    type: string;
-  };
-  SOSSelect: undefined;
-  SOSSession: {
-    techniqueId: string;
-  };
-  BreathingSelect: undefined;
-  Breathing: {
-    pattern?: string;
-  };
-  GroundingSelect: undefined;
-  GroundingSession: {
-    techniqueId: string;
-  };
-  StoryPlayer: {
-    storyId: string;
-  };
-  Appearance: undefined;
-  Privacy: undefined;
-  Support: undefined;
-  Reminders: undefined;
-  DataSettings: undefined;
-  SecuritySettings: undefined;
-  EditProfile: undefined;
-  JournalEntry: {
-    entryId?: string;
-    prompt?: string;
-  };
-  Paywall: undefined;
-  ProgramList: undefined;
-  ProgramDetail: { programId: string };
-  ProgramDayComplete: {
-    programId: string;
-    dayNumber: number;
-    duration: number;
-  };
-  FocusSelect: undefined;
-  FocusSession: {
-    sessionId: string;
-  };
-};
-
 const ONBOARDING_COMPLETE_KEY = '@restorae/onboarding_complete';
 
 // =============================================================================
 // NAVIGATORS
 // =============================================================================
 
-const Stack = createNativeStackNavigator<NewRootStackParamList>();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 const AuthStack = createNativeStackNavigator();
-const Tab = createBottomTabNavigator<NewMainTabParamList>();
+const Tab = createBottomTabNavigator<MainTabParamList>();
 
 // =============================================================================
 // AUTH NAVIGATOR
@@ -236,6 +167,58 @@ function YouTab() {
       errorDescription="Your Profile couldn't load. Please try restarting the app."
     >
       <YouScreen />
+    </ErrorBoundary>
+  );
+}
+
+// =============================================================================
+// SESSION SCREEN WRAPPERS WITH ERROR BOUNDARIES
+// =============================================================================
+
+function SafeUnifiedSession() {
+  return (
+    <ErrorBoundary errorTitle="Session error" errorDescription="Something went wrong during your session. Please try again.">
+      <UnifiedSessionScreen />
+    </ErrorBoundary>
+  );
+}
+
+function SafeBreathing() {
+  return (
+    <ErrorBoundary errorTitle="Session error" errorDescription="The breathing exercise couldn't load. Please try again.">
+      <BreathingScreen />
+    </ErrorBoundary>
+  );
+}
+
+function SafeGroundingSession() {
+  return (
+    <ErrorBoundary errorTitle="Session error" errorDescription="The grounding exercise couldn't load. Please try again.">
+      <GroundingSessionScreen />
+    </ErrorBoundary>
+  );
+}
+
+function SafeFocusSession() {
+  return (
+    <ErrorBoundary errorTitle="Session error" errorDescription="The focus session couldn't load. Please try again.">
+      <FocusSessionScreen />
+    </ErrorBoundary>
+  );
+}
+
+function SafeStoryPlayer() {
+  return (
+    <ErrorBoundary errorTitle="Playback error" errorDescription="The story player couldn't load. Please try again.">
+      <StoryPlayerScreen />
+    </ErrorBoundary>
+  );
+}
+
+function SafeSOSSession() {
+  return (
+    <ErrorBoundary errorTitle="Session error" errorDescription="The SOS session couldn't load. Please try again.">
+      <SOSSessionScreen />
     </ErrorBoundary>
   );
 }
@@ -425,10 +408,10 @@ export function NewRootNavigator() {
               gestureEnabled: false,
             }}
           />
-          <Stack.Screen 
-            name="UnifiedSession" 
-            component={UnifiedSessionScreen}
-            options={{ 
+          <Stack.Screen
+            name="UnifiedSession"
+            component={SafeUnifiedSession}
+            options={{
               animation: 'fade',
               gestureEnabled: false,
             }}
@@ -459,10 +442,10 @@ export function NewRootNavigator() {
               presentation: 'fullScreenModal',
             }}
           />
-          <Stack.Screen 
-            name="SOSSession" 
-            component={SOSSessionScreen}
-            options={{ 
+          <Stack.Screen
+            name="SOSSession"
+            component={SafeSOSSession}
+            options={{
               animation: 'fade',
               gestureEnabled: false,
             }}
@@ -474,10 +457,10 @@ export function NewRootNavigator() {
             component={BreathingSelectScreen}
             options={{ animation: 'slide_from_right' }}
           />
-          <Stack.Screen 
-            name="Breathing" 
-            component={BreathingScreen}
-            options={{ 
+          <Stack.Screen
+            name="Breathing"
+            component={SafeBreathing}
+            options={{
               animation: 'slide_from_bottom',
               presentation: 'fullScreenModal',
             }}
@@ -489,20 +472,20 @@ export function NewRootNavigator() {
             component={GroundingSelectScreen}
             options={{ animation: 'slide_from_right' }}
           />
-          <Stack.Screen 
-            name="GroundingSession" 
-            component={GroundingSessionScreen}
-            options={{ 
+          <Stack.Screen
+            name="GroundingSession"
+            component={SafeGroundingSession}
+            options={{
               animation: 'slide_from_bottom',
               presentation: 'fullScreenModal',
             }}
           />
 
           {/* Story Player */}
-          <Stack.Screen 
-            name="StoryPlayer" 
-            component={StoryPlayerScreen}
-            options={{ 
+          <Stack.Screen
+            name="StoryPlayer"
+            component={SafeStoryPlayer}
+            options={{
               animation: 'slide_from_bottom',
               presentation: 'fullScreenModal',
             }}
@@ -556,7 +539,7 @@ export function NewRootNavigator() {
           />
           <Stack.Screen
             name="FocusSession"
-            component={FocusSessionScreen}
+            component={SafeFocusSession}
             options={{
               animation: 'slide_from_bottom',
               presentation: 'fullScreenModal',

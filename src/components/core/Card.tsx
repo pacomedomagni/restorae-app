@@ -26,11 +26,7 @@ interface CardProps {
   onPress?: () => void;
   disabled?: boolean;
   style?: ViewStyle;
-  colors: {
-    surface: string;
-    surfaceElevated: string;
-    border: string;
-  };
+  colors: Record<string, string>;
   isDark?: boolean;
   accessibilityLabel?: string;
   accessibilityHint?: string;

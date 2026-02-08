@@ -15,15 +15,7 @@ interface BadgeProps {
   count?: number;
   variant?: BadgeVariant;
   size?: 'sm' | 'md';
-  colors: {
-    actionPrimary: string;
-    success: string;
-    warning: string;
-    error: string;
-    textInverse: string;
-    textPrimary: string;
-    surface: string;
-  };
+  colors: Record<string, string>;
 }
 
 export function Badge({

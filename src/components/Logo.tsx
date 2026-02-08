@@ -4,7 +4,7 @@ import Svg, { Path, Defs, LinearGradient, Stop } from 'react-native-svg';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useTheme } from '../contexts/ThemeContext';
 import { Text } from './ui/Text';
-import { spacing } from '../theme/spacing';
+import { spacing } from '../theme';
 
 // =============================================================================
 // TYPES

@@ -148,8 +148,9 @@ export function BreathingScreen() {
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      stopAmbient();
     };
-  }, []);
+  }, [stopAmbient]);
 
   // Preload breathing tones on mount
   useEffect(() => {
@@ -322,7 +323,7 @@ export function BreathingScreen() {
             accessibilityLabel={breathingTonesEnabled ? 'Mute breathing tones' : 'Enable breathing tones'}
           >
             <Icon
-              name={breathingTonesEnabled ? 'volume-high-outline' : 'volume-mute-outline'}
+              name={breathingTonesEnabled ? 'volume2' : 'volumeX'}
               size={20}
               color={colors.ink}
             />

@@ -6,7 +6,7 @@
  */
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { MoodType } from '../../theme/tokens';
+import { MoodType } from '../theme/tokens';
 
 // =============================================================================
 // TYPES

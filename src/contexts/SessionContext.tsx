@@ -499,7 +499,7 @@ export function SessionProvider({ children }: SessionProviderProps) {
   const createBackendSession = useCallback(async (
     mode: 'SINGLE' | 'RITUAL' | 'SOS',
     activities: Activity[],
-    options?: { ritualId?: string; ritualSlug?: string; sosPresetId?: string }
+    options?: { ritualId?: string; ritualSlug?: string; sosPresetId?: string; programId?: string; programDay?: number }
   ) => {
     try {
       const response = await api.createSession({

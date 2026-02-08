@@ -217,7 +217,7 @@ function BreathingPreviewStep() {
         entering={reduceMotion ? undefined : FadeIn.delay(300).duration(800)}
         style={styles.breathingOrbWrapper}
       >
-        <FloatingOrb isBreathing />
+        <FloatingOrb size={160} />
         
         <Animated.View style={[styles.breathingPhase, textStyle]}>
           <Text variant="headlineMedium" color="accent" align="center">

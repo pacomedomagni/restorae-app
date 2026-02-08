@@ -247,6 +247,7 @@ export function StoryPlayerScreen() {
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showStoryCoachMark, setShowStoryCoachMark] = useState(false);
   const [showScrubHint, setShowScrubHint] = useState(false);
+  const [premiumVerified, setPremiumVerified] = useState(false);
 
   // Animation values
   const pulseScale = useSharedValue(1);
@@ -270,19 +271,22 @@ export function StoryPlayerScreen() {
     }
   }, [playbackState.isLoading, story, shouldShowCoachMark]);
 
-  // Premium gate: check access when story loads
+  // Premium gate: check access before audio loads (prevents race condition)
   useEffect(() => {
-    if (story?.isPremium) {
+    if (!story) return;
+    if (story.isPremium) {
       const hasAccess = checkAccessOrPaywall(story.id, story.title);
       if (!hasAccess) {
         navigation.goBack();
+        return;
       }
     }
+    setPremiumVerified(true);
   }, [story?.id]);
 
-  // Load story on mount
+  // Load story on mount — only after premium verification
   useEffect(() => {
-    if (story) {
+    if (story && premiumVerified) {
       loadAndPlayStory(story);
       analytics.track(AnalyticsEvents.STORY_STARTED, {
         storyId: story.id,
@@ -295,7 +299,7 @@ export function StoryPlayerScreen() {
     return () => {
       // Don't stop audio - let it continue in background
     };
-  }, [story?.id]);
+  }, [story?.id, premiumVerified]);
 
   // Pulse animation when playing
   useEffect(() => {

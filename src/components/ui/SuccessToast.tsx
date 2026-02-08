@@ -24,7 +24,7 @@ import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from './Text';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useSmartHaptics } from '../../hooks/useSmartHaptics';
+import { useHaptics } from '../../hooks/useHaptics';
 import { spacing, borderRadius, withAlpha } from '../../theme';
 
 // =============================================================================
@@ -57,7 +57,7 @@ export function SuccessToast({
   variant = 'success',
 }: SuccessToastProps) {
   const { colors, isDark, reduceMotion } = useTheme();
-  const { tap } = useSmartHaptics();
+  const { impactLight: tap } = useHaptics();
   const insets = useSafeAreaInsets();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 

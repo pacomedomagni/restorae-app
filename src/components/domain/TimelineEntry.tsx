@@ -21,25 +21,7 @@ import { TimelineEntry as TimelineEntryType } from '../../contexts/JourneyContex
 interface TimelineEntryProps {
   entry: TimelineEntryType;
   onPress?: () => void;
-  colors: {
-    surface: string;
-    surfaceElevated: string;
-    textPrimary: string;
-    textSecondary: string;
-    textTertiary: string;
-    actionPrimary: string;
-    actionSecondary: string;
-    actionDestructive: string;
-    textInverse: string;
-    success: string;
-    warning: string;
-    error: string;
-    border: string;
-    moodCalm: string;
-    moodGood: string;
-    moodAnxious: string;
-    moodLow: string;
-  };
+  colors: Record<string, string>;
   isDark?: boolean;
 }
 

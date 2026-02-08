@@ -43,6 +43,23 @@ export {
 
 // Animations
 export { SoftGlow } from './SoftGlow';
+export { FloatingOrb } from './FloatingOrb';
+
+// Breathing
+export { BreathingOrb } from './BreathingOrb';
+
+// Buttons
+export { PremiumButton } from './PremiumButton';
+
+// Coach marks & hints
+export { CoachMarkOverlay } from './CoachMarkOverlay';
+export { GestureHint } from './GestureHint';
+
+// Layout
+export { TabSafeScrollView } from './TabSafeScrollView';
+
+// Network
+export { OfflineBanner } from './OfflineBanner';
 
 // Toast notifications
 export { Toast } from './Toast';
