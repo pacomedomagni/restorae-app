@@ -32,14 +32,12 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAmbient } from '../../contexts/AmbientContext';
 import { useJourney } from '../../contexts/JourneyContext';
 
-import { Text } from '../../components/core/Text';
-import { Button } from '../../components/core/Button';
-import { Card } from '../../components/core/Card';
+import { Text, Button, GlassCard } from '../../components/ui';
 import { Input } from '../../components/core/Input';
 import { MoodOrb } from '../../components/domain/MoodOrb';
 import { AmbientBackground } from '../../components/domain/AmbientBackground';
 
-import { MoodType, moodLabels, spacing, radius, withAlpha, layout } from '../../theme/tokens';
+import { MoodType, moodLabels, spacing, radius, withAlpha, layout } from '../../theme';
 import { RootStackParamList } from '../../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -198,7 +196,7 @@ export function SanctuaryScreen() {
   // =============================================================================
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.canvas }]}>
       <AmbientBackground
         variant={timeOfDay === 'morning' ? 'morning' : timeOfDay === 'evening' ? 'evening' : 'calm'}
         isDark={isDark}
@@ -215,12 +213,13 @@ export function SanctuaryScreen() {
             entering={FadeIn.duration(400)}
             style={styles.header}
           >
-            <Text variant="headlineLarge" style={{ color: colors.textPrimary }}>
+            <Text variant="headlineLarge" color="ink">
               {greeting}
             </Text>
             <Text
               variant="bodyMedium"
-              style={{ color: colors.textSecondary, marginTop: spacing.xs }}
+              color="inkMuted"
+              style={{ marginTop: spacing.xs }}
             >
               {needsGentleness
                 ? "Take all the time you need"
@@ -261,19 +260,17 @@ export function SanctuaryScreen() {
               exiting={FadeOut.duration(200)}
               style={styles.offeringSection}
             >
-              <Card
+              <GlassCard
                 variant="elevated"
                 padding="lg"
-                colors={colors}
-                isDark={isDark}
               >
                 {/* Selected Mood Indicator */}
                 <View style={styles.selectedMoodRow}>
-                  <Text variant="labelSmall" style={{ color: colors.textTertiary }}>
+                  <Text variant="labelSmall" color="inkFaint">
                     FEELING {moodLabels[selectedMood].toUpperCase()}
                   </Text>
                   <Pressable onPress={handleReset} hitSlop={8}>
-                    <Text variant="labelSmall" style={{ color: colors.actionPrimary }}>
+                    <Text variant="labelSmall" color="accent">
                       Change
                     </Text>
                   </Pressable>
@@ -282,13 +279,15 @@ export function SanctuaryScreen() {
                 {/* Offering */}
                 <Text
                   variant="headlineMedium"
-                  style={{ color: colors.textPrimary, marginTop: spacing.md }}
+                  color="ink"
+                  style={{ marginTop: spacing.md }}
                 >
                   {offering.title}
                 </Text>
                 <Text
                   variant="bodyMedium"
-                  style={{ color: colors.textSecondary, marginTop: spacing.xs }}
+                  color="inkMuted"
+                  style={{ marginTop: spacing.xs }}
                 >
                   {offering.description}
                 </Text>
@@ -297,17 +296,18 @@ export function SanctuaryScreen() {
                 <View
                   style={[
                     styles.durationBadge,
-                    { backgroundColor: withAlpha(colors.actionPrimary, 0.1) },
+                    { backgroundColor: withAlpha(colors.accentPrimary, 0.1) },
                   ]}
                 >
                   <Ionicons
                     name="time-outline"
                     size={14}
-                    color={colors.actionPrimary}
+                    color={colors.accentPrimary}
                   />
                   <Text
                     variant="labelSmall"
-                    style={{ color: colors.actionPrimary, marginLeft: 4 }}
+                    color="accent"
+                    style={{ marginLeft: 4 }}
                   >
                     {offering.duration}
                   </Text>
@@ -334,11 +334,12 @@ export function SanctuaryScreen() {
                     <Ionicons
                       name="add-circle-outline"
                       size={16}
-                      color={colors.textTertiary}
+                      color={colors.inkFaint}
                     />
                     <Text
                       variant="labelMedium"
-                      style={{ color: colors.textTertiary, marginLeft: 4 }}
+                      color="inkFaint"
+                      style={{ marginLeft: 4 }}
                     >
                       Add a note
                     </Text>
@@ -352,9 +353,8 @@ export function SanctuaryScreen() {
                     size="lg"
                     fullWidth
                     onPress={handleStartSession}
-                    colors={colors}
                   >
-                    Yes, guide me
+                    Begin
                   </Button>
 
                   <Button
@@ -362,7 +362,6 @@ export function SanctuaryScreen() {
                     size="md"
                     fullWidth
                     onPress={handleShowOptions}
-                    colors={colors}
                     style={styles.actionSpacing}
                   >
                     Show me options
@@ -373,13 +372,12 @@ export function SanctuaryScreen() {
                     size="md"
                     fullWidth
                     onPress={handleJustBreathe}
-                    colors={colors}
                     style={styles.actionSpacing}
                   >
-                    Just breathe (1 min)
+                    One minute calm
                   </Button>
                 </View>
-              </Card>
+              </GlassCard>
             </Animated.View>
           )}
 
@@ -393,7 +391,7 @@ export function SanctuaryScreen() {
             onPress={handleSOS}
             style={[
               styles.sosButton,
-              { backgroundColor: withAlpha(colors.actionDestructive, 0.1) },
+              { backgroundColor: withAlpha(colors.accentDanger, 0.1) },
             ]}
             accessibilityRole="button"
             accessibilityLabel="SOS - I need help now"
@@ -401,11 +399,11 @@ export function SanctuaryScreen() {
             <Ionicons
               name="alert-circle"
               size={18}
-              color={colors.actionDestructive}
+              color={colors.accentDanger}
             />
             <Text
               variant="labelMedium"
-              style={{ color: colors.actionDestructive, marginLeft: spacing.xs }}
+              style={{ color: colors.accentDanger, marginLeft: spacing.xs }}
             >
               I need help now
             </Text>

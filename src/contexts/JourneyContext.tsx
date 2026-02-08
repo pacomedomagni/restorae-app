@@ -54,7 +54,8 @@ interface JourneyState {
   // Timeline
   entries: TimelineEntry[];
   isLoading: boolean;
-  
+  isError: boolean;
+
   // Stats
   weeklyStats: WeeklyStats;
   totalSessions: number;
@@ -213,6 +214,7 @@ function calculateStreak(entries: TimelineEntry[]): { current: number; longest: 
 const initialState: JourneyState = {
   entries: [],
   isLoading: true,
+  isError: false,
   weeklyStats: {
     startDate: '',
     endDate: '',
@@ -254,6 +256,7 @@ export function JourneyProvider({ children }: { children: ReactNode }) {
         setState({
           entries,
           isLoading: false,
+          isError: false,
           weeklyStats: { ...weeklyStats, streakDays: currentStreak },
           totalSessions: sessions.length,
           totalMinutes: sessions.reduce((sum, s) => sum + (s.sessionDuration || 0) / 60, 0),
@@ -263,11 +266,11 @@ export function JourneyProvider({ children }: { children: ReactNode }) {
           activeFilter: 'all',
         });
       } else {
-        setState(prev => ({ ...prev, isLoading: false }));
+        setState(prev => ({ ...prev, isLoading: false, isError: false }));
       }
     } catch (error) {
       console.error('Failed to load journey data:', error);
-      setState(prev => ({ ...prev, isLoading: false }));
+      setState(prev => ({ ...prev, isLoading: false, isError: true }));
     }
   };
 
@@ -388,7 +391,7 @@ export function JourneyProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refresh = useCallback(async () => {
-    setState(prev => ({ ...prev, isLoading: true }));
+    setState(prev => ({ ...prev, isLoading: true, isError: false }));
     await loadData();
   }, []);
 

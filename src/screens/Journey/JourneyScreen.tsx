@@ -22,17 +22,16 @@ import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../contexts/ThemeContext';
-import { useJourney, TimelineEntry } from '../../contexts/JourneyContext';
+import { useJourney, TimelineEntry as TimelineEntryData } from '../../contexts/JourneyContext';
 
-import { Text } from '../../components/core/Text';
-import { Button } from '../../components/core/Button';
-import { Card } from '../../components/core/Card';
+import { Text, Button, GlassCard, AsyncErrorWrapper } from '../../components/ui';
 import { Input } from '../../components/core/Input';
+import { SkeletonCard, SkeletonText } from '../../components/ui/Skeleton';
 import { ProgressRing } from '../../components/core/ProgressRing';
 import { EmptyState } from '../../components/core/EmptyState';
 import { TimelineEntry } from '../../components/domain/TimelineEntry';
 
-import { spacing, radius, withAlpha, layout, moodLabels, MoodType } from '../../theme/tokens';
+import { spacing, radius, withAlpha, layout, moodLabels, MoodType } from '../../theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -62,18 +61,18 @@ interface WeeklyStatsProps {
     moodEntries: number;
     dominantMood: MoodType | null;
   };
-  colors: any;
 }
 
-function WeeklyStats({ weeklyStats, colors }: WeeklyStatsProps) {
+function WeeklyStats({ weeklyStats }: WeeklyStatsProps) {
+  const { colors } = useTheme();
   const weeklyGoal = 7; // sessions per week
   const progress = Math.min(weeklyStats.sessionsCompleted / weeklyGoal, 1);
 
   return (
     <Animated.View entering={FadeIn.duration(300)}>
-      <Card variant="elevated" padding="lg" colors={colors}>
+      <GlassCard variant="elevated" padding="lg">
         <View style={styles.statsHeader}>
-          <Text variant="headlineSmall" style={{ color: colors.textPrimary }}>
+          <Text variant="headlineSmall" color="ink">
             This Week
           </Text>
           {weeklyStats.currentStreak > 0 && (
@@ -83,12 +82,13 @@ function WeeklyStats({ weeklyStats, colors }: WeeklyStatsProps) {
                 { backgroundColor: withAlpha(colors.accentPrimary, 0.1) },
               ]}
             >
-              <Ionicons name="flame" size={14} color={colors.accentPrimary} />
+              <Ionicons name="calendar-outline" size={14} color={colors.accentPrimary} />
               <Text
                 variant="labelSmall"
-                style={{ color: colors.accentPrimary, marginLeft: 4 }}
+                color="accent"
+                style={{ marginLeft: 4 }}
               >
-                {weeklyStats.currentStreak} day streak
+                {weeklyStats.currentStreak} days active
               </Text>
             </View>
           )}
@@ -103,10 +103,10 @@ function WeeklyStats({ weeklyStats, colors }: WeeklyStatsProps) {
               colors={colors}
             />
             <View style={styles.ringLabel}>
-              <Text variant="headlineSmall" style={{ color: colors.textPrimary }}>
+              <Text variant="headlineSmall" color="ink">
                 {weeklyStats.sessionsCompleted}
               </Text>
-              <Text variant="labelSmall" style={{ color: colors.textTertiary }}>
+              <Text variant="labelSmall" color="inkFaint">
                 of {weeklyGoal}
               </Text>
             </View>
@@ -114,36 +114,36 @@ function WeeklyStats({ weeklyStats, colors }: WeeklyStatsProps) {
 
           <View style={styles.statsGrid}>
             <View style={styles.statItem}>
-              <Text variant="headlineMedium" style={{ color: colors.textPrimary }}>
+              <Text variant="headlineMedium" color="ink">
                 {weeklyStats.totalMinutes}
               </Text>
-              <Text variant="labelSmall" style={{ color: colors.textTertiary }}>
+              <Text variant="labelSmall" color="inkFaint">
                 minutes
               </Text>
             </View>
 
             <View style={styles.statItem}>
-              <Text variant="headlineMedium" style={{ color: colors.textPrimary }}>
+              <Text variant="headlineMedium" color="ink">
                 {weeklyStats.moodEntries}
               </Text>
-              <Text variant="labelSmall" style={{ color: colors.textTertiary }}>
+              <Text variant="labelSmall" color="inkFaint">
                 check-ins
               </Text>
             </View>
 
             {weeklyStats.dominantMood && (
               <View style={styles.statItem}>
-                <Text variant="headlineMedium" style={{ color: colors.textPrimary }}>
+                <Text variant="headlineMedium" color="ink">
                   {moodLabels[weeklyStats.dominantMood].slice(0, 1).toUpperCase()}
                 </Text>
-                <Text variant="labelSmall" style={{ color: colors.textTertiary }}>
+                <Text variant="labelSmall" color="inkFaint">
                   top mood
                 </Text>
               </View>
             )}
           </View>
         </View>
-      </Card>
+      </GlassCard>
     </Animated.View>
   );
 }
@@ -153,11 +153,11 @@ function WeeklyStats({ weeklyStats, colors }: WeeklyStatsProps) {
 // =============================================================================
 
 interface QuickJournalProps {
-  colors: any;
   onSave: (content: string) => void;
 }
 
-function QuickJournal({ colors, onSave }: QuickJournalProps) {
+function QuickJournal({ onSave }: QuickJournalProps) {
+  const { colors } = useTheme();
   const [content, setContent] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -175,11 +175,11 @@ function QuickJournal({ colors, onSave }: QuickJournalProps) {
         onPress={() => setIsExpanded(true)}
         style={[
           styles.quickJournalCollapsed,
-          { backgroundColor: withAlpha(colors.surfaceElevated, 0.8) },
+          { backgroundColor: withAlpha(colors.canvasElevated, 0.8) },
         ]}
       >
-        <Ionicons name="create-outline" size={20} color={colors.textSecondary} />
-        <Text variant="bodyMedium" style={{ color: colors.textSecondary, marginLeft: spacing.sm }}>
+        <Ionicons name="create-outline" size={20} color={colors.inkMuted} />
+        <Text variant="bodyMedium" color="inkMuted" style={{ marginLeft: spacing.sm }}>
           What's on your mind?
         </Text>
       </Pressable>
@@ -188,7 +188,7 @@ function QuickJournal({ colors, onSave }: QuickJournalProps) {
 
   return (
     <Animated.View entering={FadeIn.duration(200)}>
-      <Card variant="default" padding="md" colors={colors}>
+      <GlassCard variant="default" padding="md">
         <Input
           placeholder="Write your thoughts..."
           value={content}
@@ -208,7 +208,6 @@ function QuickJournal({ colors, onSave }: QuickJournalProps) {
               setIsExpanded(false);
               setContent('');
             }}
-            colors={colors}
           >
             Cancel
           </Button>
@@ -217,12 +216,11 @@ function QuickJournal({ colors, onSave }: QuickJournalProps) {
             size="sm"
             onPress={handleSave}
             disabled={!content.trim()}
-            colors={colors}
           >
             Save
           </Button>
         </View>
-      </Card>
+      </GlassCard>
     </Animated.View>
   );
 }
@@ -233,7 +231,7 @@ function QuickJournal({ colors, onSave }: QuickJournalProps) {
 
 export function JourneyScreen() {
   const { colors, isDark } = useTheme();
-  const { timeline, weeklyStats, addJournalEntry } = useJourney();
+  const { entries, weeklyStats, addJournalEntry, isLoading, isError, refresh } = useJourney();
 
   const [filter, setFilter] = useState<TimeFilter>('week');
 
@@ -244,7 +242,7 @@ export function JourneyScreen() {
     startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    return timeline.filter((entry) => {
+    return entries.filter((entry) => {
       const entryDate = new Date(entry.timestamp);
       switch (filter) {
         case 'today':
@@ -257,7 +255,7 @@ export function JourneyScreen() {
           return true;
       }
     });
-  }, [timeline, filter]);
+  }, [entries, filter]);
 
   const handleAddJournal = useCallback(
     async (content: string) => {
@@ -274,7 +272,7 @@ export function JourneyScreen() {
   ];
 
   const renderItem = useCallback(
-    ({ item, index }: { item: TimelineEntry; index: number }) => (
+    ({ item, index }: { item: TimelineEntryData; index: number }) => (
       <Animated.View
         entering={FadeInUp.delay(index * 50).duration(300)}
         layout={Layout}
@@ -290,19 +288,19 @@ export function JourneyScreen() {
       <View style={styles.headerContent}>
         {/* Title */}
         <Animated.View entering={FadeIn.duration(300)} style={styles.titleRow}>
-          <Text variant="headlineLarge" style={{ color: colors.textPrimary }}>
+          <Text variant="headlineLarge" color="ink">
             Your Journey
           </Text>
         </Animated.View>
 
         {/* Weekly Stats */}
         <View style={styles.section}>
-          <WeeklyStats weeklyStats={weeklyStats} colors={colors} />
+          <WeeklyStats weeklyStats={weeklyStats} />
         </View>
 
         {/* Quick Journal */}
         <View style={styles.section}>
-          <QuickJournal colors={colors} onSave={handleAddJournal} />
+          <QuickJournal onSave={handleAddJournal} />
         </View>
 
         {/* Filters */}
@@ -316,16 +314,14 @@ export function JourneyScreen() {
                 {
                   backgroundColor:
                     filter === f.key
-                      ? colors.actionPrimary
-                      : withAlpha(colors.surfaceElevated, 0.5),
+                      ? colors.accentPrimary
+                      : withAlpha(colors.canvasElevated, 0.5),
                 },
               ]}
             >
               <Text
                 variant="labelMedium"
-                style={{
-                  color: filter === f.key ? '#FFFFFF' : colors.textSecondary,
-                }}
+                color={filter === f.key ? 'inkInverse' : 'inkMuted'}
               >
                 {f.label}
               </Text>
@@ -336,8 +332,8 @@ export function JourneyScreen() {
         {/* Timeline Header */}
         <Text
           variant="labelSmall"
+          color="inkFaint"
           style={{
-            color: colors.textTertiary,
             marginTop: spacing.lg,
             marginBottom: spacing.sm,
           }}
@@ -350,29 +346,43 @@ export function JourneyScreen() {
   );
 
   const renderEmpty = useCallback(
-    () => (
-      <EmptyState
-        icon="time-outline"
-        title="Your journey begins"
-        description="Check in with your mood from the Sanctuary to start building your timeline."
-        colors={colors}
-      />
-    ),
-    [colors]
+    () =>
+      isLoading ? (
+        <View style={{ gap: spacing.md }}>
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </View>
+      ) : (
+        <EmptyState
+          icon="time-outline"
+          title="Your first moment of calm awaits"
+          description="Check in with your mood from the Sanctuary to begin building your timeline."
+          colors={colors}
+        />
+      ),
+    [colors, isLoading]
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.canvas }]}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <FlatList
-          data={filteredTimeline}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          ListHeaderComponent={renderHeader}
-          ListEmptyComponent={renderEmpty}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
+        <AsyncErrorWrapper
+          isError={isError}
+          onRetry={refresh}
+          errorTitle="Couldn't load your journey"
+          errorDescription="We had trouble loading your data. Let's try again."
+        >
+          <FlatList
+            data={filteredTimeline}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            ListHeaderComponent={renderHeader}
+            ListEmptyComponent={renderEmpty}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+          />
+        </AsyncErrorWrapper>
       </SafeAreaView>
     </View>
   );

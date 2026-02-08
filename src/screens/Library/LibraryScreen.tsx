@@ -33,12 +33,11 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../contexts/ThemeContext';
 
-import { Text } from '../../components/core/Text';
-import { Card } from '../../components/core/Card';
+import { Text } from '../../components/ui';
 import { EmptyState } from '../../components/core/EmptyState';
 import { ContentCard } from '../../components/domain/ContentCard';
 
-import { spacing, radius, withAlpha, layout } from '../../theme/tokens';
+import { spacing, radius, withAlpha, layout } from '../../theme';
 import { RootStackParamList } from '../../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -230,27 +229,28 @@ const CATEGORIES: Category[] = [
 interface SearchBarProps {
   value: string;
   onChangeText: (text: string) => void;
-  colors: any;
 }
 
-function SearchBar({ value, onChangeText, colors }: SearchBarProps) {
+function SearchBar({ value, onChangeText }: SearchBarProps) {
+  const { colors } = useTheme();
+
   return (
     <Animated.View entering={FadeIn.duration(300)}>
       <View
         style={[
           styles.searchContainer,
-          { backgroundColor: withAlpha(colors.surfaceElevated, 0.8) },
+          { backgroundColor: withAlpha(colors.canvasElevated, 0.8) },
         ]}
       >
         <Ionicons
           name="search-outline"
           size={20}
-          color={colors.textTertiary}
+          color={colors.inkFaint}
         />
         <TextInput
-          style={[styles.searchInput, { color: colors.textPrimary }]}
+          style={[styles.searchInput, { color: colors.ink }]}
           placeholder="Search breathing, stories, tools..."
-          placeholderTextColor={colors.textTertiary}
+          placeholderTextColor={colors.inkFaint}
           value={value}
           onChangeText={onChangeText}
           returnKeyType="search"
@@ -261,7 +261,7 @@ function SearchBar({ value, onChangeText, colors }: SearchBarProps) {
             <Ionicons
               name="close-circle"
               size={18}
-              color={colors.textTertiary}
+              color={colors.inkFaint}
             />
           </Pressable>
         )}
@@ -276,13 +276,13 @@ function SearchBar({ value, onChangeText, colors }: SearchBarProps) {
 
 interface CategoryRowProps {
   category: Category;
-  colors: any;
-  isDark: boolean;
   onItemPress: (item: ContentItem) => void;
   index: number;
 }
 
-function CategoryRow({ category, colors, isDark, onItemPress, index }: CategoryRowProps) {
+function CategoryRow({ category, onItemPress, index }: CategoryRowProps) {
+  const { colors, isDark } = useTheme();
+
   return (
     <Animated.View
       entering={FadeInDown.delay(100 + index * 50).duration(300)}
@@ -293,20 +293,17 @@ function CategoryRow({ category, colors, isDark, onItemPress, index }: CategoryR
           <Ionicons
             name={category.icon as any}
             size={18}
-            color={colors.actionPrimary}
+            color={colors.accentPrimary}
           />
           <Text
             variant="titleMedium"
-            style={{ color: colors.textPrimary, marginLeft: spacing.sm }}
+            color="ink"
+            style={{ marginLeft: spacing.sm }}
           >
             {category.title}
           </Text>
         </View>
-        <Pressable hitSlop={8}>
-          <Text variant="labelMedium" style={{ color: colors.actionPrimary }}>
-            See all
-          </Text>
-        </Pressable>
+        {/* TODO: Wire to category detail screen when available */}
       </View>
 
       <FlatList
@@ -339,12 +336,12 @@ function CategoryRow({ category, colors, isDark, onItemPress, index }: CategoryR
 
 interface SearchResultsProps {
   results: ContentItem[];
-  colors: any;
-  isDark: boolean;
   onItemPress: (item: ContentItem) => void;
 }
 
-function SearchResults({ results, colors, isDark, onItemPress }: SearchResultsProps) {
+function SearchResults({ results, onItemPress }: SearchResultsProps) {
+  const { colors, isDark } = useTheme();
+
   if (results.length === 0) {
     return (
       <EmptyState
@@ -360,7 +357,8 @@ function SearchResults({ results, colors, isDark, onItemPress }: SearchResultsPr
     <View style={styles.searchResults}>
       <Text
         variant="labelSmall"
-        style={{ color: colors.textTertiary, marginBottom: spacing.md }}
+        color="inkFaint"
+        style={{ marginBottom: spacing.md }}
       >
         {results.length} RESULT{results.length !== 1 ? 'S' : ''}
       </Text>
@@ -390,7 +388,7 @@ function SearchResults({ results, colors, isDark, onItemPress }: SearchResultsPr
 
 export function LibraryScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -411,7 +409,7 @@ export function LibraryScreen() {
   const handleItemPress = useCallback(
     async (item: ContentItem) => {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      
+
       navigation.navigate('Session', {
         type: item.type,
         id: item.id,
@@ -423,7 +421,7 @@ export function LibraryScreen() {
   const isSearching = searchQuery.trim().length > 0;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.canvas }]}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView
           style={styles.scrollView}
@@ -433,7 +431,7 @@ export function LibraryScreen() {
         >
           {/* Header */}
           <Animated.View entering={FadeIn.duration(300)} style={styles.header}>
-            <Text variant="headlineLarge" style={{ color: colors.textPrimary }}>
+            <Text variant="headlineLarge" color="ink">
               Library
             </Text>
           </Animated.View>
@@ -443,7 +441,6 @@ export function LibraryScreen() {
             <SearchBar
               value={searchQuery}
               onChangeText={setSearchQuery}
-              colors={colors}
             />
           </View>
 
@@ -451,8 +448,6 @@ export function LibraryScreen() {
           {isSearching ? (
             <SearchResults
               results={searchResults}
-              colors={colors}
-              isDark={isDark}
               onItemPress={handleItemPress}
             />
           ) : (
@@ -464,7 +459,8 @@ export function LibraryScreen() {
               >
                 <Text
                   variant="labelSmall"
-                  style={{ color: colors.textTertiary, marginBottom: spacing.sm }}
+                  color="inkFaint"
+                  style={{ marginBottom: spacing.sm }}
                 >
                   QUICK ACCESS
                 </Text>
@@ -475,7 +471,7 @@ export function LibraryScreen() {
                         key={title}
                         style={[
                           styles.quickAccessChip,
-                          { backgroundColor: withAlpha(colors.actionPrimary, 0.1) },
+                          { backgroundColor: withAlpha(colors.accentPrimary, 0.1) },
                         ]}
                         onPress={() => {
                           const item = CATEGORIES.flatMap((c) => c.items).find(
@@ -486,7 +482,7 @@ export function LibraryScreen() {
                       >
                         <Text
                           variant="labelMedium"
-                          style={{ color: colors.actionPrimary }}
+                          color="accent"
                         >
                           {title}
                         </Text>
@@ -501,8 +497,6 @@ export function LibraryScreen() {
                 <CategoryRow
                   key={category.id}
                   category={category}
-                  colors={colors}
-                  isDark={isDark}
                   onItemPress={handleItemPress}
                   index={index}
                 />
@@ -552,7 +546,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: spacing.sm,
     fontSize: 16,
-    fontFamily: 'PlusJakartaSans-Regular',
+    fontFamily: 'PlusJakartaSans_400Regular',
     paddingVertical: spacing.xs,
   },
   quickAccessSection: {

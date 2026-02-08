@@ -178,20 +178,20 @@ export const textStyles = {
 };
 
 // =============================================================================
-// SPACING (8-point grid system)
+// SPACING (8-point grid system — supports both numeric and named keys)
 // =============================================================================
 export const spacing = {
   0: 0,
-  1: 4,
-  2: 8,
+  1: 4,   xs: 4,
+  2: 8,   sm: 8,
   3: 12,
-  4: 16,
+  4: 16,  md: 16,
   5: 20,
-  6: 24,
-  8: 32,
+  6: 24,  lg: 24,
+  8: 32,  xl: 32,
   10: 40,
-  12: 48,
-  16: 64,
+  12: 48, '2xl': 48,
+  16: 64, '3xl': 64,
   20: 80,
 };
 
@@ -200,22 +200,26 @@ export const spacing = {
 // =============================================================================
 export const borderRadius = {
   none: 0,
-  sm: 6,
-  md: 10,
+  sm: 8,
+  md: 12,
   lg: 16,
-  xl: 22,
+  xl: 24,
   '2xl': 30,
   full: 9999,
 };
+
+// Named alias for compatibility with tokens.ts consumers
+export const radius = borderRadius;
 
 // =============================================================================
 // LAYOUT
 // =============================================================================
 export const layout = {
-  screenPaddingHorizontal: 28,
-  cardPadding: 24,
+  screenPaddingHorizontal: 24,
+  screenPadding: 24,            // Alias for tokens.ts consumers
+  cardPadding: 20,
   minTouchTarget: 44,           // WCAG 2.5.5
-  tabBarHeight: 92,
+  tabBarHeight: 80,
   headerHeight: 56,
 };
 

@@ -256,7 +256,7 @@ export function JournalEntryScreen() {
                       value={encrypted}
                       onValueChange={handleEncryptionToggle}
                       trackColor={{ false: palette.border, true: colors.accentPrimary }}
-                      thumbColor="#FFFFFF"
+                      thumbColor={colors.textInverse}
                     />
                   </View>
                 )}

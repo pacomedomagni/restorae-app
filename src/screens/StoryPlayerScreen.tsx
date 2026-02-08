@@ -49,7 +49,7 @@ import { useAnalytics, AnalyticsEvents } from '../services/analytics';
 import audioService, { PlaybackState } from '../services/audio';
 import { Text, GlassCard, Button, ExitConfirmationModal, CoachMarkOverlay, GestureHint } from '../components/ui';
 import { Icon } from '../components/Icon';
-import { spacing, borderRadius } from '../theme';
+import { spacing, borderRadius, withAlpha } from '../theme';
 import { RootStackParamList } from '../types';
 import { getStoryById, formatDuration, SLEEP_TIMER_OPTIONS, BedtimeStory, mapApiStoryToLocal, ApiStory, getStoryArtwork } from '../data/bedtimeStories';
 import { navigationHelpers } from '../services/navigationHelpers';
@@ -74,7 +74,7 @@ function SleepTimerModal({ visible, currentTimer, onSelect, onClose }: SleepTime
   if (!visible) return null;
 
   return (
-    <Pressable style={styles.modalOverlay} onPress={onClose}>
+    <Pressable style={[styles.modalOverlay, { backgroundColor: withAlpha(colors.canvas, 0.5) }]} onPress={onClose}>
       <Animated.View
         entering={FadeInUp.duration(300)}
         style={styles.modalContainer}
@@ -180,10 +180,10 @@ function ProgressBar({ position, duration, onSeek }: ProgressBarProps) {
       </Pressable>
       
       <View style={styles.timeLabels}>
-        <Text variant="labelSmall" style={{ color: 'rgba(255,255,255,0.7)' }}>
+        <Text variant="labelSmall" style={{ color: withAlpha(colors.inkInverse, 0.7) }}>
           {formatTime(position)}
         </Text>
-        <Text variant="labelSmall" style={{ color: 'rgba(255,255,255,0.7)' }}>
+        <Text variant="labelSmall" style={{ color: withAlpha(colors.inkInverse, 0.7) }}>
           {formatTime(duration)}
         </Text>
       </View>
@@ -422,7 +422,7 @@ export function StoryPlayerScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.canvasDeep }]}>
       <StatusBar barStyle="light-content" />
       
       {/* Background with artwork blur */}
@@ -436,7 +436,7 @@ export function StoryPlayerScreen() {
                 style={styles.backgroundImage}
                 blurRadius={50}
               />
-              <View style={styles.backgroundOverlay} />
+              <View style={[styles.backgroundOverlay, { backgroundColor: withAlpha(colors.canvas, 0.6) }]} />
             </>
           );
         } else if (story.artworkUrl) {
@@ -447,7 +447,7 @@ export function StoryPlayerScreen() {
                 style={styles.backgroundImage}
                 blurRadius={50}
               />
-              <View style={styles.backgroundOverlay} />
+              <View style={[styles.backgroundOverlay, { backgroundColor: withAlpha(colors.canvas, 0.6) }]} />
             </>
           );
         } else {
@@ -472,10 +472,10 @@ export function StoryPlayerScreen() {
             accessibilityRole="button"
             accessibilityLabel="Close player"
           >
-            <Icon name="chevronDown" size={28} color="#FFFFFF" />
+            <Icon name="chevronDown" size={28} color={colors.inkInverse} />
           </Pressable>
           
-          <Text variant="labelMedium" style={{ color: 'rgba(255,255,255,0.7)' }}>
+          <Text variant="labelMedium" style={{ color: withAlpha(colors.inkInverse, 0.7) }}>
             SLEEP STORY
           </Text>
           
@@ -485,10 +485,10 @@ export function StoryPlayerScreen() {
             accessibilityRole="button"
             accessibilityLabel={playbackState.sleepTimerRemaining ? `Sleep timer: ${formatTimerRemaining(playbackState.sleepTimerRemaining)} remaining` : 'Set sleep timer'}
           >
-            <View style={styles.timerButton}>
-              <Icon name="moon" size={20} color="#FFFFFF" />
+            <View style={[styles.timerButton, { backgroundColor: withAlpha(colors.inkInverse, 0.1) }]}>
+              <Icon name="moon" size={20} color={colors.inkInverse} />
               {playbackState.sleepTimerRemaining && (
-                <Text variant="labelSmall" style={{ color: '#FFFFFF', marginLeft: 4 }}>
+                <Text variant="labelSmall" style={{ color: colors.inkInverse, marginLeft: 4 }}>
                   {formatTimerRemaining(playbackState.sleepTimerRemaining)}
                 </Text>
               )}
@@ -536,12 +536,12 @@ export function StoryPlayerScreen() {
             entering={reduceMotion ? undefined : FadeInUp.delay(200).duration(500)}
             style={styles.infoContainer}
           >
-            <Text variant="headlineLarge" style={{ color: '#FFFFFF', textAlign: 'center' }}>
+            <Text variant="headlineLarge" style={{ color: colors.inkInverse, textAlign: 'center' }}>
               {story.title}
             </Text>
             <Text
               variant="bodyMedium"
-              style={{ color: 'rgba(255,255,255,0.7)', textAlign: 'center', marginTop: spacing[2] }}
+              style={{ color: withAlpha(colors.inkInverse, 0.7), textAlign: 'center', marginTop: spacing[2] }}
             >
               {story.narrator}
             </Text>
@@ -570,8 +570,8 @@ export function StoryPlayerScreen() {
               accessibilityRole="button"
               accessibilityLabel="Skip back 15 seconds"
             >
-              <Icon name="rotateCcw" size={24} color="rgba(255,255,255,0.8)" />
-              <Text variant="labelSmall" style={{ color: 'rgba(255,255,255,0.6)' }}>
+              <Icon name="rotateCcw" size={24} color={withAlpha(colors.inkInverse, 0.8)} />
+              <Text variant="labelSmall" style={{ color: withAlpha(colors.inkInverse, 0.6) }}>
                 15
               </Text>
             </Pressable>
@@ -584,11 +584,11 @@ export function StoryPlayerScreen() {
               accessibilityLabel={playbackState.isPlaying ? 'Pause' : 'Play'}
               accessibilityState={{ busy: playbackState.isLoading || playbackState.isBuffering }}
             >
-              <View style={styles.playButtonInner}>
+              <View style={[styles.playButtonInner, { backgroundColor: withAlpha(colors.inkInverse, 0.2), borderColor: withAlpha(colors.inkInverse, 0.3) }]}>
                 {playbackState.isLoading || playbackState.isBuffering ? (
                   <View style={styles.bufferingContainer}>
-                    <ActivityIndicator size="large" color="#FFFFFF" />
-                    <Text variant="labelSmall" style={styles.bufferingText}>
+                    <ActivityIndicator size="large" color={colors.inkInverse} />
+                    <Text variant="labelSmall" style={[styles.bufferingText, { color: withAlpha(colors.inkInverse, 0.7) }]}>
                       {playbackState.isLoading ? 'Loading...' : 'Buffering...'}
                     </Text>
                   </View>
@@ -596,7 +596,7 @@ export function StoryPlayerScreen() {
                   <Icon
                     name={playbackState.isPlaying ? 'pause' : 'play'}
                     size={36}
-                    color="#FFFFFF"
+                    color={colors.inkInverse}
                   />
                 )}
               </View>
@@ -609,8 +609,8 @@ export function StoryPlayerScreen() {
               accessibilityRole="button"
               accessibilityLabel="Skip forward 15 seconds"
             >
-              <Icon name="rotateCw" size={24} color="rgba(255,255,255,0.8)" />
-              <Text variant="labelSmall" style={{ color: 'rgba(255,255,255,0.6)' }}>
+              <Icon name="rotateCw" size={24} color={withAlpha(colors.inkInverse, 0.8)} />
+              <Text variant="labelSmall" style={{ color: withAlpha(colors.inkInverse, 0.6) }}>
                 15
               </Text>
             </Pressable>
@@ -629,7 +629,7 @@ export function StoryPlayerScreen() {
               <Icon
                 name={playbackState.isMuted ? 'volumeX' : 'volume2'}
                 size={20}
-                color="rgba(255,255,255,0.6)"
+                color={withAlpha(colors.inkInverse, 0.6)}
               />
             </Pressable>
           </Animated.View>
@@ -694,7 +694,6 @@ export function StoryPlayerScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
   },
   backgroundImage: {
     ...StyleSheet.absoluteFillObject,
@@ -703,7 +702,6 @@ const styles = StyleSheet.create({
   },
   backgroundOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.6)',
   },
   safeArea: {
     flex: 1,
@@ -723,7 +721,6 @@ const styles = StyleSheet.create({
   timerButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
     paddingHorizontal: spacing[3],
     paddingVertical: spacing[2],
     borderRadius: borderRadius.full,
@@ -801,19 +798,16 @@ const styles = StyleSheet.create({
   playButtonInner: {
     width: '100%',
     height: '100%',
-    backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: 36,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.3)',
   },
   bufferingContainer: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   bufferingText: {
-    color: 'rgba(255,255,255,0.7)',
     marginTop: spacing[1],
     fontSize: 10,
   },
@@ -822,7 +816,6 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   modalContainer: {

@@ -113,36 +113,36 @@ function WelcomeStep() {
         style={styles.welcomeFeatures}
       >
         <View style={styles.featureRow}>
-          <View style={styles.featurePill}>
+          <View style={[styles.featurePill, { backgroundColor: withAlpha(colors.inkInverse, 0.08) }]}>
             <Text variant="labelSmall" style={{ color: colors.accentPrimary }}>
               🧘 15+ breathing patterns
             </Text>
           </View>
-          <View style={styles.featurePill}>
+          <View style={[styles.featurePill, { backgroundColor: withAlpha(colors.inkInverse, 0.08) }]}>
             <Text variant="labelSmall" style={{ color: colors.accentWarm }}>
               🌙 Sleep stories
             </Text>
           </View>
         </View>
         <View style={styles.featureRow}>
-          <View style={styles.featurePill}>
+          <View style={[styles.featurePill, { backgroundColor: withAlpha(colors.inkInverse, 0.08) }]}>
             <Text variant="labelSmall" style={{ color: colors.accentCalm }}>
               🎯 Focus sessions
             </Text>
           </View>
-          <View style={styles.featurePill}>
+          <View style={[styles.featurePill, { backgroundColor: withAlpha(colors.inkInverse, 0.08) }]}>
             <Text variant="labelSmall" style={{ color: colors.accentPrimary }}>
               ✨ For You picks
             </Text>
           </View>
         </View>
         <View style={styles.featureRow}>
-          <View style={styles.featurePill}>
+          <View style={[styles.featurePill, { backgroundColor: withAlpha(colors.inkInverse, 0.08) }]}>
             <Text variant="labelSmall" style={{ color: colors.inkMuted }}>
               🔒 100% private
             </Text>
           </View>
-          <View style={styles.featurePill}>
+          <View style={[styles.featurePill, { backgroundColor: withAlpha(colors.inkInverse, 0.08) }]}>
             <Text variant="labelSmall" style={{ color: colors.accentWarm }}>
               📴 Works offline
             </Text>
@@ -678,7 +678,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[3],
     paddingVertical: spacing[2],
     borderRadius: borderRadius.full,
-    backgroundColor: 'rgba(255,255,255,0.08)',
   },
 
   // Breathing step

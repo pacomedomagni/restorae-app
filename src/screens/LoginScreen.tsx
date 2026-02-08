@@ -102,7 +102,7 @@ function AnimatedButton({ onPress, disabled, loading, variant, children, style, 
     >
       <Animated.View style={[buttonStyle, animatedStyle]}>
         {loading ? (
-          <ActivityIndicator color={variant === 'primary' ? '#fff' : colors.ink} />
+          <ActivityIndicator color={variant === 'primary' ? colors.textInverse : colors.ink} />
         ) : (
           children
         )}
@@ -247,8 +247,8 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
                 entering={reduceMotion ? undefined : FadeIn.duration(300)}
                 style={[styles.offlineBanner, { backgroundColor: colors.statusError }]}
               >
-                <Ionicons name="cloud-offline-outline" size={16} color="#fff" />
-                <Text variant="labelMedium" style={styles.offlineText}>
+                <Ionicons name="cloud-offline-outline" size={16} color={colors.textInverse} />
+                <Text variant="labelMedium" style={[styles.offlineText, { color: colors.textInverse }]}>
                   No internet connection
                 </Text>
               </Animated.View>
@@ -405,7 +405,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
                 loading={isSubmitting}
                 accessibilityLabel="Sign in"
               >
-                <Text variant="labelLarge" style={styles.primaryButtonText}>
+                <Text variant="labelLarge" style={[styles.primaryButtonText, { color: colors.textInverse }]}>
                   Sign In
                 </Text>
               </AnimatedButton>
@@ -525,7 +525,6 @@ const styles = StyleSheet.create({
     gap: spacing[2],
   },
   offlineText: {
-    color: '#fff',
   },
   header: {
     alignItems: 'center',
@@ -585,7 +584,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   primaryButtonText: {
-    color: '#fff',
   },
   divider: {
     flexDirection: 'row',

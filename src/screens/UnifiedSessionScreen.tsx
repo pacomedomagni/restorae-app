@@ -17,7 +17,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useSession } from '../contexts/SessionContext';
 import { Text, Button, Card } from '../components/core';
 import { BreathingGuide } from '../components/domain/BreathingGuide';
-import { spacing, radius, withAlpha, layout } from '../theme/tokens';
+import { spacing, radius, withAlpha, layout } from '../theme';
 
 export function UnifiedSessionScreen() {
   useKeepAwake();
@@ -66,14 +66,14 @@ export function UnifiedSessionScreen() {
   const activityName = currentActivity?.name || 'Session';
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.canvas }]}>
       <SafeAreaView style={styles.safeArea}>
         {/* Header */}
         <View style={styles.header}>
           <Pressable onPress={handleExit} hitSlop={12}>
-            <Ionicons name="close" size={24} color={colors.textSecondary} />
+            <Ionicons name="close" size={24} color={colors.inkMuted} />
           </Pressable>
-          <Text variant="titleMedium" style={{ color: colors.textPrimary }}>
+          <Text variant="titleMedium" style={{ color: colors.ink }}>
             {activityName}
           </Text>
           <View style={{ width: 24 }} />
@@ -88,7 +88,7 @@ export function UnifiedSessionScreen() {
               colors={colors}
             />
           )}
-          
+
           {activityType !== 'breathing' && (
             <View style={styles.genericSession}>
               <Ionicons
@@ -99,16 +99,16 @@ export function UnifiedSessionScreen() {
                   'leaf'
                 }
                 size={64}
-                color={colors.actionPrimary}
+                color={colors.accentPrimary}
               />
-              <Text variant="headlineMedium" style={{ color: colors.textPrimary, marginTop: spacing.lg }}>
+              <Text variant="headlineMedium" style={{ color: colors.ink, marginTop: spacing.lg }}>
                 {activityName}
               </Text>
             </View>
           )}
 
           {/* Timer */}
-          <Text variant="displayMedium" style={[styles.timer, { color: colors.textPrimary }]}>
+          <Text variant="displayMedium" style={[styles.timer, { color: colors.ink }]}>
             {formatTime(elapsed)}
           </Text>
         </View>
@@ -117,12 +117,12 @@ export function UnifiedSessionScreen() {
         <View style={styles.controls}>
           <Pressable
             onPress={handlePause}
-            style={[styles.controlButton, { backgroundColor: withAlpha(colors.surfaceElevated, 0.8) }]}
+            style={[styles.controlButton, { backgroundColor: withAlpha(colors.canvasElevated, 0.8) }]}
           >
             <Ionicons
               name={isPaused ? 'play' : 'pause'}
               size={32}
-              color={colors.textPrimary}
+              color={colors.ink}
             />
           </Pressable>
 

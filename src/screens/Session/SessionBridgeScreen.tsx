@@ -16,7 +16,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useSession } from '../../contexts/SessionContext';
 import { Text } from '../../components/core/Text';
 
-import { spacing } from '../../theme/tokens';
+import { spacing } from '../../theme';
 
 // =============================================================================
 // TYPES
@@ -148,11 +148,11 @@ export function SessionBridgeScreen() {
   }, [type, id, navigation, startBreathingSession, startStandaloneSession]);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ActivityIndicator size="large" color={colors.actionPrimary} />
+    <View style={[styles.container, { backgroundColor: colors.canvas }]}>
+      <ActivityIndicator size="large" color={colors.accentPrimary} />
       <Text
         variant="bodyMedium"
-        style={{ color: colors.textSecondary, marginTop: spacing.md }}
+        style={{ color: colors.inkMuted, marginTop: spacing.md }}
       >
         Preparing your session...
       </Text>

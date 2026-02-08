@@ -28,7 +28,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { ErrorBoundary } from '../components/ui';
 import { navigationRef } from '../services/navigationRef';
 
-import { withAlpha, spacing, radius, layout } from '../theme/tokens';
+import { withAlpha, spacing, radius, layout } from '../theme';
 
 // =============================================================================
 // SCREEN IMPORTS
@@ -64,6 +64,7 @@ import { DataSettingsScreen } from '../screens/DataSettingsScreen';
 import { SecuritySettingsScreen } from '../screens/SecuritySettingsScreen';
 import { EditProfileScreen } from '../screens/EditProfileScreen';
 import { JournalEntryScreen } from '../screens/JournalEntryScreen';
+import { PaywallScreen } from '../screens/PaywallScreen';
 
 // =============================================================================
 // TYPE DEFINITIONS
@@ -121,6 +122,7 @@ export type NewRootStackParamList = {
     entryId?: string;
     prompt?: string;
   };
+  Paywall: undefined;
 };
 
 const ONBOARDING_COMPLETE_KEY = '@restorae/onboarding_complete';
@@ -144,7 +146,7 @@ function AuthNavigator() {
     <AuthStack.Navigator
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: colors.background },
+        contentStyle: { backgroundColor: colors.canvas },
       }}
     >
       <AuthStack.Screen name="Login" component={LoginScreen} />
@@ -178,6 +180,54 @@ function TabIcon({ name, focused, color, size = 22 }: TabIconProps) {
 }
 
 // =============================================================================
+// TAB WRAPPERS WITH ERROR BOUNDARIES
+// =============================================================================
+
+function SanctuaryTab() {
+  return (
+    <ErrorBoundary
+      errorTitle="Something went wrong"
+      errorDescription="The Sanctuary couldn't load. Please try restarting the app."
+    >
+      <SanctuaryScreen />
+    </ErrorBoundary>
+  );
+}
+
+function JourneyTab() {
+  return (
+    <ErrorBoundary
+      errorTitle="Something went wrong"
+      errorDescription="Your Journey couldn't load. Please try restarting the app."
+    >
+      <JourneyScreen />
+    </ErrorBoundary>
+  );
+}
+
+function LibraryTab() {
+  return (
+    <ErrorBoundary
+      errorTitle="Something went wrong"
+      errorDescription="The Library couldn't load. Please try restarting the app."
+    >
+      <LibraryScreen />
+    </ErrorBoundary>
+  );
+}
+
+function YouTab() {
+  return (
+    <ErrorBoundary
+      errorTitle="Something went wrong"
+      errorDescription="Your Profile couldn't load. Please try restarting the app."
+    >
+      <YouScreen />
+    </ErrorBoundary>
+  );
+}
+
+// =============================================================================
 // MAIN TABS
 // =============================================================================
 
@@ -196,27 +246,27 @@ function MainTabs() {
           height: layout.tabBarHeight,
           paddingTop: spacing.xs,
           paddingBottom: spacing.lg,
-          backgroundColor: colors.surface,
+          backgroundColor: colors.canvasElevated,
           borderTopWidth: StyleSheet.hairlineWidth,
           borderTopColor: colors.border,
-          shadowColor: '#000',
+          shadowColor: colors.ink,
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: isDark ? 0.3 : 0.08,
           shadowRadius: 8,
           elevation: 8,
         },
-        tabBarActiveTintColor: colors.actionPrimary,
-        tabBarInactiveTintColor: colors.textTertiary,
+        tabBarActiveTintColor: colors.accentPrimary,
+        tabBarInactiveTintColor: colors.inkFaint,
         tabBarLabelStyle: {
           fontSize: 11,
-          fontFamily: 'PlusJakartaSans-Medium',
+          fontFamily: 'PlusJakartaSans_500Medium',
           marginTop: 2,
         },
       }}
     >
       <Tab.Screen
         name="SanctuaryTab"
-        component={SanctuaryScreen}
+        component={SanctuaryTab}
         options={{
           tabBarLabel: 'Sanctuary',
           tabBarAccessibilityLabel: 'Sanctuary - Your wellness hub',
@@ -228,7 +278,7 @@ function MainTabs() {
       />
       <Tab.Screen
         name="JourneyTab"
-        component={JourneyScreen}
+        component={JourneyTab}
         options={{
           tabBarLabel: 'Journey',
           tabBarAccessibilityLabel: 'Journey - Your progress and reflections',
@@ -240,7 +290,7 @@ function MainTabs() {
       />
       <Tab.Screen
         name="LibraryTab"
-        component={LibraryScreen}
+        component={LibraryTab}
         options={{
           tabBarLabel: 'Library',
           tabBarAccessibilityLabel: 'Library - Browse content',
@@ -252,7 +302,7 @@ function MainTabs() {
       />
       <Tab.Screen
         name="YouTab"
-        component={YouScreen}
+        component={YouTab}
         options={{
           tabBarLabel: 'You',
           tabBarAccessibilityLabel: 'You - Profile and settings',
@@ -294,18 +344,18 @@ export function NewRootNavigator() {
   const navigationTheme = {
     dark: isDark,
     colors: {
-      primary: colors.actionPrimary,
-      background: colors.background,
-      card: colors.surface,
-      text: colors.textPrimary,
+      primary: colors.accentPrimary,
+      background: colors.canvas,
+      card: colors.canvasElevated,
+      text: colors.ink,
       border: colors.border,
       notification: colors.statusError,
     },
     fonts: {
-      regular: { fontFamily: 'PlusJakartaSans-Regular', fontWeight: '400' as const },
-      medium: { fontFamily: 'PlusJakartaSans-Medium', fontWeight: '500' as const },
-      bold: { fontFamily: 'PlusJakartaSans-Bold', fontWeight: '700' as const },
-      heavy: { fontFamily: 'PlusJakartaSans-Bold', fontWeight: '800' as const },
+      regular: { fontFamily: 'PlusJakartaSans_400Regular', fontWeight: '400' as const },
+      medium: { fontFamily: 'PlusJakartaSans_500Medium', fontWeight: '500' as const },
+      bold: { fontFamily: 'PlusJakartaSans_700Bold', fontWeight: '700' as const },
+      heavy: { fontFamily: 'PlusJakartaSans_700Bold', fontWeight: '800' as const },
     },
   };
 
@@ -338,7 +388,7 @@ export function NewRootNavigator() {
             headerShown: false,
             animation: 'fade',
             contentStyle: {
-              backgroundColor: colors.background,
+              backgroundColor: colors.canvas,
             },
           }}
         >
@@ -450,6 +500,16 @@ export function NewRootNavigator() {
             name="JournalEntry" 
             component={JournalEntryScreen}
             options={{ 
+              animation: 'slide_from_bottom',
+              presentation: 'fullScreenModal',
+            }}
+          />
+
+          {/* Paywall */}
+          <Stack.Screen
+            name="Paywall"
+            component={PaywallScreen}
+            options={{
               animation: 'slide_from_bottom',
               presentation: 'fullScreenModal',
             }}

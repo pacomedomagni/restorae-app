@@ -10,21 +10,23 @@
  * - Account actions
  */
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Pressable, Alert, Switch } from 'react-native';
+import { View, StyleSheet, ScrollView, Pressable, Linking, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAmbient } from '../../contexts/AmbientContext';
 import { useJourney } from '../../contexts/JourneyContext';
+import { useAuth } from '../../contexts/AuthContext';
 
-import { Text } from '../../components/core/Text';
-import { Card } from '../../components/core/Card';
 import { Avatar } from '../../components/core/Avatar';
+import { Text, GlassCard, AlertModal } from '../../components/ui';
+import { SkeletonText } from '../../components/ui/Skeleton';
 
-import { spacing, radius, withAlpha, layout } from '../../theme/tokens';
+import { spacing, radius, withAlpha, layout } from '../../theme';
 
 // =============================================================================
 // TYPES
@@ -36,14 +38,15 @@ interface SettingItemProps {
   subtitle?: string;
   onPress?: () => void;
   trailing?: React.ReactNode;
-  colors: any;
 }
 
 // =============================================================================
 // SETTING ITEM COMPONENT
 // =============================================================================
 
-function SettingItem({ icon, title, subtitle, onPress, trailing, colors }: SettingItemProps) {
+function SettingItem({ icon, title, subtitle, onPress, trailing }: SettingItemProps) {
+  const { colors } = useTheme();
+
   return (
     <Pressable
       onPress={onPress}
@@ -53,17 +56,17 @@ function SettingItem({ icon, title, subtitle, onPress, trailing, colors }: Setti
       <View
         style={[
           styles.settingIcon,
-          { backgroundColor: withAlpha(colors.actionPrimary, 0.1) },
+          { backgroundColor: withAlpha(colors.accentPrimary, 0.1) },
         ]}
       >
-        <Ionicons name={icon as any} size={18} color={colors.actionPrimary} />
+        <Ionicons name={icon as any} size={18} color={colors.accentPrimary} />
       </View>
       <View style={styles.settingContent}>
-        <Text variant="bodyLarge" style={{ color: colors.textPrimary }}>
+        <Text variant="bodyLarge" color="ink">
           {title}
         </Text>
         {subtitle && (
-          <Text variant="bodySmall" style={{ color: colors.textTertiary }}>
+          <Text variant="bodySmall" color="inkFaint">
             {subtitle}
           </Text>
         )}
@@ -73,7 +76,7 @@ function SettingItem({ icon, title, subtitle, onPress, trailing, colors }: Setti
           <Ionicons
             name="chevron-forward"
             size={18}
-            color={colors.textTertiary}
+            color={colors.inkFaint}
           />
         )
       )}
@@ -92,19 +95,19 @@ interface StatsRowProps {
     currentStreak: number;
     moodEntries: number;
   };
-  colors: any;
 }
 
-function StatsRow({ weeklyStats, colors }: StatsRowProps) {
+function StatsRow({ weeklyStats }: StatsRowProps) {
+  const { colors } = useTheme();
   const stats = [
-    { value: weeklyStats.currentStreak, label: 'Day Streak', icon: 'flame' },
+    { value: weeklyStats.currentStreak, label: 'Days Active', icon: 'calendar-outline' },
     { value: weeklyStats.sessionsCompleted, label: 'Sessions', icon: 'play-circle' },
     { value: weeklyStats.totalMinutes, label: 'Minutes', icon: 'time' },
   ];
 
   return (
     <View style={styles.statsRow}>
-      {stats.map((stat, index) => (
+      {stats.map((stat) => (
         <View key={stat.label} style={styles.statItem}>
           <Ionicons
             name={stat.icon as any}
@@ -113,11 +116,12 @@ function StatsRow({ weeklyStats, colors }: StatsRowProps) {
           />
           <Text
             variant="headlineSmall"
-            style={{ color: colors.textPrimary, marginTop: 4 }}
+            color="ink"
+            style={{ marginTop: 4 }}
           >
             {stat.value}
           </Text>
-          <Text variant="labelSmall" style={{ color: colors.textTertiary }}>
+          <Text variant="labelSmall" color="inkFaint">
             {stat.label}
           </Text>
         </View>
@@ -133,10 +137,19 @@ function StatsRow({ weeklyStats, colors }: StatsRowProps) {
 export function YouScreen() {
   const { colors, isDark, mode, setMode } = useTheme();
   const { userName } = useAmbient();
-  const { weeklyStats } = useJourney();
+  const { weeklyStats, isLoading: journeyLoading } = useJourney();
+  const navigation = useNavigation<any>();
+  const { logout } = useAuth();
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [remindersEnabled, setRemindersEnabled] = useState(true);
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    type: 'confirm' | 'warning';
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({ visible: false, type: 'confirm', title: '', message: '', onConfirm: () => {} });
 
   const handleThemePress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -153,36 +166,66 @@ export function YouScreen() {
 
   const handleExportData = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert(
-      'Export Data',
-      'Your data will be exported as a JSON file.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Export', onPress: () => console.log('Export') },
-      ]
-    );
+    setAlertConfig({
+      visible: true,
+      type: 'confirm',
+      title: 'Export Data',
+      message: 'Your data will be exported as a JSON file.',
+      onConfirm: () => {
+        setAlertConfig(prev => ({ ...prev, visible: false }));
+        // TODO: Implement export
+      },
+    });
   }, []);
 
   const handleDeleteAccount = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    Alert.alert(
-      'Delete Account',
-      'This action cannot be undone. All your data will be permanently deleted.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => console.log('Delete'),
-        },
-      ]
-    );
+    setAlertConfig({
+      visible: true,
+      type: 'warning',
+      title: 'Delete Account',
+      message: 'This action cannot be undone. All your data will be permanently deleted.',
+      onConfirm: () => {
+        setAlertConfig(prev => ({ ...prev, visible: false }));
+        // TODO: Implement account deletion
+      },
+    });
+  }, []);
+
+  const handleSignOut = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setAlertConfig({
+      visible: true,
+      type: 'confirm',
+      title: 'Sign Out',
+      message: 'Are you sure you want to sign out?',
+      onConfirm: async () => {
+        setAlertConfig(prev => ({ ...prev, visible: false }));
+        await logout();
+      },
+    });
+  }, [logout]);
+
+  const handlePrivacy = useCallback(() => {
+    navigation.navigate('Privacy');
+  }, [navigation]);
+
+  const handleSupport = useCallback(() => {
+    navigation.navigate('Support');
+  }, [navigation]);
+
+  const handleTerms = useCallback(() => {
+    Linking.openURL('https://restorae.app/terms');
+  }, []);
+
+  const handleRate = useCallback(() => {
+    Linking.openURL('https://apps.apple.com/app/restorae');
   }, []);
 
   const themeLabel = mode === 'system' ? 'System' : mode === 'light' ? 'Light' : 'Dark';
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.canvas }]}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <ScrollView
           style={styles.scrollView}
@@ -191,7 +234,7 @@ export function YouScreen() {
         >
           {/* Header */}
           <Animated.View entering={FadeIn.duration(300)} style={styles.header}>
-            <Text variant="headlineLarge" style={{ color: colors.textPrimary }}>
+            <Text variant="headlineLarge" color="ink">
               Profile
             </Text>
           </Animated.View>
@@ -201,7 +244,7 @@ export function YouScreen() {
             entering={FadeInDown.delay(100).duration(300)}
             style={styles.section}
           >
-            <Card variant="elevated" padding="lg" colors={colors}>
+            <GlassCard variant="elevated" padding="lg">
               <View style={styles.profileRow}>
                 <Avatar
                   name={userName}
@@ -209,22 +252,27 @@ export function YouScreen() {
                   colors={colors}
                 />
                 <View style={styles.profileInfo}>
-                  <Text variant="titleLarge" style={{ color: colors.textPrimary }}>
+                  <Text variant="headlineMedium" color="ink">
                     {userName}
                   </Text>
                   <Text
                     variant="bodySmall"
-                    style={{ color: colors.textSecondary, marginTop: 2 }}
+                    color="inkMuted"
+                    style={{ marginTop: 2 }}
                   >
-                    On your wellness journey
+                    Wellness member
                   </Text>
                 </View>
               </View>
 
               <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-              <StatsRow weeklyStats={weeklyStats} colors={colors} />
-            </Card>
+              {journeyLoading ? (
+                <SkeletonText lines={1} />
+              ) : (
+                <StatsRow weeklyStats={weeklyStats} />
+              )}
+            </GlassCard>
           </Animated.View>
 
           {/* Preferences */}
@@ -234,36 +282,34 @@ export function YouScreen() {
           >
             <Text
               variant="labelSmall"
+              color="inkFaint"
               style={{
-                color: colors.textTertiary,
                 marginBottom: spacing.sm,
                 marginLeft: spacing.xs,
               }}
             >
               PREFERENCES
             </Text>
-            <Card variant="default" padding="none" colors={colors}>
+            <GlassCard variant="default" padding="none">
               <SettingItem
                 icon="color-palette-outline"
                 title="Appearance"
                 subtitle={themeLabel}
                 onPress={handleThemePress}
-                colors={colors}
               />
               <SettingItem
                 icon="notifications-outline"
                 title="Notifications"
-                colors={colors}
                 trailing={
                   <Switch
                     value={notificationsEnabled}
                     onValueChange={setNotificationsEnabled}
                     trackColor={{
                       false: colors.border,
-                      true: withAlpha(colors.actionPrimary, 0.5),
+                      true: withAlpha(colors.accentPrimary, 0.5),
                     }}
                     thumbColor={
-                      notificationsEnabled ? colors.actionPrimary : colors.textTertiary
+                      notificationsEnabled ? colors.accentPrimary : colors.inkFaint
                     }
                   />
                 }
@@ -272,22 +318,21 @@ export function YouScreen() {
                 icon="alarm-outline"
                 title="Daily Reminders"
                 subtitle="10:00 AM"
-                colors={colors}
                 trailing={
                   <Switch
                     value={remindersEnabled}
                     onValueChange={setRemindersEnabled}
                     trackColor={{
                       false: colors.border,
-                      true: withAlpha(colors.actionPrimary, 0.5),
+                      true: withAlpha(colors.accentPrimary, 0.5),
                     }}
                     thumbColor={
-                      remindersEnabled ? colors.actionPrimary : colors.textTertiary
+                      remindersEnabled ? colors.accentPrimary : colors.inkFaint
                     }
                   />
                 }
               />
-            </Card>
+            </GlassCard>
           </Animated.View>
 
           {/* Data & Privacy */}
@@ -297,34 +342,31 @@ export function YouScreen() {
           >
             <Text
               variant="labelSmall"
+              color="inkFaint"
               style={{
-                color: colors.textTertiary,
                 marginBottom: spacing.sm,
                 marginLeft: spacing.xs,
               }}
             >
               DATA & PRIVACY
             </Text>
-            <Card variant="default" padding="none" colors={colors}>
+            <GlassCard variant="default" padding="none">
               <SettingItem
                 icon="download-outline"
                 title="Export Your Data"
                 onPress={handleExportData}
-                colors={colors}
               />
               <SettingItem
                 icon="shield-checkmark-outline"
                 title="Privacy Policy"
-                onPress={() => {}}
-                colors={colors}
+                onPress={handlePrivacy}
               />
               <SettingItem
                 icon="document-text-outline"
                 title="Terms of Service"
-                onPress={() => {}}
-                colors={colors}
+                onPress={handleTerms}
               />
-            </Card>
+            </GlassCard>
           </Animated.View>
 
           {/* Support */}
@@ -334,34 +376,31 @@ export function YouScreen() {
           >
             <Text
               variant="labelSmall"
+              color="inkFaint"
               style={{
-                color: colors.textTertiary,
                 marginBottom: spacing.sm,
                 marginLeft: spacing.xs,
               }}
             >
               SUPPORT
             </Text>
-            <Card variant="default" padding="none" colors={colors}>
+            <GlassCard variant="default" padding="none">
               <SettingItem
                 icon="help-circle-outline"
                 title="Help Center"
-                onPress={() => {}}
-                colors={colors}
+                onPress={handleSupport}
               />
               <SettingItem
                 icon="chatbubble-outline"
                 title="Contact Us"
-                onPress={() => {}}
-                colors={colors}
+                onPress={handleSupport}
               />
               <SettingItem
                 icon="star-outline"
                 title="Rate Restorae"
-                onPress={() => {}}
-                colors={colors}
+                onPress={handleRate}
               />
-            </Card>
+            </GlassCard>
           </Animated.View>
 
           {/* Account Actions */}
@@ -371,20 +410,19 @@ export function YouScreen() {
           >
             <Text
               variant="labelSmall"
+              color="inkFaint"
               style={{
-                color: colors.textTertiary,
                 marginBottom: spacing.sm,
                 marginLeft: spacing.xs,
               }}
             >
               ACCOUNT
             </Text>
-            <Card variant="default" padding="none" colors={colors}>
+            <GlassCard variant="default" padding="none">
               <SettingItem
                 icon="log-out-outline"
                 title="Sign Out"
-                onPress={() => {}}
-                colors={colors}
+                onPress={handleSignOut}
               />
               <Pressable
                 onPress={handleDeleteAccount}
@@ -393,25 +431,25 @@ export function YouScreen() {
                 <View
                   style={[
                     styles.settingIcon,
-                    { backgroundColor: withAlpha(colors.actionDestructive, 0.1) },
+                    { backgroundColor: withAlpha(colors.accentDanger, 0.1) },
                   ]}
                 >
                   <Ionicons
                     name="trash-outline"
                     size={18}
-                    color={colors.actionDestructive}
+                    color={colors.accentDanger}
                   />
                 </View>
                 <View style={styles.settingContent}>
                   <Text
                     variant="bodyLarge"
-                    style={{ color: colors.actionDestructive }}
+                    style={{ color: colors.accentDanger }}
                   >
                     Delete Account
                   </Text>
                 </View>
               </Pressable>
-            </Card>
+            </GlassCard>
           </Animated.View>
 
           {/* App Info */}
@@ -419,18 +457,28 @@ export function YouScreen() {
             entering={FadeInDown.delay(350).duration(300)}
             style={styles.appInfo}
           >
-            <Text variant="bodySmall" style={{ color: colors.textTertiary }}>
+            <Text variant="bodySmall" color="inkFaint">
               Restorae v1.0.0
             </Text>
             <Text
               variant="bodySmall"
-              style={{ color: colors.textTertiary, marginTop: 2 }}
+              color="inkFaint"
+              style={{ marginTop: 2 }}
             >
-              Made with ❤️ for your wellbeing
+              Your sanctuary for calm
             </Text>
           </Animated.View>
         </ScrollView>
       </SafeAreaView>
+
+      <AlertModal
+        visible={alertConfig.visible}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+      />
     </View>
   );
 }

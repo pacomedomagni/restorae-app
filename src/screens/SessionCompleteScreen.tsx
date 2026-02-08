@@ -1,14 +1,15 @@
 /**
  * SessionCompleteScreen
- * 
+ *
  * Unified completion screen for all tool sessions.
- * Provides consistent UX with:
- * - Celebration animation
- * - XP reward
- * - Session stats
- * - Next action suggestions
+ * Premium, reflective experience — no gamification.
+ *
+ * - Soft glow animation (replaces confetti)
+ * - Reflective quote per session type
+ * - Clean stats with icons (no emoji)
+ * - Gentle next-action suggestion
  */
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp, NavigationProp } from '@react-navigation/native';
@@ -18,18 +19,14 @@ import Animated, {
   withSpring,
   withTiming,
   withDelay,
-  withSequence,
   FadeIn,
   FadeInDown,
   FadeInUp,
-  ZoomIn,
   Easing,
-  interpolate,
-  runOnJS,
 } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle } from 'react-native-svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../contexts/ThemeContext';
 import { useHaptics } from '../hooks/useHaptics';
@@ -38,21 +35,20 @@ import {
   Button,
   GlassCard,
   AmbientBackground,
-  Confetti,
-  ParticleBurst,
+  SoftGlow,
 } from '../components/ui';
-import { LuxeIcon } from '../components/LuxeIcon';
-import { spacing, borderRadius, layout, withAlpha } from '../theme';
+import { spacing, layout, withAlpha } from '../theme';
 import { gamification, Achievement, ActivityType } from '../services/gamification';
 import { recommendations } from '../services/smartRecommendations';
 import { activityLogger, ActivityCategory } from '../services/activityLogger';
 import { analytics, AnalyticsEvents } from '../services/analytics';
+import { getReflection } from '../data/reflections';
 import { RootStackParamList, MoodType } from '../types';
 
 // =============================================================================
 // TYPES
 // =============================================================================
-type SessionType = 
+type SessionType =
   | 'breathing'
   | 'grounding'
   | 'reset'
@@ -65,7 +61,7 @@ type SessionType =
 interface SessionCompleteParams {
   sessionType: SessionType;
   sessionName?: string;
-  duration?: number; // in seconds
+  duration?: number;
   cycles?: number;
   steps?: number;
   wordCount?: number;
@@ -107,6 +103,7 @@ const SESSION_MESSAGES: Record<SessionType, { title: string; subtitle: string }>
   },
 };
 
+// XP values kept for internal tracking only — never displayed to user
 const SESSION_XP: Record<SessionType, number> = {
   breathing: 15,
   grounding: 15,
@@ -118,21 +115,38 @@ const SESSION_XP: Record<SessionType, number> = {
   mood: 10,
 };
 
+// Ionicons for each stat type — clean, no emoji
+const STAT_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  DURATION: 'time-outline',
+  CYCLES: 'repeat-outline',
+  STEPS: 'footsteps-outline',
+  WORDS: 'create-outline',
+};
+
+// Suggestion icons per session type
+const SUGGESTION_ICONS: Record<SessionType, keyof typeof Ionicons.glyphMap> = {
+  breathing: 'book-outline',
+  grounding: 'leaf-outline',
+  reset: 'compass-outline',
+  focus: 'book-outline',
+  journal: 'body-outline',
+  story: 'moon-outline',
+  ritual: 'book-outline',
+  mood: 'leaf-outline',
+};
+
 // =============================================================================
 // ANIMATED CHECKMARK
 // =============================================================================
 function AnimatedCheckmark() {
   const { colors, reduceMotion } = useTheme();
-  const progress = useSharedValue(0);
   const scale = useSharedValue(0);
 
   useEffect(() => {
     if (!reduceMotion) {
       scale.value = withSpring(1, { damping: 12, stiffness: 200 });
-      progress.value = withDelay(200, withTiming(1, { duration: 600, easing: Easing.out(Easing.ease) }));
     } else {
       scale.value = 1;
-      progress.value = 1;
     }
   }, []);
 
@@ -144,14 +158,14 @@ function AnimatedCheckmark() {
 
   return (
     <Animated.View style={[styles.checkmarkContainer, containerStyle]}>
-      <View style={[styles.checkmarkCircle, { backgroundColor: withAlpha(colors.success, 0.15) }]}>
+      <View style={[styles.checkmarkCircle, { backgroundColor: withAlpha(colors.success, 0.12) }]}>
         <Svg width={100} height={100} viewBox="0 0 100 100">
           <Circle
             cx={50}
             cy={50}
             r={40}
             stroke={colors.success}
-            strokeWidth={4}
+            strokeWidth={3}
             fill="none"
             strokeDasharray={circumference}
             strokeDashoffset={0}
@@ -159,80 +173,9 @@ function AnimatedCheckmark() {
           />
         </Svg>
         <View style={styles.checkmarkIconWrapper}>
-          <Text style={[styles.checkmarkEmoji]}>✓</Text>
+          <Ionicons name="checkmark" size={40} color={colors.success} />
         </View>
       </View>
-    </Animated.View>
-  );
-}
-
-// =============================================================================
-// XP COUNTER
-// =============================================================================
-interface XPCounterProps {
-  xp: number;
-  onComplete?: () => void;
-}
-
-function XPCounter({ xp, onComplete }: XPCounterProps) {
-  const { colors, reduceMotion } = useTheme();
-  const displayValue = useSharedValue(0);
-  const scale = useSharedValue(0.8);
-  const [displayXP, setDisplayXP] = useState(0);
-
-  useEffect(() => {
-    if (!reduceMotion) {
-      scale.value = withSpring(1, { damping: 15, stiffness: 300 });
-      displayValue.value = withDelay(
-        400,
-        withTiming(xp, { 
-          duration: 1000, 
-          easing: Easing.out(Easing.ease),
-        })
-      );
-    } else {
-      scale.value = 1;
-      setDisplayXP(xp);
-    }
-  }, [xp]);
-
-  // Update display value
-  useEffect(() => {
-    if (reduceMotion) return;
-    
-    const interval = setInterval(() => {
-      const current = Math.round(displayValue.value);
-      setDisplayXP(current);
-      if (current >= xp) {
-        clearInterval(interval);
-        onComplete?.();
-      }
-    }, 50);
-
-    return () => clearInterval(interval);
-  }, [xp]);
-
-  const containerStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  return (
-    <Animated.View style={[styles.xpContainer, containerStyle]}>
-      <GlassCard variant="subtle" padding="md">
-        <View style={styles.xpContent}>
-          <View style={[styles.xpIconWrapper, { backgroundColor: withAlpha(colors.accentWarm, 0.15) }]}>
-            <Text style={styles.xpIcon}>✨</Text>
-          </View>
-          <View style={styles.xpTextContainer}>
-            <Text variant="labelSmall" color="inkFaint">
-              XP EARNED
-            </Text>
-            <Text variant="headlineLarge" style={{ color: colors.accentWarm }}>
-              +{displayXP}
-            </Text>
-          </View>
-        </View>
-      </GlassCard>
     </Animated.View>
   );
 }
@@ -241,13 +184,13 @@ function XPCounter({ xp, onComplete }: XPCounterProps) {
 // SESSION STAT
 // =============================================================================
 interface SessionStatProps {
-  icon: string;
+  iconName: keyof typeof Ionicons.glyphMap;
   label: string;
   value: string;
   delay?: number;
 }
 
-function SessionStat({ icon, label, value, delay = 0 }: SessionStatProps) {
+function SessionStat({ iconName, label, value, delay = 0 }: SessionStatProps) {
   const { colors, reduceMotion } = useTheme();
 
   return (
@@ -255,7 +198,7 @@ function SessionStat({ icon, label, value, delay = 0 }: SessionStatProps) {
       entering={reduceMotion ? undefined : FadeInUp.delay(delay).duration(400)}
       style={styles.statItem}
     >
-      <Text style={styles.statIcon}>{icon}</Text>
+      <Ionicons name={iconName} size={20} color={colors.inkFaint} style={styles.statIconStyle} />
       <Text variant="labelSmall" color="inkFaint" style={styles.statLabel}>
         {label}
       </Text>
@@ -279,18 +222,19 @@ function NextActionSuggestion({ sessionType, onPress }: NextActionProps) {
   const { impactLight } = useHaptics();
   const scale = useSharedValue(1);
 
-  const suggestions: Record<SessionType, { icon: string; label: string; description: string }> = {
-    breathing: { icon: '📓', label: 'Journal', description: 'Capture how you feel' },
-    grounding: { icon: '🌬️', label: 'Breathe', description: 'Continue your calm' },
-    reset: { icon: '🎯', label: 'Focus', description: 'Channel your energy' },
-    focus: { icon: '📓', label: 'Reflect', description: 'Document your progress' },
-    journal: { icon: '🧘', label: 'Ground', description: 'Be present now' },
-    story: { icon: '😴', label: 'Sleep Timer', description: 'Set a gentle alarm' },
-    ritual: { icon: '📓', label: 'Journal', description: 'Reflect on your practice' },
-    mood: { icon: '🌬️', label: 'Breathe', description: 'Support your mood' },
+  const suggestions: Record<SessionType, { label: string; description: string }> = {
+    breathing: { label: 'Journal', description: 'Capture how you feel' },
+    grounding: { label: 'Breathe', description: 'Continue your calm' },
+    reset: { label: 'Focus', description: 'Channel your energy' },
+    focus: { label: 'Reflect', description: 'Document your progress' },
+    journal: { label: 'Ground', description: 'Be present now' },
+    story: { label: 'Sleep Timer', description: 'Set a gentle alarm' },
+    ritual: { label: 'Journal', description: 'Reflect on your practice' },
+    mood: { label: 'Breathe', description: 'Support your mood' },
   };
 
   const suggestion = suggestions[sessionType];
+  const iconName = SUGGESTION_ICONS[sessionType];
 
   const handlePressIn = () => {
     scale.value = withSpring(0.97, { damping: 15, stiffness: 400 });
@@ -317,14 +261,18 @@ function NextActionSuggestion({ sessionType, onPress }: NextActionProps) {
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={handlePress}
+        accessibilityRole="button"
+        accessibilityLabel={`${suggestion.label}: ${suggestion.description}`}
       >
         <Animated.View style={animatedStyle}>
           <GlassCard variant="elevated" padding="md">
             <View style={styles.suggestionContent}>
-              <Text style={styles.suggestionIcon}>{suggestion.icon}</Text>
+              <View style={[styles.suggestionIconWrapper, { backgroundColor: withAlpha(colors.accentPrimary, 0.1) }]}>
+                <Ionicons name={iconName} size={22} color={colors.accentPrimary} />
+              </View>
               <View style={styles.suggestionText}>
                 <Text variant="labelSmall" color="inkFaint">
-                  SUGGESTED NEXT
+                  CONTINUE WITH
                 </Text>
                 <Text variant="headlineSmall" color="ink">
                   {suggestion.label}
@@ -333,7 +281,7 @@ function NextActionSuggestion({ sessionType, onPress }: NextActionProps) {
                   {suggestion.description}
                 </Text>
               </View>
-              <Text style={styles.chevronEmoji}>›</Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.inkFaint} />
             </View>
           </GlassCard>
         </Animated.View>
@@ -361,21 +309,20 @@ export function SessionCompleteScreen() {
     mood,
   } = route.params || {};
 
-  const [showConfetti, setShowConfetti] = useState(false);
-  const [showParticles, setShowParticles] = useState(false);
-  const [unlockedAchievement, setUnlockedAchievement] = useState<Achievement | null>(null);
+  const [showGlow, setShowGlow] = useState(false);
+  const [milestone, setMilestone] = useState<string | null>(null);
 
   const messages = SESSION_MESSAGES[sessionType];
+  const reflection = useMemo(() => getReflection(sessionType), [sessionType]);
   const xpEarned = SESSION_XP[sessionType];
 
-  // Process completion and rewards
+  // Process completion — track internally, never show XP/gamification to user
   useEffect(() => {
     const processCompletion = async () => {
-      // Map session type to activity type
       const activityMap: Record<SessionType, ActivityType> = {
         breathing: 'breathing',
         grounding: 'grounding',
-        reset: 'breathing', // Reset uses breathing as activity type
+        reset: 'breathing',
         focus: 'focus',
         journal: 'journal',
         story: 'story',
@@ -386,7 +333,6 @@ export function SessionCompleteScreen() {
       const activityType = activityMap[sessionType];
       const durationMinutes = duration ? Math.round(duration / 60) : 0;
 
-      // Log activity to backend
       const categoryMap: Record<SessionType, ActivityCategory> = {
         breathing: 'breathing',
         grounding: 'grounding',
@@ -405,15 +351,9 @@ export function SessionCompleteScreen() {
         startedAt: Date.now() - (duration || 0) * 1000,
         durationSeconds: duration || 0,
         completed: true,
-        metadata: {
-          cycles,
-          steps,
-          wordCount,
-          mood,
-        },
+        metadata: { cycles, steps, wordCount, mood },
       });
 
-      // Track analytics event for session completion
       analytics.track(AnalyticsEvents.TOOL_COMPLETED, {
         sessionType,
         sessionName: sessionName || sessionType,
@@ -426,17 +366,16 @@ export function SessionCompleteScreen() {
         xpEarned,
       });
 
-      // Record activity (awards XP, updates streaks, checks achievements)
+      // Record activity internally (XP, streaks, achievements — tracked but not displayed)
       const result = await gamification.recordActivity(
         activityType,
         durationMinutes,
         { sessionName: sessionName || sessionType }
       );
 
-      // Record activity for recommendations learning
       await recommendations.recordActivity(sessionType, sessionName || sessionType);
 
-      // Store pending celebrations for home screen
+      // Store pending celebrations for home screen (subtle acknowledgment only)
       if (result.levelUp && result.newLevel) {
         await AsyncStorage.setItem(
           '@restorae:pending_levelup',
@@ -449,13 +388,13 @@ export function SessionCompleteScreen() {
           '@restorae:pending_achievement',
           JSON.stringify(result.newAchievements[0])
         );
-        setUnlockedAchievement(result.newAchievements[0]);
+        // Show as a subtle milestone, not a trophy popup
+        setMilestone(result.newAchievements[0].title);
       }
 
-      // Show celebration
+      // Gentle haptic and soft glow — the only celebration
       await notificationSuccess();
-      setShowConfetti(true);
-      setTimeout(() => setShowParticles(true), 300);
+      setShowGlow(true);
     };
 
     processCompletion();
@@ -471,31 +410,25 @@ export function SessionCompleteScreen() {
   };
 
   // Get stats for session type
-  const getStats = () => {
-    const stats: { icon: string; label: string; value: string }[] = [];
-
+  const stats = useMemo(() => {
+    const result: { iconName: keyof typeof Ionicons.glyphMap; label: string; value: string }[] = [];
     if (duration) {
-      stats.push({ icon: '⏱️', label: 'DURATION', value: formatDuration(duration) });
+      result.push({ iconName: STAT_ICONS.DURATION, label: 'DURATION', value: formatDuration(duration) });
     }
     if (cycles) {
-      stats.push({ icon: '🔄', label: 'CYCLES', value: cycles.toString() });
+      result.push({ iconName: STAT_ICONS.CYCLES, label: 'CYCLES', value: cycles.toString() });
     }
     if (steps) {
-      stats.push({ icon: '👣', label: 'STEPS', value: steps.toString() });
+      result.push({ iconName: STAT_ICONS.STEPS, label: 'STEPS', value: steps.toString() });
     }
     if (wordCount) {
-      stats.push({ icon: '✍️', label: 'WORDS', value: wordCount.toString() });
+      result.push({ iconName: STAT_ICONS.WORDS, label: 'WORDS', value: wordCount.toString() });
     }
+    return result;
+  }, [duration, cycles, steps, wordCount]);
 
-    return stats;
-  };
-
-  const stats = getStats();
-
-  // Navigation handlers
+  // Navigation
   const handleGoHome = () => {
-    // Reset navigation stack to prevent back button from returning to session
-    // This allows the user to start fresh on the Home screen
     navigation.reset({
       index: 0,
       routes: [{ name: 'Main' }],
@@ -515,7 +448,7 @@ export function SessionCompleteScreen() {
     };
 
     const targetRoute = routes[sessionType];
-    
+
     if (targetRoute === 'JournalEntry') {
       navigation.navigate('JournalEntry', { mode: 'new' });
     } else {
@@ -527,25 +460,15 @@ export function SessionCompleteScreen() {
     <View style={styles.container}>
       <AmbientBackground variant="calm" intensity="normal" />
 
-      {/* Celebration Effects */}
-      <Confetti 
-        active={showConfetti}
-        intensity={reduceMotion ? 'low' : 'high'}
-        onComplete={() => {}}
-      />
-      <ParticleBurst 
-        active={showParticles}
-        centerX={layout.screenPaddingHorizontal + 150} 
-        centerY={200}
-        onComplete={() => {}}
-      />
+      {/* Soft glow — replaces confetti */}
+      <SoftGlow active={showGlow} variant="completion" size={250} />
 
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.content}>
-          {/* Checkmark Animation */}
+          {/* Checkmark */}
           <AnimatedCheckmark />
 
-          {/* Messages */}
+          {/* Title & Subtitle */}
           <Animated.View
             entering={reduceMotion ? undefined : FadeInUp.delay(200).duration(500)}
             style={styles.messagesContainer}
@@ -558,46 +481,48 @@ export function SessionCompleteScreen() {
             </Text>
           </Animated.View>
 
-          {/* XP Reward */}
-          <XPCounter xp={xpEarned} />
+          {/* Reflective Quote */}
+          <Animated.View
+            entering={reduceMotion ? undefined : FadeIn.delay(400).duration(600)}
+            style={styles.reflectionContainer}
+          >
+            <Text
+              variant="bodyMedium"
+              color="inkMuted"
+              align="center"
+              style={styles.reflectionText}
+            >
+              {reflection}
+            </Text>
+          </Animated.View>
 
           {/* Session Stats */}
           {stats.length > 0 && (
             <Animated.View
-              entering={reduceMotion ? undefined : FadeIn.delay(600).duration(400)}
+              entering={reduceMotion ? undefined : FadeIn.delay(500).duration(400)}
               style={styles.statsContainer}
             >
               {stats.map((stat, index) => (
                 <SessionStat
                   key={stat.label}
-                  icon={stat.icon}
+                  iconName={stat.iconName}
                   label={stat.label}
                   value={stat.value}
-                  delay={600 + index * 100}
+                  delay={500 + index * 100}
                 />
               ))}
             </Animated.View>
           )}
 
-          {/* Achievement Unlock Preview */}
-          {unlockedAchievement && (
+          {/* Milestone acknowledgment — subtle, not a trophy popup */}
+          {milestone && (
             <Animated.View
-              entering={reduceMotion ? undefined : FadeInUp.delay(700).duration(400)}
-              style={styles.achievementPreview}
+              entering={reduceMotion ? undefined : FadeIn.delay(700).duration(400)}
+              style={styles.milestoneContainer}
             >
-              <GlassCard variant="subtle" padding="sm">
-                <View style={styles.achievementContent}>
-                  <Text style={styles.achievementIcon}>🏆</Text>
-                  <View style={styles.achievementText}>
-                    <Text variant="labelSmall" color="inkFaint">
-                      NEW ACHIEVEMENT
-                    </Text>
-                    <Text variant="bodyMedium" color="ink">
-                      {unlockedAchievement.title}
-                    </Text>
-                  </View>
-                </View>
-              </GlassCard>
+              <Text variant="bodySmall" color="inkFaint" align="center">
+                {milestone}
+              </Text>
             </Animated.View>
           )}
 
@@ -620,7 +545,7 @@ export function SessionCompleteScreen() {
             fullWidth
             onPress={handleGoHome}
           >
-            Back to Home
+            Return to sanctuary
           </Button>
         </Animated.View>
       </SafeAreaView>
@@ -661,32 +586,18 @@ const styles = StyleSheet.create({
   },
   messagesContainer: {
     alignItems: 'center',
-    marginBottom: spacing[6],
+    marginBottom: spacing[4],
   },
   subtitle: {
     marginTop: spacing[2],
   },
-  xpContainer: {
-    width: '100%',
+  reflectionContainer: {
+    paddingHorizontal: spacing[6],
     marginBottom: spacing[6],
   },
-  xpContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  xpIconWrapper: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing[4],
-  },
-  xpIcon: {
-    fontSize: 24,
-  },
-  xpTextContainer: {
-    flex: 1,
+  reflectionText: {
+    fontStyle: 'italic',
+    fontFamily: 'Lora_400Regular',
   },
   statsContainer: {
     flexDirection: 'row',
@@ -697,28 +608,15 @@ const styles = StyleSheet.create({
   statItem: {
     alignItems: 'center',
   },
-  statIcon: {
-    fontSize: 24,
+  statIconStyle: {
     marginBottom: spacing[1],
   },
   statLabel: {
     letterSpacing: 1,
     marginBottom: spacing[1],
   },
-  achievementPreview: {
-    width: '100%',
+  milestoneContainer: {
     marginBottom: spacing[4],
-  },
-  achievementContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  achievementIcon: {
-    fontSize: 28,
-    marginRight: spacing[3],
-  },
-  achievementText: {
-    flex: 1,
   },
   spacer: {
     flex: 1,
@@ -727,20 +625,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  suggestionIcon: {
-    fontSize: 32,
+  suggestionIconWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: spacing[4],
   },
   suggestionText: {
     flex: 1,
-  },
-  chevronEmoji: {
-    fontSize: 24,
-    color: '#999',
-  },
-  checkmarkEmoji: {
-    fontSize: 40,
-    color: '#6FA08B',
   },
   footer: {
     paddingHorizontal: layout.screenPaddingHorizontal,

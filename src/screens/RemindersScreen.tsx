@@ -183,7 +183,7 @@ export function RemindersScreen() {
                     value={reminder.enabled}
                     onValueChange={() => toggleReminder(reminder.id)}
                     trackColor={{ false: palette.border, true: colors.accentPrimary }}
-                    thumbColor="#FFFFFF"
+                    thumbColor={colors.textInverse}
                   />
                 </View>
               </GlassCard>

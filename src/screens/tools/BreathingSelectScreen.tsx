@@ -138,7 +138,7 @@ function PatternCard({ pattern, index, onPress }: PatternCardProps) {
     calm: colors.accentCalm,
     focus: colors.accentPrimary,
     energy: colors.accentWarm,
-    sleep: '#9B8E80',
+    sleep: colors.moodLow,
     emergency: colors.statusError,
     balance: colors.accentPrimary,
   };

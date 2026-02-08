@@ -61,11 +61,19 @@ export const light = {
   moodLow: '#9A8C80',          // Stone
   moodTough: '#C97C72',        // Muted rose
 
-  // Aliases for compatibility with legacy code
+  // Aliases for compatibility with legacy/core components
   text: '#2B2018',             // Alias for ink
+  textPrimary: '#2B2018',      // Alias for ink
   textSecondary: '#5A4A3D',    // Alias for inkMuted
+  textTertiary: '#7A6B5E',     // Alias for inkFaint
+  textInverse: '#FFFFFF',      // Alias for inkInverse
   primary: '#1F4D3A',          // Alias for accentPrimary
+  actionPrimary: '#1F4D3A',    // Alias for accentPrimary
+  actionSecondary: '#C8924A',  // Alias for accentWarm
+  actionDestructive: '#B65A4A', // Alias for accentDanger
   background: '#F2E7DB',       // Alias for canvas
+  surface: '#FFF7EF',          // Alias for canvasElevated
+  surfaceElevated: '#FFFFFF',  // Alias for white elevated surface
   card: '#FFF7EF',             // Alias for canvasElevated
 };
 
@@ -120,11 +128,19 @@ export const dark = {
   moodLow: '#9B8E80',          // Stone
   moodTough: '#D79A8F',        // Muted rose
 
-  // Aliases for compatibility with legacy code
+  // Aliases for compatibility with legacy/core components
   text: '#F7EDE3',             // Alias for ink
-  textSecondary: '#B6A596',    // Alias for inkMuted
+  textPrimary: '#F7EDE3',      // Alias for ink
+  textSecondary: '#D4C8BA',    // Alias for inkMuted
+  textTertiary: '#A89B8D',     // Alias for inkFaint
+  textInverse: '#171310',      // Alias for inkInverse
   primary: '#6FA08B',          // Alias for accentPrimary
+  actionPrimary: '#6FA08B',    // Alias for accentPrimary
+  actionSecondary: '#E0B27A',  // Alias for accentWarm
+  actionDestructive: '#D07A6A', // Alias for accentDanger
   background: '#171310',       // Alias for canvas
+  surface: '#1F1A16',          // Alias for canvasElevated
+  surfaceElevated: '#2A231E',  // Alias for deeper elevated
   card: '#1F1A16',             // Alias for canvasElevated
 };
 

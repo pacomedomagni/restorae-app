@@ -41,6 +41,50 @@ import { ErrorBoundary, SharedTransitionProvider } from './src/components/ui';
 // Migrate tokens from AsyncStorage to SecureStore (one-time migration)
 migrateTokensToSecureStorage();
 
+function AnimatedSplash() {
+  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const logoScale = useRef(new Animated.Value(0.85)).current;
+  const textOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(logoScale, {
+        toValue: 1,
+        damping: 18,
+        stiffness: 120,
+        useNativeDriver: true,
+      }),
+      Animated.timing(logoOpacity, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    Animated.timing(textOpacity, {
+      toValue: 1,
+      duration: 400,
+      delay: 250,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  return (
+    <View style={splashStyles.container}>
+      <Animated.Image
+        source={require('./assets/icon.png')}
+        style={[
+          splashStyles.logo,
+          { opacity: logoOpacity, transform: [{ scale: logoScale }] },
+        ]}
+        resizeMode="contain"
+      />
+      <Animated.Text style={[splashStyles.appName, { opacity: textOpacity }]}>
+        Restorae
+      </Animated.Text>
+    </View>
+  );
+}
+
 function AppContent() {
   const { isDark, reduceMotion } = useTheme();
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -101,17 +145,9 @@ export default function App() {
     return () => clearTimeout(timeout);
   }, [fontsLoaded]);
 
-  // Show splash screen while loading
+  // Branded animated splash — no spinner, just the logo moment
   if (!fontsLoaded && !forceLoad) {
-    return (
-      <View style={splashStyles.container}>
-        <ActivityIndicator size="large" color="#8B7355" />
-        <RNText style={splashStyles.text}>Loading Restorae...</RNText>
-        {fontError && (
-          <RNText style={splashStyles.errorText}>Font load issue - using system fonts</RNText>
-        )}
-      </View>
-    );
+    return <AnimatedSplash />;
   }
 
   return (
@@ -159,17 +195,17 @@ const splashStyles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fafaf9',
+    backgroundColor: '#F2E7DB',
   },
-  text: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#8B7355',
-    fontWeight: '500',
+  logo: {
+    width: 80,
+    height: 80,
+    marginBottom: 16,
   },
-  errorText: {
-    marginTop: 8,
-    fontSize: 12,
-    color: '#999',
+  appName: {
+    fontSize: 28,
+    color: '#2B2018',
+    fontWeight: '300',
+    letterSpacing: 2,
   },
 });

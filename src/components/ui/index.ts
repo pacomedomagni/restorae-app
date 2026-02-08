@@ -41,6 +41,9 @@ export {
   createSharedTag,
 } from './SharedTransition';
 
+// Animations
+export { SoftGlow } from './SoftGlow';
+
 // Toast notifications
 export { Toast } from './Toast';
 export type { ToastVariant, ToastAction, ToastProps } from './Toast';

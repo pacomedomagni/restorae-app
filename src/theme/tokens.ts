@@ -181,8 +181,8 @@ export const layout = {
 // ANIMATION
 // =============================================================================
 export const animation = {
-  fast: 150,
-  normal: 250,
+  fast: 200,
+  normal: 300,
   slow: 400,
 } as const;
 

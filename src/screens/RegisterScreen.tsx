@@ -89,7 +89,7 @@ function AnimatedButton({ onPress, disabled, loading, variant, children, style, 
       accessibilityState={{ disabled: disabled || loading }}
     >
       <Animated.View style={[buttonStyle, animatedStyle]}>
-        {loading ? <ActivityIndicator color={variant === 'primary' ? '#fff' : colors.ink} /> : children}
+        {loading ? <ActivityIndicator color={variant === 'primary' ? colors.textInverse : colors.ink} /> : children}
       </Animated.View>
     </Pressable>
   );
@@ -241,8 +241,8 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
                 entering={reduceMotion ? undefined : FadeIn.duration(300)}
                 style={[styles.offlineBanner, { backgroundColor: colors.statusError }]}
               >
-                <Ionicons name="cloud-offline-outline" size={16} color="#fff" />
-                <Text variant="labelMedium" style={styles.offlineText}>No internet connection</Text>
+                <Ionicons name="cloud-offline-outline" size={16} color={colors.textInverse} />
+                <Text variant="labelMedium" style={[styles.offlineText, { color: colors.textInverse }]}>No internet connection</Text>
               </Animated.View>
             )}
 
@@ -413,7 +413,7 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
               {/* Terms Checkbox */}
               <Pressable style={styles.termsContainer} onPress={handleToggleTerms} accessibilityRole="checkbox" accessibilityState={{ checked: acceptedTerms }}>
                 <View style={[styles.checkbox, { borderColor: errors.terms ? colors.statusError : colors.border }, acceptedTerms && { backgroundColor: colors.accentPrimary, borderColor: colors.accentPrimary }]}>
-                  {acceptedTerms && <Ionicons name="checkmark" size={14} color="#fff" />}
+                  {acceptedTerms && <Ionicons name="checkmark" size={14} color={colors.textInverse} />}
                 </View>
                 <Text variant="bodySmall" color="inkMuted" style={styles.termsText}>
                   I agree to the <Text style={{ color: colors.accentPrimary }}>Terms of Service</Text> and <Text style={{ color: colors.accentPrimary }}>Privacy Policy</Text>
@@ -429,7 +429,7 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
                 loading={isSubmitting}
                 accessibilityLabel="Create account"
               >
-                <Text variant="labelLarge" style={styles.primaryButtonText}>Create Account</Text>
+                <Text variant="labelLarge" style={[styles.primaryButtonText, { color: colors.textInverse }]}>Create Account</Text>
               </AnimatedButton>
 
               {/* Divider */}
@@ -496,7 +496,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing[4],
     gap: spacing[2],
   },
-  offlineText: { color: '#fff' },
+  offlineText: {},
   header: { marginBottom: spacing[6] },
   backButton: { marginBottom: spacing[4], padding: spacing[1] },
   errorBanner: {
@@ -547,7 +547,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  primaryButtonText: { color: '#fff' },
+  primaryButtonText: {},
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
