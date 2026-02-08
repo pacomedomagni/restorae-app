@@ -1,35 +1,28 @@
 /**
  * YouScreen - Profile & Settings
- * 
- * Simplified profile with essential settings only.
- * 
- * Features:
- * - Simple profile display
- * - Quick access to themes
- * - Notification preferences
- * - Account actions
+ *
+ * Minimal, warm. Profile card + essential settings only.
+ * Stats live in Journey, not here.
  */
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Pressable, Linking, Switch } from 'react-native';
+import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAmbient } from '../../contexts/AmbientContext';
-import { useJourney } from '../../contexts/JourneyContext';
 import { useAuth } from '../../contexts/AuthContext';
 
 import { Avatar } from '../../components/core/Avatar';
-import { Text, GlassCard, AlertModal } from '../../components/ui';
-import { SkeletonText } from '../../components/ui/Skeleton';
+import { Text, GlassCard, ScreenHeader, AlertModal } from '../../components/ui';
 
-import { spacing, radius, withAlpha, layout } from '../../theme';
+import { spacing, borderRadius, withAlpha, layout } from '../../theme';
 
 // =============================================================================
-// TYPES
+// SETTING ITEM
 // =============================================================================
 
 interface SettingItemProps {
@@ -37,32 +30,29 @@ interface SettingItemProps {
   title: string;
   subtitle?: string;
   onPress?: () => void;
-  trailing?: React.ReactNode;
+  danger?: boolean;
 }
 
-// =============================================================================
-// SETTING ITEM COMPONENT
-// =============================================================================
-
-function SettingItem({ icon, title, subtitle, onPress, trailing }: SettingItemProps) {
+function SettingItem({ icon, title, subtitle, onPress, danger }: SettingItemProps) {
   const { colors } = useTheme();
+  const iconColor = danger ? colors.accentDanger : colors.accentPrimary;
+  const iconBg = withAlpha(iconColor, 0.1);
 
   return (
     <Pressable
       onPress={onPress}
-      style={[styles.settingItem, { borderBottomColor: colors.border }]}
-      disabled={!onPress && !trailing}
+      style={[styles.settingItem, { borderBottomColor: colors.borderMuted }]}
+      disabled={!onPress}
     >
-      <View
-        style={[
-          styles.settingIcon,
-          { backgroundColor: withAlpha(colors.accentPrimary, 0.1) },
-        ]}
-      >
-        <Ionicons name={icon as any} size={18} color={colors.accentPrimary} />
+      <View style={[styles.settingIcon, { backgroundColor: iconBg }]}>
+        <Ionicons name={icon as any} size={18} color={iconColor} />
       </View>
       <View style={styles.settingContent}>
-        <Text variant="bodyLarge" color="ink">
+        <Text
+          variant="bodyMedium"
+          style={danger ? { color: colors.accentDanger } : undefined}
+          color={danger ? undefined : 'ink'}
+        >
           {title}
         </Text>
         {subtitle && (
@@ -71,62 +61,10 @@ function SettingItem({ icon, title, subtitle, onPress, trailing }: SettingItemPr
           </Text>
         )}
       </View>
-      {trailing || (
-        onPress && (
-          <Ionicons
-            name="chevron-forward"
-            size={18}
-            color={colors.inkFaint}
-          />
-        )
+      {onPress && !danger && (
+        <Ionicons name="chevron-forward" size={16} color={colors.inkFaint} />
       )}
     </Pressable>
-  );
-}
-
-// =============================================================================
-// STATS ROW COMPONENT
-// =============================================================================
-
-interface StatsRowProps {
-  weeklyStats: {
-    sessionsCompleted: number;
-    totalMinutes: number;
-    currentStreak: number;
-    moodEntries: number;
-  };
-}
-
-function StatsRow({ weeklyStats }: StatsRowProps) {
-  const { colors } = useTheme();
-  const stats = [
-    { value: weeklyStats.currentStreak, label: 'Days Active', icon: 'calendar-outline' },
-    { value: weeklyStats.sessionsCompleted, label: 'Sessions', icon: 'play-circle' },
-    { value: weeklyStats.totalMinutes, label: 'Minutes', icon: 'time' },
-  ];
-
-  return (
-    <View style={styles.statsRow}>
-      {stats.map((stat) => (
-        <View key={stat.label} style={styles.statItem}>
-          <Ionicons
-            name={stat.icon as any}
-            size={16}
-            color={colors.accentPrimary}
-          />
-          <Text
-            variant="headlineSmall"
-            color="ink"
-            style={{ marginTop: 4 }}
-          >
-            {stat.value}
-          </Text>
-          <Text variant="labelSmall" color="inkFaint">
-            {stat.label}
-          </Text>
-        </View>
-      ))}
-    </View>
   );
 }
 
@@ -135,14 +73,11 @@ function StatsRow({ weeklyStats }: StatsRowProps) {
 // =============================================================================
 
 export function YouScreen() {
-  const { colors, isDark, mode, setMode } = useTheme();
+  const { colors, mode, setMode } = useTheme();
   const { userName } = useAmbient();
-  const { weeklyStats, isLoading: journeyLoading } = useJourney();
   const navigation = useNavigation<any>();
   const { logout } = useAuth();
 
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [remindersEnabled, setRemindersEnabled] = useState(true);
   const [alertConfig, setAlertConfig] = useState<{
     visible: boolean;
     type: 'confirm' | 'warning';
@@ -151,60 +86,30 @@ export function YouScreen() {
     onConfirm: () => void;
   }>({ visible: false, type: 'confirm', title: '', message: '', onConfirm: () => {} });
 
-  const handleThemePress = useCallback(() => {
+  const themeLabel = mode === 'system' ? 'System' : mode === 'light' ? 'Light' : 'Dark';
+
+  const handleAppearance = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
-    // Cycle through: system -> light -> dark -> system
-    if (mode === 'system') {
-      setMode('light');
-    } else if (mode === 'light') {
-      setMode('dark');
-    } else {
-      setMode('system');
-    }
-  }, [mode, setMode]);
+    navigation.navigate('Appearance');
+  }, [navigation]);
+
+  const handleNotifications = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    navigation.navigate('Reminders');
+  }, [navigation]);
 
   const handleExportData = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setAlertConfig({
       visible: true,
       type: 'confirm',
-      title: 'Export Data',
+      title: 'Export data',
       message: 'Your data will be exported as a JSON file.',
       onConfirm: () => {
-        setAlertConfig(prev => ({ ...prev, visible: false }));
-        // TODO: Implement export
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
       },
     });
   }, []);
-
-  const handleDeleteAccount = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    setAlertConfig({
-      visible: true,
-      type: 'warning',
-      title: 'Delete Account',
-      message: 'This action cannot be undone. All your data will be permanently deleted.',
-      onConfirm: () => {
-        setAlertConfig(prev => ({ ...prev, visible: false }));
-        // TODO: Implement account deletion
-      },
-    });
-  }, []);
-
-  const handleSignOut = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setAlertConfig({
-      visible: true,
-      type: 'confirm',
-      title: 'Sign Out',
-      message: 'Are you sure you want to sign out?',
-      onConfirm: async () => {
-        setAlertConfig(prev => ({ ...prev, visible: false }));
-        await logout();
-      },
-    });
-  }, [logout]);
 
   const handlePrivacy = useCallback(() => {
     navigation.navigate('Privacy');
@@ -214,15 +119,37 @@ export function YouScreen() {
     navigation.navigate('Support');
   }, [navigation]);
 
-  const handleTerms = useCallback(() => {
-    Linking.openURL('https://restorae.app/terms');
+  const handleSignOut = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setAlertConfig({
+      visible: true,
+      type: 'confirm',
+      title: 'Sign out',
+      message: 'Are you sure you want to sign out?',
+      onConfirm: async () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        await logout();
+      },
+    });
+  }, [logout]);
+
+  const handleDeleteAccount = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    setAlertConfig({
+      visible: true,
+      type: 'warning',
+      title: 'Delete account',
+      message: 'This cannot be undone. All your data will be permanently deleted.',
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+      },
+    });
   }, []);
 
-  const handleRate = useCallback(() => {
-    Linking.openURL('https://apps.apple.com/app/restorae');
-  }, []);
-
-  const themeLabel = mode === 'system' ? 'System' : mode === 'light' ? 'Light' : 'Dark';
+  const handleEditProfile = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    navigation.navigate('EditProfile');
+  }, [navigation]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.canvas }]}>
@@ -232,240 +159,103 @@ export function YouScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Header */}
-          <Animated.View entering={FadeIn.duration(300)} style={styles.header}>
-            <Text variant="headlineLarge" color="ink">
-              Profile
-            </Text>
-          </Animated.View>
+          <ScreenHeader variant="hero" title="You" />
 
-          {/* Profile Card */}
-          <Animated.View
-            entering={FadeInDown.delay(100).duration(300)}
-            style={styles.section}
-          >
-            <GlassCard variant="elevated" padding="lg">
+          {/* Profile Card — tappable, navigates to EditProfile */}
+          <Animated.View entering={FadeInDown.delay(100).duration(300)} style={styles.section}>
+            <GlassCard variant="elevated" padding="lg" onPress={handleEditProfile}>
               <View style={styles.profileRow}>
-                <Avatar
-                  name={userName}
-                  size="lg"
-                  colors={colors}
-                />
+                <Avatar name={userName} size="lg" colors={colors} />
                 <View style={styles.profileInfo}>
                   <Text variant="headlineMedium" color="ink">
                     {userName}
                   </Text>
-                  <Text
-                    variant="bodySmall"
-                    color="inkMuted"
-                    style={{ marginTop: 2 }}
-                  >
+                  <Text variant="bodySmall" color="inkMuted" style={{ marginTop: 2 }}>
                     Wellness member
                   </Text>
                 </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.inkFaint} />
               </View>
-
-              <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-              {journeyLoading ? (
-                <SkeletonText lines={1} />
-              ) : (
-                <StatsRow weeklyStats={weeklyStats} />
-              )}
             </GlassCard>
           </Animated.View>
 
           {/* Preferences */}
-          <Animated.View
-            entering={FadeInDown.delay(150).duration(300)}
-            style={styles.section}
-          >
-            <Text
-              variant="labelSmall"
-              color="inkFaint"
-              style={{
-                marginBottom: spacing.sm,
-                marginLeft: spacing.xs,
-              }}
-            >
-              PREFERENCES
+          <Animated.View entering={FadeInDown.delay(150).duration(300)} style={styles.section}>
+            <Text variant="labelSmall" color="inkFaint" style={styles.sectionLabel}>
+              Preferences
             </Text>
             <GlassCard variant="default" padding="none">
               <SettingItem
                 icon="color-palette-outline"
                 title="Appearance"
                 subtitle={themeLabel}
-                onPress={handleThemePress}
+                onPress={handleAppearance}
               />
               <SettingItem
                 icon="notifications-outline"
                 title="Notifications"
-                trailing={
-                  <Switch
-                    value={notificationsEnabled}
-                    onValueChange={setNotificationsEnabled}
-                    trackColor={{
-                      false: colors.border,
-                      true: withAlpha(colors.accentPrimary, 0.5),
-                    }}
-                    thumbColor={
-                      notificationsEnabled ? colors.accentPrimary : colors.inkFaint
-                    }
-                  />
-                }
-              />
-              <SettingItem
-                icon="alarm-outline"
-                title="Daily Reminders"
-                subtitle="10:00 AM"
-                trailing={
-                  <Switch
-                    value={remindersEnabled}
-                    onValueChange={setRemindersEnabled}
-                    trackColor={{
-                      false: colors.border,
-                      true: withAlpha(colors.accentPrimary, 0.5),
-                    }}
-                    thumbColor={
-                      remindersEnabled ? colors.accentPrimary : colors.inkFaint
-                    }
-                  />
-                }
+                onPress={handleNotifications}
               />
             </GlassCard>
           </Animated.View>
 
           {/* Data & Privacy */}
-          <Animated.View
-            entering={FadeInDown.delay(200).duration(300)}
-            style={styles.section}
-          >
-            <Text
-              variant="labelSmall"
-              color="inkFaint"
-              style={{
-                marginBottom: spacing.sm,
-                marginLeft: spacing.xs,
-              }}
-            >
-              DATA & PRIVACY
+          <Animated.View entering={FadeInDown.delay(200).duration(300)} style={styles.section}>
+            <Text variant="labelSmall" color="inkFaint" style={styles.sectionLabel}>
+              Data & privacy
             </Text>
             <GlassCard variant="default" padding="none">
               <SettingItem
                 icon="download-outline"
-                title="Export Your Data"
+                title="Export data"
                 onPress={handleExportData}
               />
               <SettingItem
                 icon="shield-checkmark-outline"
-                title="Privacy Policy"
+                title="Privacy & terms"
                 onPress={handlePrivacy}
-              />
-              <SettingItem
-                icon="document-text-outline"
-                title="Terms of Service"
-                onPress={handleTerms}
               />
             </GlassCard>
           </Animated.View>
 
           {/* Support */}
-          <Animated.View
-            entering={FadeInDown.delay(250).duration(300)}
-            style={styles.section}
-          >
-            <Text
-              variant="labelSmall"
-              color="inkFaint"
-              style={{
-                marginBottom: spacing.sm,
-                marginLeft: spacing.xs,
-              }}
-            >
-              SUPPORT
+          <Animated.View entering={FadeInDown.delay(250).duration(300)} style={styles.section}>
+            <Text variant="labelSmall" color="inkFaint" style={styles.sectionLabel}>
+              Support
             </Text>
             <GlassCard variant="default" padding="none">
               <SettingItem
                 icon="help-circle-outline"
-                title="Help Center"
+                title="Help center"
                 onPress={handleSupport}
-              />
-              <SettingItem
-                icon="chatbubble-outline"
-                title="Contact Us"
-                onPress={handleSupport}
-              />
-              <SettingItem
-                icon="star-outline"
-                title="Rate Restorae"
-                onPress={handleRate}
               />
             </GlassCard>
           </Animated.View>
 
-          {/* Account Actions */}
-          <Animated.View
-            entering={FadeInDown.delay(300).duration(300)}
-            style={styles.section}
-          >
-            <Text
-              variant="labelSmall"
-              color="inkFaint"
-              style={{
-                marginBottom: spacing.sm,
-                marginLeft: spacing.xs,
-              }}
-            >
-              ACCOUNT
+          {/* Account */}
+          <Animated.View entering={FadeInDown.delay(300).duration(300)} style={styles.section}>
+            <Text variant="labelSmall" color="inkFaint" style={styles.sectionLabel}>
+              Account
             </Text>
             <GlassCard variant="default" padding="none">
               <SettingItem
                 icon="log-out-outline"
-                title="Sign Out"
+                title="Sign out"
                 onPress={handleSignOut}
               />
-              <Pressable
+              <SettingItem
+                icon="trash-outline"
+                title="Delete account"
                 onPress={handleDeleteAccount}
-                style={[styles.settingItem, styles.dangerItem]}
-              >
-                <View
-                  style={[
-                    styles.settingIcon,
-                    { backgroundColor: withAlpha(colors.accentDanger, 0.1) },
-                  ]}
-                >
-                  <Ionicons
-                    name="trash-outline"
-                    size={18}
-                    color={colors.accentDanger}
-                  />
-                </View>
-                <View style={styles.settingContent}>
-                  <Text
-                    variant="bodyLarge"
-                    style={{ color: colors.accentDanger }}
-                  >
-                    Delete Account
-                  </Text>
-                </View>
-              </Pressable>
+                danger
+              />
             </GlassCard>
           </Animated.View>
 
-          {/* App Info */}
-          <Animated.View
-            entering={FadeInDown.delay(350).duration(300)}
-            style={styles.appInfo}
-          >
-            <Text variant="bodySmall" color="inkFaint">
+          {/* Footer */}
+          <Animated.View entering={FadeInDown.delay(350).duration(300)} style={styles.footer}>
+            <Text variant="bodySmall" color="inkFaint" align="center">
               Restorae v1.0.0
-            </Text>
-            <Text
-              variant="bodySmall"
-              color="inkFaint"
-              style={{ marginTop: 2 }}
-            >
-              Your sanctuary for calm
             </Text>
           </Animated.View>
         </ScrollView>
@@ -477,15 +267,11 @@ export function YouScreen() {
         title={alertConfig.title}
         message={alertConfig.message}
         onConfirm={alertConfig.onConfirm}
-        onCancel={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+        onCancel={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
       />
     </View>
   );
 }
-
-// =============================================================================
-// STYLES
-// =============================================================================
 
 const styles = StyleSheet.create({
   container: {
@@ -499,58 +285,43 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: layout.screenPadding,
-    paddingTop: spacing.lg,
     paddingBottom: 100,
   },
-  header: {
-    marginBottom: spacing.lg,
-  },
   section: {
-    marginBottom: spacing.lg,
+    marginBottom: spacing[5],
+  },
+  sectionLabel: {
+    marginBottom: spacing[2],
+    marginLeft: spacing[1],
   },
   profileRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   profileInfo: {
-    marginLeft: spacing.md,
+    marginLeft: spacing[4],
     flex: 1,
-  },
-  divider: {
-    height: 1,
-    marginVertical: spacing.lg,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  statItem: {
-    alignItems: 'center',
   },
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   settingIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.sm,
+    width: 34,
+    height: 34,
+    borderRadius: borderRadius.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
+    marginRight: spacing[3],
   },
   settingContent: {
     flex: 1,
   },
-  dangerItem: {
-    borderBottomWidth: 0,
-  },
-  appInfo: {
-    alignItems: 'center',
-    paddingVertical: spacing.xl,
+  footer: {
+    paddingVertical: spacing[8],
   },
 });
 

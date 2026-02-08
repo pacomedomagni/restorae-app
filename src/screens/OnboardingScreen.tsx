@@ -39,6 +39,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useHaptics } from '../hooks/useHaptics';
+import { useNotifications } from '../hooks/useNotifications';
 import { useTheme } from '../contexts/ThemeContext';
 import {
   Text,
@@ -457,6 +458,7 @@ export function OnboardingScreen() {
   const { colors, reduceMotion } = useTheme();
   const navigation = useNavigation<NavigationProp>();
   const { impactMedium, impactLight, notificationSuccess } = useHaptics();
+  const { requestPermission, updateSettings } = useNotifications();
 
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
@@ -544,7 +546,21 @@ export function OnboardingScreen() {
         }
         await AsyncStorage.setItem('@restorae/onboarding_complete', 'true');
         await notificationSuccess();
-        
+
+        // Auto-schedule default reminders (non-blocking)
+        try {
+          const granted = await requestPermission();
+          if (granted) {
+            await updateSettings({
+              morningEnabled: true,
+              eveningEnabled: true,
+              moodCheckEnabled: true,
+            });
+          }
+        } catch {
+          // Reminders are optional — don't block onboarding
+        }
+
         navigation.reset({
           index: 0,
           routes: [{ name: 'Main' }],
@@ -554,7 +570,7 @@ export function OnboardingScreen() {
         navigation.navigate('Main');
       }
     }
-  }, [step, name, selectedGoals, navigation, impactMedium, notificationSuccess]);
+  }, [step, name, selectedGoals, navigation, impactMedium, notificationSuccess, requestPermission, updateSettings]);
 
   const handleSkip = async () => {
     await AsyncStorage.setItem('@restorae/onboarding_complete', 'true');

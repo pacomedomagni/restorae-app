@@ -47,6 +47,8 @@ import { spacing, borderRadius, layout, withAlpha } from '../../theme';
 import { RootStackParamList, BreathingPattern } from '../../types';
 import { useHaptics } from '../../hooks/useHaptics';
 import { useUISounds } from '../../hooks/useUISounds';
+import { useBreathingAudio } from '../../hooks/useBreathingAudio';
+import { usePreferences } from '../../contexts/PreferencesContext';
 import { useSessionPersistence } from '../../hooks/useSessionPersistence';
 import { getPatternById, BREATHING_PATTERNS } from '../../data';
 import { navigationHelpers } from '../../services/navigationHelpers';
@@ -68,7 +70,12 @@ export function BreathingScreen() {
   useKeepAwake();
   const { colors, reduceMotion } = useTheme();
   const { impactLight, impactMedium, notificationSuccess } = useHaptics();
-  const { playTap, playSuccess, playComplete } = useUISounds();
+  const { playTap } = useUISounds();
+  const { breathingTonesEnabled, setBreathingTonesEnabled } = usePreferences();
+  const {
+    playInhaleTone, playHoldTone, playExhaleTone, playCompleteTone,
+    startAmbient, stopAmbient, preload: preloadTones, cleanup: cleanupTones,
+  } = useBreathingAudio();
   const { shouldShowCoachMark, markAsShown, COACH_MARKS } = useCoachMarks();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'Breathing'>>();
@@ -144,6 +151,12 @@ export function BreathingScreen() {
     };
   }, []);
 
+  // Preload breathing tones on mount
+  useEffect(() => {
+    preloadTones();
+    return cleanupTones;
+  }, [preloadTones, cleanupTones]);
+
   // Timer for countdown
   const startCountdown = useCallback((seconds: number): Promise<void> => {
     return new Promise((resolve) => {
@@ -167,6 +180,8 @@ export function BreathingScreen() {
       setPhase('complete');
       setIsRunning(false);
       notificationSuccess();
+      playCompleteTone();
+      stopAmbient();
       return;
     }
 
@@ -175,22 +190,26 @@ export function BreathingScreen() {
     // INHALE
     setPhase('inhale');
     impactLight();
+    playInhaleTone();
     await startCountdown(pattern.inhale);
 
     // HOLD 1
     if (pattern.hold1 && pattern.hold1 > 0) {
       setPhase('hold');
+      playHoldTone();
       await startCountdown(pattern.hold1);
     }
 
     // EXHALE
     setPhase('exhale');
     impactLight();
+    playExhaleTone();
     await startCountdown(pattern.exhale);
 
     // HOLD 2
     if (pattern.hold2 && pattern.hold2 > 0) {
       setPhase('hold');
+      playHoldTone();
       await startCountdown(pattern.hold2);
     }
 
@@ -204,6 +223,7 @@ export function BreathingScreen() {
     setSessionStartTime(Date.now());
     await impactMedium();
     playTap();
+    startAmbient();
     runBreathCycle(1);
   };
 
@@ -221,15 +241,16 @@ export function BreathingScreen() {
 
   const handleClose = () => {
     if (timerRef.current) clearInterval(timerRef.current);
+    stopAmbient();
     navigation.goBack();
   };
 
   const handleSessionComplete = () => {
     if (timerRef.current) clearInterval(timerRef.current);
-    
+
     // Clear saved session state
     clearState();
-    playComplete();
+    stopAmbient();
     
     const duration = sessionStartTime 
       ? navigationHelpers.calculateSessionDuration(sessionStartTime)
@@ -290,7 +311,22 @@ export function BreathingScreen() {
             </Text>
           </View>
           
-          <View style={styles.closeButton} />
+          <Pressable
+            onPress={() => {
+              impactLight();
+              setBreathingTonesEnabled(!breathingTonesEnabled);
+            }}
+            style={styles.closeButton}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={breathingTonesEnabled ? 'Mute breathing tones' : 'Enable breathing tones'}
+          >
+            <Icon
+              name={breathingTonesEnabled ? 'volume-high-outline' : 'volume-mute-outline'}
+              size={20}
+              color={colors.ink}
+            />
+          </Pressable>
         </Animated.View>
 
         {/* Main Content */}

@@ -10,6 +10,9 @@ export { useHaptics, type HapticPattern } from './useHaptics';
 // UI Sound effects
 export { useUISounds, type UISoundType } from './useUISounds';
 
+// Breathing audio guidance
+export { useBreathingAudio, type BreathingToneType } from './useBreathingAudio';
+
 // Notifications
 export { useNotifications, type ReminderSettings, type CustomReminder } from './useNotifications';
 

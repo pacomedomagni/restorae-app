@@ -1,22 +1,22 @@
 /**
  * SessionBridgeScreen
- * 
- * This screen bridges the simplified Sanctuary flow to the existing
- * SessionContext-based UnifiedSessionScreen.
- * 
- * It receives simple params (type, id, mood) and sets up the session queue
- * before redirecting to the actual session screen.
+ *
+ * Bridges simplified navigation params to SessionContext.
+ * Receives (type, id, mood), builds the appropriate Activity,
+ * and starts a single-activity session via startSingle().
+ * SessionContext auto-navigates to UnifiedSession.
  */
 import React, { useEffect } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useSession } from '../../contexts/SessionContext';
-import { Text } from '../../components/core/Text';
-
+import { Text } from '../../components/ui';
+import { getPatternById } from '../../data/breathingPatterns';
+import { getTechniqueById } from '../../data/groundingTechniques';
 import { spacing } from '../../theme';
+import type { Activity, BreathingConfig, GroundingConfig, FocusConfig } from '../../types/session';
 
 // =============================================================================
 // TYPES
@@ -31,51 +31,87 @@ type SessionBridgeParams = {
 type RouteType = RouteProp<{ Session: SessionBridgeParams }, 'Session'>;
 
 // =============================================================================
-// BREATHING PATTERNS DATA
+// HELPERS
 // =============================================================================
 
-const BREATHING_PATTERNS = {
-  'calm-breath': {
-    name: 'Calming Breaths',
-    inhale: 4,
-    hold1: 7,
-    exhale: 8,
-    hold2: 0,
-    cycles: 4,
-  },
-  'box-breathing': {
-    name: 'Box Breathing',
-    inhale: 4,
-    hold1: 4,
-    exhale: 4,
-    hold2: 4,
-    cycles: 4,
-  },
-  'energizing-breath': {
-    name: 'Energizing Breath',
-    inhale: 4,
-    hold1: 0,
-    exhale: 2,
-    hold2: 0,
-    cycles: 10,
-  },
-  'sleep-breath': {
-    name: 'Sleep Preparation',
-    inhale: 4,
-    hold1: 7,
-    exhale: 8,
-    hold2: 0,
-    cycles: 6,
-  },
-  'one-minute-calm': {
-    name: 'One Minute Calm',
-    inhale: 4,
-    hold1: 4,
-    exhale: 4,
-    hold2: 0,
-    cycles: 3,
-  },
-};
+function buildActivity(type: string, id: string): Activity | null {
+  if (type === 'breathing') {
+    const pattern = getPatternById(id);
+    if (!pattern) return null;
+
+    const config: BreathingConfig = {
+      type: 'breathing',
+      patternId: id,
+      inhale: pattern.inhale,
+      hold1: pattern.hold1,
+      exhale: pattern.exhale,
+      hold2: pattern.hold2,
+      cycles: pattern.cycles,
+    };
+
+    const cycleDuration = pattern.inhale + (pattern.hold1 || 0) + pattern.exhale + (pattern.hold2 || 0);
+
+    return {
+      id: `breathing-${id}`,
+      type: 'breathing',
+      name: pattern.name,
+      description: pattern.description,
+      duration: cycleDuration * pattern.cycles,
+      tone: 'calm',
+      config,
+    };
+  }
+
+  if (type === 'grounding') {
+    const technique = getTechniqueById(id);
+    if (!technique) return null;
+
+    const config: GroundingConfig = {
+      type: 'grounding',
+      techniqueId: id,
+      steps: technique.steps ?? [],
+    };
+
+    // Parse duration string like "3 min" to seconds
+    const durationMatch = technique.duration?.match(/(\d+)/);
+    const durationSeconds = durationMatch ? parseInt(durationMatch[1], 10) * 60 : 180;
+
+    return {
+      id: `grounding-${id}`,
+      type: 'grounding',
+      name: technique.name,
+      description: technique.description,
+      duration: durationSeconds,
+      tone: 'calm',
+      config,
+    };
+  }
+
+  if (type === 'focus' || type === 'meditation') {
+    const config: FocusConfig = {
+      type: 'focus',
+      targetMinutes: 10,
+    };
+
+    return {
+      id: `focus-${id}`,
+      type: 'focus',
+      name: 'Focus Session',
+      duration: 600,
+      tone: 'calm',
+      config,
+    };
+  }
+
+  // Generic fallback
+  return {
+    id: `${type}-${id}`,
+    type: type as any,
+    name: `${type.charAt(0).toUpperCase() + type.slice(1)} Session`,
+    duration: 300,
+    tone: 'neutral',
+  };
+}
 
 // =============================================================================
 // SESSION BRIDGE SCREEN
@@ -85,75 +121,25 @@ export function SessionBridgeScreen() {
   const navigation = useNavigation();
   const route = useRoute<RouteType>();
   const { colors } = useTheme();
-  const { startBreathingSession, startStandaloneSession } = useSession();
+  const { startSingle } = useSession();
 
-  const { type, id, mood } = route.params;
+  const { type, id } = route.params;
 
   useEffect(() => {
-    const setupSession = async () => {
-      try {
-        if (type === 'breathing') {
-          const pattern = BREATHING_PATTERNS[id as keyof typeof BREATHING_PATTERNS];
-          if (pattern) {
-            await startBreathingSession({
-              patternId: id,
-              name: pattern.name,
-              inhale: pattern.inhale,
-              hold1: pattern.hold1,
-              exhale: pattern.exhale,
-              hold2: pattern.hold2,
-              cycles: pattern.cycles,
-            });
-          } else {
-            // Fallback to standalone session
-            await startStandaloneSession('breathing', {
-              patternId: id,
-              name: 'Breathing Session',
-            });
-          }
-        } else if (type === 'grounding') {
-          await startStandaloneSession('grounding', {
-            techniqueId: id,
-          });
-        } else if (type === 'meditation') {
-          await startStandaloneSession('focus', {
-            sessionId: id,
-          });
-        } else if (type === 'focus') {
-          await startStandaloneSession('focus', {
-            sessionId: id,
-          });
-        } else {
-          // Generic session
-          await startStandaloneSession(type as any, {
-            sessionId: id,
-          });
-        }
-        
-        // Navigate to unified session (replace this screen)
-        navigation.reset({
-          index: 0,
-          routes: [
-            { name: 'Main' as never },
-            { name: 'UnifiedSession' as never },
-          ],
-        });
-      } catch (error) {
-        console.error('Failed to setup session:', error);
-        navigation.goBack();
-      }
-    };
-
-    setupSession();
-  }, [type, id, navigation, startBreathingSession, startStandaloneSession]);
+    const activity = buildActivity(type, id);
+    if (activity) {
+      // startSingle auto-navigates to UnifiedSession
+      startSingle(activity);
+    } else {
+      console.warn('[SessionBridge] Could not build activity for:', type, id);
+      navigation.goBack();
+    }
+  }, [type, id, startSingle, navigation]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.canvas }]}>
       <ActivityIndicator size="large" color={colors.accentPrimary} />
-      <Text
-        variant="bodyMedium"
-        style={{ color: colors.inkMuted, marginTop: spacing.md }}
-      >
+      <Text variant="bodyMedium" color="inkMuted" style={styles.label}>
         Preparing your session...
       </Text>
     </View>
@@ -169,6 +155,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  label: {
+    marginTop: spacing[3],
   },
 });
 

@@ -55,6 +55,7 @@ type SessionAction =
   | { type: 'START_SINGLE'; activity: Activity }
   | { type: 'START_RITUAL'; ritual: Ritual }
   | { type: 'START_SOS'; preset: SOSPreset }
+  | { type: 'START_PROGRAM_DAY'; ritual: Ritual; programId: string; programDay: number }
   | { type: 'COMPLETE_CURRENT_ACTIVITY' }
   | { type: 'SKIP_CURRENT_ACTIVITY' }
   | { type: 'SKIP_ACTIVITY'; index: number }
@@ -126,6 +127,26 @@ function sessionReducer(state: SessionState, action: SessionAction): SessionStat
         currentIndex: 0,
         sosPresetId: action.preset.id,
         sosPresetName: action.preset.name,
+        sessionStartTime: Date.now(),
+      };
+    }
+
+    case 'START_PROGRAM_DAY': {
+      const queue: ActivityState[] = action.ritual.activities.map((activity, index) => ({
+        activity,
+        status: index === 0 ? ('in-progress' as const) : ('pending' as const),
+        startedAt: index === 0 ? Date.now() : undefined,
+      }));
+      return {
+        ...INITIAL_SESSION_STATE,
+        mode: 'program',
+        status: 'in-progress',
+        queue,
+        currentIndex: 0,
+        ritualId: action.ritual.id,
+        ritualName: action.ritual.name,
+        programId: action.programId,
+        programDay: action.programDay,
         sessionStartTime: Date.now(),
       };
     }
@@ -552,6 +573,17 @@ export function SessionProvider({ children }: SessionProviderProps) {
     createBackendSession('SOS', preset.activities, { sosPresetId: preset.id });
   }, [impactMedium, createBackendSession]);
 
+  const startProgramDay = useCallback((ritual: Ritual, programId: string, programDay: number) => {
+    dispatch({ type: 'START_PROGRAM_DAY', ritual, programId, programDay });
+    impactMedium();
+    navigate('UnifiedSession');
+    createBackendSession('RITUAL', ritual.activities, {
+      ritualId: ritual.id,
+      programId,
+      programDay,
+    });
+  }, [impactMedium, createBackendSession]);
+
   const completeCurrentActivity = useCallback(async () => {
     const activityState = state.queue[state.currentIndex];
     if (!activityState) return;
@@ -701,10 +733,22 @@ export function SessionProvider({ children }: SessionProviderProps) {
   // =========================================================================
   useEffect(() => {
     if (state.status === 'completed') {
-      const summary = buildSessionSummary(state, false);
-      navigate('SessionSummary', { summary });
-      // Reset after navigation
-      setTimeout(() => dispatch({ type: 'RESET' }), 500);
+      if (state.mode === 'program' && state.programId && state.programDay) {
+        // Program day completion → dedicated screen
+        const totalDuration = state.sessionStartTime
+          ? Math.round((Date.now() - state.sessionStartTime) / 1000)
+          : 0;
+        navigate('ProgramDayComplete', {
+          programId: state.programId,
+          dayNumber: state.programDay,
+          duration: totalDuration,
+        });
+        setTimeout(() => dispatch({ type: 'RESET' }), 500);
+      } else {
+        const summary = buildSessionSummary(state, false);
+        navigate('SessionSummary', { summary });
+        setTimeout(() => dispatch({ type: 'RESET' }), 500);
+      }
     }
   }, [state.status, state]);
 
@@ -727,6 +771,7 @@ export function SessionProvider({ children }: SessionProviderProps) {
     startSingle,
     startRitual,
     startSOS,
+    startProgramDay,
     completeCurrentActivity,
     skipCurrentActivity,
     pauseSession,

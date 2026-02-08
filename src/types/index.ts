@@ -145,6 +145,18 @@ export type RootStackParamList = {
     entry?: { id?: string; title?: string; content: string; };
   };
   
+  // Paywall
+  Paywall: { feature?: string; featureName?: string };
+
+  // Programs
+  ProgramList: undefined;
+  ProgramDetail: { programId: string };
+  ProgramDayComplete: { programId: string; dayNumber: number; duration: number };
+
+  // Focus
+  FocusSelect: undefined;
+  FocusSession: { sessionId: string };
+
   // Settings
   Appearance: undefined;
   Privacy: undefined;

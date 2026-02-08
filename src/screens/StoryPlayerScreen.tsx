@@ -43,6 +43,7 @@ import { useKeepAwake } from 'expo-keep-awake';
 
 import { useHaptics } from '../hooks/useHaptics';
 import { useUISounds } from '../hooks/useUISounds';
+import { usePremiumFeature } from '../hooks/usePremiumFeature';
 import { useTheme } from '../contexts/ThemeContext';
 import { useCoachMarks } from '../contexts/CoachMarkContext';
 import { useAnalytics, AnalyticsEvents } from '../services/analytics';
@@ -201,6 +202,7 @@ export function StoryPlayerScreen() {
   const { impactMedium, impactLight } = useHaptics();
   const { playTap, playToggle, playSuccess } = useUISounds();
   const { shouldShowCoachMark, markAsShown, COACH_MARKS } = useCoachMarks();
+  const { checkAccessOrPaywall } = usePremiumFeature();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'StoryPlayer'>>();
   const analytics = useAnalytics();
@@ -267,6 +269,16 @@ export function StoryPlayerScreen() {
       return () => clearTimeout(timer);
     }
   }, [playbackState.isLoading, story, shouldShowCoachMark]);
+
+  // Premium gate: check access when story loads
+  useEffect(() => {
+    if (story?.isPremium) {
+      const hasAccess = checkAccessOrPaywall(story.id, story.title);
+      if (!hasAccess) {
+        navigation.goBack();
+      }
+    }
+  }, [story?.id]);
 
   // Load story on mount
   useEffect(() => {

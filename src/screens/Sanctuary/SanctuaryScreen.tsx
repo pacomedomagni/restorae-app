@@ -1,17 +1,11 @@
 /**
- * SanctuaryScreen - Main Hub
- * 
- * The heart of Restorae. One screen that asks "How can I help right now?"
- * 
- * Features:
- * - Centered mood orb selection
- * - Adaptive offerings based on mood
- * - SOS always accessible
- * - Inline journaling after selection
- * - Time-aware greetings
+ * SanctuaryScreen - Your Sanctuary
+ *
+ * A calm, guided experience. One question, one recommendation, one action.
+ * Mood orbs always visible. Offering slides in below — never replaces.
  */
-import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Dimensions, Pressable } from 'react-native';
+import React, { useState, useCallback, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -19,11 +13,6 @@ import Animated, {
   FadeIn,
   FadeInDown,
   FadeInUp,
-  FadeOut,
-  Layout,
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,18 +22,13 @@ import { useAmbient } from '../../contexts/AmbientContext';
 import { useJourney } from '../../contexts/JourneyContext';
 
 import { Text, Button, GlassCard } from '../../components/ui';
-import { Input } from '../../components/core/Input';
 import { MoodOrb } from '../../components/domain/MoodOrb';
 import { AmbientBackground } from '../../components/domain/AmbientBackground';
 
-import { MoodType, moodLabels, spacing, radius, withAlpha, layout } from '../../theme';
+import { getProgramById } from '../../data';
+import { programProgress, type ProgramProgress } from '../../services/programProgress';
+import { MoodType, moodLabels, spacing, borderRadius, withAlpha, layout } from '../../theme';
 import { RootStackParamList } from '../../types';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-// =============================================================================
-// TYPES
-// =============================================================================
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -56,12 +40,7 @@ interface AdaptiveOffering {
   duration: string;
 }
 
-// =============================================================================
-// ADAPTIVE OFFERINGS
-// =============================================================================
-
 const getAdaptiveOffering = (mood: MoodType, timeOfDay: string): AdaptiveOffering => {
-  // Mood-specific recommendations
   const offerings: Record<MoodType, AdaptiveOffering> = {
     anxious: {
       title: 'Ground yourself',
@@ -102,10 +81,6 @@ const getAdaptiveOffering = (mood: MoodType, timeOfDay: string): AdaptiveOfferin
   return offerings[mood];
 };
 
-// =============================================================================
-// SANCTUARY SCREEN
-// =============================================================================
-
 export function SanctuaryScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
@@ -113,9 +88,17 @@ export function SanctuaryScreen() {
   const { addMoodEntry } = useJourney();
 
   const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
-  const [showOffering, setShowOffering] = useState(false);
-  const [note, setNote] = useState('');
-  const [showNoteInput, setShowNoteInput] = useState(false);
+  const [activeProgram, setActiveProgram] = useState<ProgramProgress | null>(null);
+
+  useEffect(() => {
+    const loadActiveProgram = async () => {
+      const active = await programProgress.getActiveProgram();
+      setActiveProgram(active);
+    };
+    loadActiveProgram();
+  }, []);
+
+  const activeProgDetails = activeProgram ? getProgramById(activeProgram.programId) : null;
 
   const moods: MoodType[] = ['calm', 'good', 'anxious', 'low'];
 
@@ -123,59 +106,31 @@ export function SanctuaryScreen() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setSelectedMood(mood);
     setAmbientMood(mood);
-    
-    // Show offering after a brief pause
-    setTimeout(() => {
-      setShowOffering(true);
-    }, 300);
-  }, [setAmbientMood]);
+    addMoodEntry(mood);
+  }, [setAmbientMood, addMoodEntry]);
 
   const handleStartSession = useCallback(async () => {
     if (!selectedMood) return;
-    
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
-    // Save mood entry with optional note
-    await addMoodEntry(selectedMood, note || undefined);
-    
+
     const offering = getAdaptiveOffering(selectedMood, timeOfDay);
-    
-    // Navigate to session
     navigation.navigate('Session', {
       type: offering.sessionType,
       id: offering.sessionId,
       mood: selectedMood,
     } as any);
-    
-    // Reset state
+
     setSelectedMood(null);
-    setShowOffering(false);
-    setNote('');
-    setShowNoteInput(false);
-  }, [selectedMood, note, timeOfDay, navigation, addMoodEntry]);
+  }, [selectedMood, timeOfDay, navigation]);
 
   const handleJustBreathe = useCallback(async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
-    if (selectedMood) {
-      await addMoodEntry(selectedMood, note || undefined);
-    }
-    
     navigation.navigate('Session', {
       type: 'breathing',
       id: 'one-minute-calm',
     } as any);
-    
     setSelectedMood(null);
-    setShowOffering(false);
-  }, [selectedMood, note, navigation, addMoodEntry]);
-
-  const handleShowOptions = useCallback(() => {
-    if (selectedMood) {
-      addMoodEntry(selectedMood, note || undefined);
-    }
-    navigation.navigate('Library' as any);
-  }, [selectedMood, note, navigation, addMoodEntry]);
+  }, [navigation]);
 
   const handleSOS = useCallback(async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -184,16 +139,9 @@ export function SanctuaryScreen() {
 
   const handleReset = useCallback(() => {
     setSelectedMood(null);
-    setShowOffering(false);
-    setNote('');
-    setShowNoteInput(false);
   }, []);
 
   const offering = selectedMood ? getAdaptiveOffering(selectedMood, timeOfDay) : null;
-
-  // =============================================================================
-  // RENDER
-  // =============================================================================
 
   return (
     <View style={[styles.container, { backgroundColor: colors.canvas }]}>
@@ -208,66 +156,51 @@ export function SanctuaryScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Header */}
-          <Animated.View
-            entering={FadeIn.duration(400)}
-            style={styles.header}
-          >
-            <Text variant="headlineLarge" color="ink">
+          {/* Greeting */}
+          <Animated.View entering={FadeIn.duration(600)} style={styles.header}>
+            <Text variant="displaySmall" color="ink">
               {greeting}
             </Text>
-            <Text
-              variant="bodyMedium"
-              color="inkMuted"
-              style={{ marginTop: spacing.xs }}
-            >
+            <Text variant="bodyLarge" color="inkMuted" style={styles.subtitle}>
               {needsGentleness
-                ? "Take all the time you need"
-                : "How are you feeling right now?"}
+                ? 'Take all the time you need'
+                : 'How are you feeling right now?'}
             </Text>
           </Animated.View>
 
-          {/* Mood Selection */}
-          {!showOffering && (
-            <Animated.View
-              entering={FadeInDown.delay(100).duration(400)}
-              exiting={FadeOut.duration(200)}
-              style={styles.moodSection}
-            >
-              <View style={styles.moodGrid}>
-                {moods.map((mood, index) => (
-                  <Animated.View
-                    key={mood}
-                    entering={FadeInUp.delay(150 + index * 50).duration(300)}
-                  >
-                    <MoodOrb
-                      mood={mood}
-                      selected={selectedMood === mood}
-                      onPress={() => handleMoodSelect(mood)}
-                      size="md"
-                      colors={colors}
-                    />
-                  </Animated.View>
-                ))}
-              </View>
-            </Animated.View>
-          )}
+          {/* Mood Orbs — always visible */}
+          <Animated.View
+            entering={FadeInDown.delay(200).duration(400)}
+            style={styles.moodSection}
+          >
+            <View style={styles.moodRow}>
+              {moods.map((mood, index) => (
+                <Animated.View
+                  key={mood}
+                  entering={FadeInUp.delay(250 + index * 60).duration(300)}
+                >
+                  <MoodOrb
+                    mood={mood}
+                    selected={selectedMood === mood}
+                    onPress={() => handleMoodSelect(mood)}
+                    size="md"
+                    colors={colors}
+                  />
+                </Animated.View>
+              ))}
+            </View>
+          </Animated.View>
 
-          {/* Adaptive Offering */}
-          {showOffering && selectedMood && offering && (
+          {/* Offering — slides in below orbs */}
+          {selectedMood && offering && (
             <Animated.View
-              entering={FadeInDown.duration(400)}
-              exiting={FadeOut.duration(200)}
+              entering={FadeInUp.delay(100).duration(400)}
               style={styles.offeringSection}
             >
-              <GlassCard
-                variant="elevated"
-                padding="lg"
-              >
-                {/* Selected Mood Indicator */}
-                <View style={styles.selectedMoodRow}>
+              <GlassCard variant="hero" padding="lg" glow="calm">
+                <View style={styles.offeringHeader}>
                   <Text variant="labelSmall" color="inkFaint">
-                    FEELING {moodLabels[selectedMood].toUpperCase()}
+                    Feeling {moodLabels[selectedMood].toLowerCase()}
                   </Text>
                   <Pressable onPress={handleReset} hitSlop={8}>
                     <Text variant="labelSmall" color="accent">
@@ -276,147 +209,108 @@ export function SanctuaryScreen() {
                   </Pressable>
                 </View>
 
-                {/* Offering */}
-                <Text
-                  variant="headlineMedium"
-                  color="ink"
-                  style={{ marginTop: spacing.md }}
-                >
+                <Text variant="headlineMedium" color="ink" style={styles.offeringTitle}>
                   {offering.title}
                 </Text>
-                <Text
-                  variant="bodyMedium"
-                  color="inkMuted"
-                  style={{ marginTop: spacing.xs }}
-                >
+                <Text variant="bodyMedium" color="inkMuted" style={styles.offeringDesc}>
                   {offering.description}
                 </Text>
 
-                {/* Duration Badge */}
                 <View
                   style={[
                     styles.durationBadge,
                     { backgroundColor: withAlpha(colors.accentPrimary, 0.1) },
                   ]}
                 >
-                  <Ionicons
-                    name="time-outline"
-                    size={14}
-                    color={colors.accentPrimary}
-                  />
-                  <Text
-                    variant="labelSmall"
-                    color="accent"
-                    style={{ marginLeft: 4 }}
-                  >
+                  <Ionicons name="time-outline" size={13} color={colors.accentPrimary} />
+                  <Text variant="labelSmall" color="accent" style={{ marginLeft: 4 }}>
                     {offering.duration}
                   </Text>
                 </View>
 
-                {/* Optional Note */}
-                {showNoteInput ? (
-                  <Animated.View entering={FadeIn.duration(200)} style={styles.noteInput}>
-                    <Input
-                      placeholder="Add a note (optional)..."
-                      value={note}
-                      onChangeText={setNote}
-                      multiline
-                      maxLength={200}
-                      showCharCount
-                      colors={colors}
-                    />
-                  </Animated.View>
-                ) : (
-                  <Pressable
-                    onPress={() => setShowNoteInput(true)}
-                    style={styles.addNoteButton}
-                  >
-                    <Ionicons
-                      name="add-circle-outline"
-                      size={16}
-                      color={colors.inkFaint}
-                    />
-                    <Text
-                      variant="labelMedium"
-                      color="inkFaint"
-                      style={{ marginLeft: 4 }}
-                    >
-                      Add a note
-                    </Text>
-                  </Pressable>
-                )}
-
-                {/* Action Buttons */}
                 <View style={styles.actions}>
                   <Button
-                    variant="primary"
+                    variant="glow"
                     size="lg"
                     fullWidth
                     onPress={handleStartSession}
                   >
                     Begin
                   </Button>
-
-                  <Button
-                    variant="secondary"
-                    size="md"
-                    fullWidth
-                    onPress={handleShowOptions}
-                    style={styles.actionSpacing}
-                  >
-                    Show me options
-                  </Button>
-
                   <Button
                     variant="ghost"
                     size="md"
-                    fullWidth
                     onPress={handleJustBreathe}
-                    style={styles.actionSpacing}
+                    style={styles.secondaryAction}
                   >
-                    One minute calm
+                    One minute of calm
                   </Button>
                 </View>
               </GlassCard>
             </Animated.View>
           )}
 
-          {/* Spacer */}
-          <View style={styles.spacer} />
-        </ScrollView>
-
-        {/* SOS Button - Always visible */}
-        <View style={styles.sosContainer}>
-          <Pressable
-            onPress={handleSOS}
-            style={[
-              styles.sosButton,
-              { backgroundColor: withAlpha(colors.accentDanger, 0.1) },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="SOS - I need help now"
-          >
-            <Ionicons
-              name="alert-circle"
-              size={18}
-              color={colors.accentDanger}
-            />
-            <Text
-              variant="labelMedium"
-              style={{ color: colors.accentDanger, marginLeft: spacing.xs }}
+          {/* Active Program — subtle prompt */}
+          {activeProgram && activeProgDetails && (
+            <Animated.View
+              entering={FadeInDown.delay(300).duration(400)}
+              style={styles.programSection}
             >
-              I need help now
-            </Text>
-          </Pressable>
-        </View>
+              <Pressable
+                onPress={async () => {
+                  await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  navigation.navigate('ProgramDetail' as any, {
+                    programId: activeProgram.programId,
+                  });
+                }}
+                style={[
+                  styles.programCard,
+                  { backgroundColor: withAlpha(colors.accentPrimary, 0.06) },
+                ]}
+              >
+                <Ionicons
+                  name={activeProgDetails.icon as any}
+                  size={18}
+                  color={colors.accentPrimary}
+                />
+                <View style={styles.programCardText}>
+                  <Text variant="labelMedium" color="ink">
+                    Continue {activeProgDetails.name}
+                  </Text>
+                  <Text variant="bodySmall" color="inkMuted">
+                    Day {activeProgram.currentDay} of {activeProgDetails.totalDays}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.inkFaint} />
+              </Pressable>
+            </Animated.View>
+          )}
+
+          {/* SOS — in scroll flow */}
+          <View style={styles.sosSection}>
+            <Pressable
+              onPress={handleSOS}
+              style={[
+                styles.sosButton,
+                { backgroundColor: withAlpha(colors.accentDanger, 0.08) },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="SOS - I need help now"
+            >
+              <Ionicons name="alert-circle" size={16} color={colors.accentDanger} />
+              <Text
+                variant="labelMedium"
+                style={{ color: colors.accentDanger, marginLeft: spacing[1] }}
+              >
+                I need help now
+              </Text>
+            </Pressable>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     </View>
   );
 }
-
-// =============================================================================
-// STYLES
-// =============================================================================
 
 const styles = StyleSheet.create({
   container: {
@@ -430,69 +324,79 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: layout.screenPadding,
-    paddingTop: spacing.lg,
-    paddingBottom: 120,
+    paddingTop: spacing[8],
+    paddingBottom: spacing[12],
   },
   header: {
-    marginBottom: spacing.xl,
+    marginBottom: spacing['2xl'],
+  },
+  subtitle: {
+    marginTop: spacing[2],
   },
   moodSection: {
     alignItems: 'center',
-    paddingVertical: spacing['2xl'],
+    marginBottom: spacing[6],
   },
-  moodGrid: {
+  moodRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: spacing.lg,
+    gap: spacing[6],
   },
   offeringSection: {
-    marginTop: spacing.md,
+    marginBottom: spacing[6],
   },
-  selectedMoodRow: {
+  offeringHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  offeringTitle: {
+    marginTop: spacing[3],
+  },
+  offeringDesc: {
+    marginTop: spacing[1],
   },
   durationBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.sm,
-    marginTop: spacing.md,
-  },
-  noteInput: {
-    marginTop: spacing.md,
-  },
-  addNoteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing[1],
+    paddingHorizontal: spacing[2],
+    borderRadius: borderRadius.full,
+    marginTop: spacing[3],
   },
   actions: {
-    marginTop: spacing.lg,
+    marginTop: spacing[6],
+    alignItems: 'center',
   },
-  actionSpacing: {
-    marginTop: spacing.sm,
+  secondaryAction: {
+    marginTop: spacing[2],
   },
-  spacer: {
-    height: spacing['2xl'],
+  programSection: {
+    marginBottom: spacing[4],
   },
-  sosContainer: {
-    position: 'absolute',
-    bottom: spacing.lg,
-    left: layout.screenPadding,
-    right: layout.screenPadding,
+  programCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
+    borderRadius: borderRadius.lg,
+  },
+  programCardText: {
+    flex: 1,
+    marginLeft: spacing[3],
+  },
+  sosSection: {
+    marginTop: spacing['2xl'],
+    alignItems: 'center',
   },
   sosButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[6],
+    borderRadius: borderRadius.full,
   },
 });
 

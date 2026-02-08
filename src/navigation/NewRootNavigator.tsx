@@ -4,7 +4,7 @@
  * This is the revamped navigation structure:
  * 1. Sanctuary - Main hub (mood check, adaptive offerings, SOS)
  * 2. Journey - Progress & reflection (timeline, stats, journal)
- * 3. Library - Content discovery (search, browse, categories)
+ * 3. Practice - Breathing and grounding exercises
  * 4. You - Profile & settings
  * 
  * Stack screens for sessions, onboarding, etc.
@@ -65,6 +65,8 @@ import { SecuritySettingsScreen } from '../screens/SecuritySettingsScreen';
 import { EditProfileScreen } from '../screens/EditProfileScreen';
 import { JournalEntryScreen } from '../screens/JournalEntryScreen';
 import { PaywallScreen } from '../screens/PaywallScreen';
+import { ProgramListScreen, ProgramDetailScreen, ProgramDayCompleteScreen } from '../screens/Programs';
+import { FocusSelectScreen, FocusSessionScreen } from '../screens/Focus';
 
 // =============================================================================
 // TYPE DEFINITIONS
@@ -123,6 +125,17 @@ export type NewRootStackParamList = {
     prompt?: string;
   };
   Paywall: undefined;
+  ProgramList: undefined;
+  ProgramDetail: { programId: string };
+  ProgramDayComplete: {
+    programId: string;
+    dayNumber: number;
+    duration: number;
+  };
+  FocusSelect: undefined;
+  FocusSession: {
+    sessionId: string;
+  };
 };
 
 const ONBOARDING_COMPLETE_KEY = '@restorae/onboarding_complete';
@@ -292,8 +305,8 @@ function MainTabs() {
         name="LibraryTab"
         component={LibraryTab}
         options={{
-          tabBarLabel: 'Library',
-          tabBarAccessibilityLabel: 'Library - Browse content',
+          tabBarLabel: 'Practice',
+          tabBarAccessibilityLabel: 'Practice - Breathing and grounding exercises',
           tabBarIcon: ({ color, focused }) => (
             <TabIcon name="library" focused={focused} color={color} />
           ),
@@ -512,6 +525,42 @@ export function NewRootNavigator() {
             options={{
               animation: 'slide_from_bottom',
               presentation: 'fullScreenModal',
+            }}
+          />
+
+          {/* Program Screens */}
+          <Stack.Screen
+            name="ProgramList"
+            component={ProgramListScreen}
+            options={{ animation: 'slide_from_right' }}
+          />
+          <Stack.Screen
+            name="ProgramDetail"
+            component={ProgramDetailScreen}
+            options={{ animation: 'slide_from_right' }}
+          />
+          <Stack.Screen
+            name="ProgramDayComplete"
+            component={ProgramDayCompleteScreen}
+            options={{
+              animation: 'fade',
+              gestureEnabled: false,
+            }}
+          />
+
+          {/* Focus Screens */}
+          <Stack.Screen
+            name="FocusSelect"
+            component={FocusSelectScreen}
+            options={{ animation: 'slide_from_right' }}
+          />
+          <Stack.Screen
+            name="FocusSession"
+            component={FocusSessionScreen}
+            options={{
+              animation: 'slide_from_bottom',
+              presentation: 'fullScreenModal',
+              gestureEnabled: false,
             }}
           />
 

@@ -1,20 +1,14 @@
 /**
- * JourneyScreen - Progress & Reflection
- * 
- * A unified timeline of your wellness journey - moods, sessions, and journal entries.
- * 
- * Features:
- * - Unified timeline (not separate tabs)
- * - Weekly stats at top
- * - Journal inline (not modal)
- * - Streak celebration
+ * JourneyScreen - Reflection & Timeline
+ *
+ * A gentle reflection space. Stats as subtle pills, not dashboards.
+ * Unified timeline of moods, sessions, and journal entries.
  */
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, StyleSheet, FlatList, Pressable, Dimensions } from 'react-native';
+import { View, StyleSheet, FlatList, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   FadeIn,
-  FadeInDown,
   FadeInUp,
   Layout,
 } from 'react-native-reanimated';
@@ -24,139 +18,22 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useJourney, TimelineEntry as TimelineEntryData } from '../../contexts/JourneyContext';
 
-import { Text, Button, GlassCard, AsyncErrorWrapper } from '../../components/ui';
+import { Text, Button, GlassCard, ScreenHeader, AsyncErrorWrapper } from '../../components/ui';
 import { Input } from '../../components/core/Input';
-import { SkeletonCard, SkeletonText } from '../../components/ui/Skeleton';
-import { ProgressRing } from '../../components/core/ProgressRing';
+import { SkeletonCard } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/core/EmptyState';
 import { TimelineEntry } from '../../components/domain/TimelineEntry';
+import { StatPill } from '../../components/domain/StatPill';
 
-import { spacing, radius, withAlpha, layout, moodLabels, MoodType } from '../../theme';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-// =============================================================================
-// TYPES
-// =============================================================================
+import { spacing, borderRadius, withAlpha, layout, MoodType } from '../../theme';
 
 type TimeFilter = 'today' | 'week' | 'month' | 'all';
 
-interface WeekDay {
-  day: string;
-  date: number;
-  hasMood: boolean;
-  mood?: MoodType;
-  isToday: boolean;
-}
-
 // =============================================================================
-// WEEKLY STATS COMPONENT
+// QUICK JOURNAL
 // =============================================================================
 
-interface WeeklyStatsProps {
-  weeklyStats: {
-    sessionsCompleted: number;
-    totalMinutes: number;
-    currentStreak: number;
-    moodEntries: number;
-    dominantMood: MoodType | null;
-  };
-}
-
-function WeeklyStats({ weeklyStats }: WeeklyStatsProps) {
-  const { colors } = useTheme();
-  const weeklyGoal = 7; // sessions per week
-  const progress = Math.min(weeklyStats.sessionsCompleted / weeklyGoal, 1);
-
-  return (
-    <Animated.View entering={FadeIn.duration(300)}>
-      <GlassCard variant="elevated" padding="lg">
-        <View style={styles.statsHeader}>
-          <Text variant="headlineSmall" color="ink">
-            This Week
-          </Text>
-          {weeklyStats.currentStreak > 0 && (
-            <View
-              style={[
-                styles.streakBadge,
-                { backgroundColor: withAlpha(colors.accentPrimary, 0.1) },
-              ]}
-            >
-              <Ionicons name="calendar-outline" size={14} color={colors.accentPrimary} />
-              <Text
-                variant="labelSmall"
-                color="accent"
-                style={{ marginLeft: 4 }}
-              >
-                {weeklyStats.currentStreak} days active
-              </Text>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.statsRow}>
-          <View style={styles.ringContainer}>
-            <ProgressRing
-              progress={progress}
-              size={80}
-              strokeWidth={8}
-              colors={colors}
-            />
-            <View style={styles.ringLabel}>
-              <Text variant="headlineSmall" color="ink">
-                {weeklyStats.sessionsCompleted}
-              </Text>
-              <Text variant="labelSmall" color="inkFaint">
-                of {weeklyGoal}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.statsGrid}>
-            <View style={styles.statItem}>
-              <Text variant="headlineMedium" color="ink">
-                {weeklyStats.totalMinutes}
-              </Text>
-              <Text variant="labelSmall" color="inkFaint">
-                minutes
-              </Text>
-            </View>
-
-            <View style={styles.statItem}>
-              <Text variant="headlineMedium" color="ink">
-                {weeklyStats.moodEntries}
-              </Text>
-              <Text variant="labelSmall" color="inkFaint">
-                check-ins
-              </Text>
-            </View>
-
-            {weeklyStats.dominantMood && (
-              <View style={styles.statItem}>
-                <Text variant="headlineMedium" color="ink">
-                  {moodLabels[weeklyStats.dominantMood].slice(0, 1).toUpperCase()}
-                </Text>
-                <Text variant="labelSmall" color="inkFaint">
-                  top mood
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
-      </GlassCard>
-    </Animated.View>
-  );
-}
-
-// =============================================================================
-// QUICK JOURNAL COMPONENT
-// =============================================================================
-
-interface QuickJournalProps {
-  onSave: (content: string) => void;
-}
-
-function QuickJournal({ onSave }: QuickJournalProps) {
+function QuickJournal({ onSave }: { onSave: (content: string) => void }) {
   const { colors } = useTheme();
   const [content, setContent] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
@@ -174,12 +51,12 @@ function QuickJournal({ onSave }: QuickJournalProps) {
       <Pressable
         onPress={() => setIsExpanded(true)}
         style={[
-          styles.quickJournalCollapsed,
-          { backgroundColor: withAlpha(colors.canvasElevated, 0.8) },
+          styles.journalCollapsed,
+          { backgroundColor: withAlpha(colors.canvasElevated, 0.7) },
         ]}
       >
-        <Ionicons name="create-outline" size={20} color={colors.inkMuted} />
-        <Text variant="bodyMedium" color="inkMuted" style={{ marginLeft: spacing.sm }}>
+        <Ionicons name="create-outline" size={18} color={colors.inkMuted} />
+        <Text variant="bodyMedium" color="inkMuted" style={styles.journalPrompt}>
           What's on your mind?
         </Text>
       </Pressable>
@@ -188,7 +65,7 @@ function QuickJournal({ onSave }: QuickJournalProps) {
 
   return (
     <Animated.View entering={FadeIn.duration(200)}>
-      <GlassCard variant="default" padding="md">
+      <GlassCard variant="subtle" padding="md">
         <Input
           placeholder="Write your thoughts..."
           value={content}
@@ -204,10 +81,7 @@ function QuickJournal({ onSave }: QuickJournalProps) {
           <Button
             variant="ghost"
             size="sm"
-            onPress={() => {
-              setIsExpanded(false);
-              setContent('');
-            }}
+            onPress={() => { setIsExpanded(false); setContent(''); }}
           >
             Cancel
           </Button>
@@ -230,9 +104,8 @@ function QuickJournal({ onSave }: QuickJournalProps) {
 // =============================================================================
 
 export function JourneyScreen() {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { entries, weeklyStats, addJournalEntry, isLoading, isError, refresh } = useJourney();
-
   const [filter, setFilter] = useState<TimeFilter>('week');
 
   const filteredTimeline = useMemo(() => {
@@ -245,23 +118,17 @@ export function JourneyScreen() {
     return entries.filter((entry) => {
       const entryDate = new Date(entry.timestamp);
       switch (filter) {
-        case 'today':
-          return entryDate >= startOfToday;
-        case 'week':
-          return entryDate >= startOfWeek;
-        case 'month':
-          return entryDate >= startOfMonth;
-        default:
-          return true;
+        case 'today': return entryDate >= startOfToday;
+        case 'week': return entryDate >= startOfWeek;
+        case 'month': return entryDate >= startOfMonth;
+        default: return true;
       }
     });
   }, [entries, filter]);
 
   const handleAddJournal = useCallback(
-    async (content: string) => {
-      await addJournalEntry(content);
-    },
-    [addJournalEntry]
+    async (content: string) => { await addJournalEntry(content); },
+    [addJournalEntry],
   );
 
   const filters: { key: TimeFilter; label: string }[] = [
@@ -280,88 +147,91 @@ export function JourneyScreen() {
         <TimelineEntry entry={item} colors={colors} />
       </Animated.View>
     ),
-    [colors]
+    [colors],
   );
 
-  const renderHeader = useCallback(
-    () => (
-      <View style={styles.headerContent}>
-        {/* Title */}
-        <Animated.View entering={FadeIn.duration(300)} style={styles.titleRow}>
-          <Text variant="headlineLarge" color="ink">
-            Your Journey
-          </Text>
-        </Animated.View>
+  const renderHeader = useCallback(() => (
+    <View style={styles.headerContent}>
+      <ScreenHeader variant="hero" title="Your Journey" />
 
-        {/* Weekly Stats */}
-        <View style={styles.section}>
-          <WeeklyStats weeklyStats={weeklyStats} />
-        </View>
-
-        {/* Quick Journal */}
-        <View style={styles.section}>
-          <QuickJournal onSave={handleAddJournal} />
-        </View>
-
-        {/* Filters */}
-        <View style={styles.filterRow}>
-          {filters.map((f) => (
-            <Pressable
-              key={f.key}
-              onPress={() => setFilter(f.key)}
-              style={[
-                styles.filterButton,
-                {
-                  backgroundColor:
-                    filter === f.key
-                      ? colors.accentPrimary
-                      : withAlpha(colors.canvasElevated, 0.5),
-                },
-              ]}
-            >
-              <Text
-                variant="labelMedium"
-                color={filter === f.key ? 'inkInverse' : 'inkMuted'}
-              >
-                {f.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-
-        {/* Timeline Header */}
-        <Text
-          variant="labelSmall"
-          color="inkFaint"
-          style={{
-            marginTop: spacing.lg,
-            marginBottom: spacing.sm,
-          }}
-        >
-          TIMELINE
-        </Text>
-      </View>
-    ),
-    [weeklyStats, colors, filter, filters, handleAddJournal]
-  );
-
-  const renderEmpty = useCallback(
-    () =>
-      isLoading ? (
-        <View style={{ gap: spacing.md }}>
-          <SkeletonCard />
-          <SkeletonCard />
-          <SkeletonCard />
-        </View>
-      ) : (
-        <EmptyState
-          icon="time-outline"
-          title="Your first moment of calm awaits"
-          description="Check in with your mood from the Sanctuary to begin building your timeline."
-          colors={colors}
+      {/* Gentle Stats — simple pills, not a dashboard */}
+      <Animated.View entering={FadeIn.duration(300)} style={styles.statsRow}>
+        <StatPill
+          icon="play-circle-outline"
+          label={`${weeklyStats.sessionsCompleted} sessions`}
         />
-      ),
-    [colors, isLoading]
+        <StatPill
+          icon="time-outline"
+          label={`${weeklyStats.totalMinutes} min`}
+        />
+        {weeklyStats.currentStreak > 0 && (
+          <StatPill
+            icon="calendar-outline"
+            label={`${weeklyStats.currentStreak} days active`}
+          />
+        )}
+      </Animated.View>
+
+      {/* Quick Journal */}
+      <View style={styles.section}>
+        <QuickJournal onSave={handleAddJournal} />
+      </View>
+
+      {/* Filter Chips — soft styling */}
+      <View style={styles.filterRow}>
+        {filters.map((f) => (
+          <Pressable
+            key={f.key}
+            onPress={() => setFilter(f.key)}
+            style={[
+              styles.filterChip,
+              {
+                backgroundColor:
+                  filter === f.key
+                    ? withAlpha(colors.accentPrimary, 0.12)
+                    : 'transparent',
+              },
+            ]}
+          >
+            <Text
+              variant="labelMedium"
+              style={{
+                color: filter === f.key ? colors.accentPrimary : colors.inkFaint,
+              }}
+            >
+              {f.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
+      {/* Section label — sentence case */}
+      <Text
+        variant="labelSmall"
+        color="inkFaint"
+        style={styles.timelineLabel}
+      >
+        {filter === 'today' ? 'Today' : filter === 'week' ? 'This week' : filter === 'month' ? 'This month' : 'All entries'}
+      </Text>
+    </View>
+  ), [weeklyStats, colors, filter, filters, handleAddJournal]);
+
+  const renderEmpty = useCallback(() =>
+    isLoading ? (
+      <View style={{ gap: spacing[3] }}>
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
+      </View>
+    ) : (
+      <EmptyState
+        icon="time-outline"
+        title="Your journey starts here"
+        description="Check in with your mood from the Sanctuary to begin building your timeline."
+        colors={colors}
+      />
+    ),
+    [colors, isLoading],
   );
 
   return (
@@ -388,10 +258,6 @@ export function JourneyScreen() {
   );
 }
 
-// =============================================================================
-// STYLES
-// =============================================================================
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -401,76 +267,48 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: layout.screenPadding,
-    paddingTop: spacing.lg,
     paddingBottom: 100,
   },
   headerContent: {
-    marginBottom: spacing.md,
-  },
-  titleRow: {
-    marginBottom: spacing.lg,
-  },
-  section: {
-    marginBottom: spacing.md,
-  },
-  statsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  streakBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.sm,
+    marginBottom: spacing[3],
   },
   statsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-  },
-  ringContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.lg,
-  },
-  ringLabel: {
-    position: 'absolute',
-    alignItems: 'center',
-  },
-  statsGrid: {
-    flex: 1,
-    flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-around',
+    gap: spacing[2],
+    marginBottom: spacing[5],
   },
-  statItem: {
-    alignItems: 'center',
-    minWidth: 60,
+  section: {
+    marginBottom: spacing[4],
   },
-  quickJournalCollapsed: {
+  journalCollapsed: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radius.lg,
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
+    borderRadius: borderRadius.lg,
+  },
+  journalPrompt: {
+    marginLeft: spacing[2],
   },
   journalActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: spacing.sm,
-    marginTop: spacing.sm,
+    gap: spacing[2],
+    marginTop: spacing[2],
   },
   filterRow: {
     flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: spacing.lg,
+    gap: spacing[2],
   },
-  filterButton: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.sm,
+  filterChip: {
+    paddingVertical: spacing[1],
+    paddingHorizontal: spacing[3],
+    borderRadius: borderRadius.full,
+  },
+  timelineLabel: {
+    marginTop: spacing[5],
+    marginBottom: spacing[2],
   },
 });
 

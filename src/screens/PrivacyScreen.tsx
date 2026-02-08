@@ -65,7 +65,7 @@ export function PrivacyScreen() {
 
           <Animated.View entering={reduceMotion ? undefined : FadeInDown.delay(500).duration(400)}>
             <Text variant="labelSmall" color="inkMuted" align="center" style={styles.footer}>
-              Last updated: December 2024
+              Last updated: February 2025
             </Text>
           </Animated.View>
 

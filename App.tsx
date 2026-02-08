@@ -19,6 +19,7 @@ import {
 
 // Initialize services
 import { migrateTokensToSecureStorage } from './src/services/secureStorage';
+import { setupNotificationResponseHandler } from './src/services/notificationRouter';
 
 // Contexts
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
@@ -101,7 +102,13 @@ function AppContent() {
       useNativeDriver: true,
     }).start();
   }, [fadeAnim, isDark, reduceMotion]);
-  
+
+  // Register notification deep-link handler after navigator mounts
+  useEffect(() => {
+    const cleanup = setupNotificationResponseHandler();
+    return () => cleanup?.();
+  }, []);
+
   return (
     <>
       <StatusBar style={isDark ? 'light' : 'dark'} />

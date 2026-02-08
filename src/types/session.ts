@@ -88,7 +88,7 @@ export interface ResetStep {
 // SESSION TYPES
 // =============================================================================
 
-export type SessionMode = 'idle' | 'single' | 'ritual' | 'sos';
+export type SessionMode = 'idle' | 'single' | 'ritual' | 'sos' | 'program';
 
 export type SessionStatus = 
   | 'not-started'
@@ -131,6 +131,10 @@ export interface SessionState {
   // SOS Context (if mode === 'sos')
   sosPresetId?: string;
   sosPresetName?: string;
+
+  // Program Context (if mode === 'program')
+  programId?: string;
+  programDay?: number;
   
   // Timing
   sessionStartTime?: number;
@@ -271,6 +275,7 @@ export interface SessionContextActions {
   startSingle: (activity: Activity) => void;
   startRitual: (ritual: Ritual) => void;
   startSOS: (preset: SOSPreset) => void;
+  startProgramDay: (ritual: Ritual, programId: string, programDay: number) => void;
   
   // Activity Lifecycle
   completeCurrentActivity: () => void;

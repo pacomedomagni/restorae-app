@@ -108,3 +108,22 @@ export {
   type BedtimeStory,
   type StoryCategory,
 } from './bedtimeStories';
+
+// Guided Programs
+export {
+  ALL_PROGRAMS,
+  getAllPrograms,
+  getProgramById,
+  getProgramsByCategory,
+  getFreePrograms,
+  type WellnessProgram,
+  type ProgramDay,
+  type ProgramDayActivity,
+  type ProgramCategory,
+} from './programs';
+
+// Program Session Presets
+export {
+  convertProgramDayToRitual,
+  getProgramDayRitual,
+} from './programSessionPresets';

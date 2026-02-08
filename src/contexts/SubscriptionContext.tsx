@@ -294,25 +294,19 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, [isAuthenticated, syncWithServer]);
 
   // Check if subscription is valid
-  // TEMPORARY: All features are FREE during beta - remove this override when ready to monetize
   const isPremium = useMemo(() => {
-    // TODO: Re-enable premium checks when ready to monetize
-    // if (state.tier === 'lifetime') return true;
-    // if (state.tier === 'premium' && state.status === 'active') {
-    //   if (state.expiresAt && new Date() < state.expiresAt) return true;
-    // }
-    // if (state.isTrialing && state.trialEndsAt && new Date() < state.trialEndsAt) return true;
-    // return false;
-    return true; // BETA: Everything is free!
+    if (state.tier === 'lifetime') return true;
+    if (state.tier === 'premium' && state.status === 'active') {
+      if (state.expiresAt && new Date() < state.expiresAt) return true;
+    }
+    if (state.isTrialing && state.trialEndsAt && new Date() < state.trialEndsAt) return true;
+    return false;
   }, [state]);
 
   // Check if user can access a specific feature
-  // TEMPORARY: All features are FREE during beta
   const canAccessFeature = useCallback((featureId: string): boolean => {
-    // TODO: Re-enable premium gating when ready to monetize
-    // if (isPremium) return true;
-    // return FREE_FEATURES.has(featureId);
-    return true; // BETA: Everything is free!
+    if (isPremium) return true;
+    return FREE_FEATURES.has(featureId);
   }, [isPremium]);
 
   // Start 7-day free trial

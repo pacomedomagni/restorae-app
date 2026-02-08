@@ -4,11 +4,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 type PreferencesState = {
   hapticsEnabled: boolean;
   soundsEnabled: boolean;
+  breathingTonesEnabled: boolean;
+  breathingAmbientEnabled: boolean;
 };
 
 type PreferencesContextType = PreferencesState & {
   setHapticsEnabled: (value: boolean) => void;
   setSoundsEnabled: (value: boolean) => void;
+  setBreathingTonesEnabled: (value: boolean) => void;
+  setBreathingAmbientEnabled: (value: boolean) => void;
 };
 
 const PreferencesContext = createContext<PreferencesContextType | undefined>(undefined);
@@ -19,6 +23,8 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<PreferencesState>({
     hapticsEnabled: true,
     soundsEnabled: true,
+    breathingTonesEnabled: true,
+    breathingAmbientEnabled: true,
   });
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -30,6 +36,8 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
           setState((prev) => ({
             hapticsEnabled: parsed.hapticsEnabled ?? prev.hapticsEnabled,
             soundsEnabled: parsed.soundsEnabled ?? prev.soundsEnabled,
+            breathingTonesEnabled: parsed.breathingTonesEnabled ?? prev.breathingTonesEnabled,
+            breathingAmbientEnabled: parsed.breathingAmbientEnabled ?? prev.breathingAmbientEnabled,
           }));
         } catch {
           // Ignore corrupted state
@@ -54,11 +62,23 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     persist(next);
   };
 
+  const setBreathingTonesEnabled = (value: boolean) => {
+    const next = { ...state, breathingTonesEnabled: value };
+    persist(next);
+  };
+
+  const setBreathingAmbientEnabled = (value: boolean) => {
+    const next = { ...state, breathingAmbientEnabled: value };
+    persist(next);
+  };
+
   const value = useMemo<PreferencesContextType>(
     () => ({
       ...state,
       setHapticsEnabled,
       setSoundsEnabled,
+      setBreathingTonesEnabled,
+      setBreathingAmbientEnabled,
     }),
     [state],
   );
