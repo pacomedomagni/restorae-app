@@ -14,7 +14,7 @@ interface SyncQueue {
   id: string;
   action: 'create' | 'update' | 'delete';
   endpoint: string;
-  data?: any;
+  data?: Record<string, unknown>;
   timestamp: number;
   retries: number;
 }

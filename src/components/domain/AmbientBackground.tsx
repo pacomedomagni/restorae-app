@@ -85,11 +85,11 @@ export function AmbientBackground({
   const getOrbColor = () => {
     switch (variant) {
       case 'morning':
-        return isDark ? 'rgba(224, 178, 122, 0.15)' : 'rgba(200, 146, 74, 0.1)';
+        return withAlpha(isDark ? '#E0B27A' : '#C8924A', isDark ? 0.15 : 0.1);
       case 'evening':
-        return isDark ? 'rgba(139, 115, 85, 0.15)' : 'rgba(139, 115, 85, 0.08)';
+        return withAlpha('#8B7355', isDark ? 0.15 : 0.08);
       default:
-        return isDark ? 'rgba(111, 160, 139, 0.12)' : 'rgba(31, 77, 58, 0.06)';
+        return withAlpha(isDark ? '#6FA08B' : '#1F4D3A', isDark ? 0.12 : 0.06);
     }
   };
 
@@ -131,7 +131,7 @@ export function AmbientBackground({
       <LinearGradient
         colors={[
           'transparent',
-          isDark ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.03)',
+          withAlpha('#000000', isDark ? 0.15 : 0.03),
         ]}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}

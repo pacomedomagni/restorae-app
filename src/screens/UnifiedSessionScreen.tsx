@@ -31,6 +31,7 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 import { useTheme } from '../contexts/ThemeContext';
 import { useSession } from '../contexts/SessionContext';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import {
   Text,
   Button,
@@ -153,6 +154,8 @@ function BreathingRenderer({ activity, isPaused, onComplete }: BreathingRenderer
   return (
     <View style={rendererStyles.centered}>
       <Animated.View
+        accessible={false}
+        importantForAccessibility="no"
         style={[
           rendererStyles.breathingOrb,
           { backgroundColor: withAlpha(colors.accentPrimary, 0.15), borderColor: withAlpha(colors.accentPrimary, 0.3) },
@@ -166,7 +169,13 @@ function BreathingRenderer({ activity, isPaused, onComplete }: BreathingRenderer
         </View>
       </Animated.View>
 
-      <Text variant="headlineMedium" color="ink" style={rendererStyles.phaseLabel}>
+      <Text
+        variant="headlineMedium"
+        color="ink"
+        style={rendererStyles.phaseLabel}
+        accessibilityLiveRegion="polite"
+        accessibilityLabel={`${phaseLabel}, ${phaseTimer} seconds`}
+      >
         {phaseLabel}
       </Text>
       <Text variant="labelSmall" color="inkFaint" style={rendererStyles.cycleLabel}>
@@ -193,7 +202,7 @@ function GroundingRenderer({ activity, isPaused, onComplete }: GroundingRenderer
   const [currentStep, setCurrentStep] = useState(0);
 
   const handleNextStep = useCallback(async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
     if (currentStep >= steps.length - 1) {
       onComplete();
     } else {
@@ -204,7 +213,12 @@ function GroundingRenderer({ activity, isPaused, onComplete }: GroundingRenderer
   return (
     <View style={rendererStyles.centered}>
       {/* Progress dots */}
-      <View style={rendererStyles.progressDots}>
+      <View
+        accessible={true}
+        importantForAccessibility="yes"
+        accessibilityLabel={`Step ${currentStep + 1} of ${steps.length}`}
+        style={rendererStyles.progressDots}
+      >
         {steps.map((_, i) => (
           <View
             key={i}
@@ -275,6 +289,9 @@ function JournalRenderer({ activity, onComplete }: JournalRendererProps) {
         onChangeText={setText}
         multiline
         textAlignVertical="top"
+        accessible={true}
+        accessibilityLabel="Journal entry"
+        accessibilityHint="Write your reflection here"
       />
 
       <Button variant="primary" size="md" onPress={onComplete} style={rendererStyles.nextButton}>
@@ -438,7 +455,10 @@ export function UnifiedSessionScreen() {
     isTransitioning,
     isActive,
     estimatedTimeRemaining,
+    lastSyncError,
   } = session;
+
+  const { isOffline } = useNetworkStatus();
 
   const isFocused = useIsFocused();
   const isPaused = status === 'paused';
@@ -464,7 +484,7 @@ export function UnifiedSessionScreen() {
 
   // Pause/resume
   const handleTogglePause = useCallback(async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
     if (isPaused) {
       session.resumeSession();
     } else {
@@ -474,7 +494,7 @@ export function UnifiedSessionScreen() {
 
   // Skip
   const handleSkip = useCallback(async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
     session.skipCurrentActivity();
   }, [session]);
 
@@ -601,17 +621,39 @@ export function UnifiedSessionScreen() {
 
         {/* Progress bar */}
         {queueLength > 1 && (
-          <View style={styles.progressBar}>
-            <View
-              style={[
-                styles.progressFill,
-                {
-                  backgroundColor: colors.accentPrimary,
-                  width: `${Math.min(progress * 100, 100)}%`,
-                },
-              ]}
-            />
+          <View
+            accessibilityRole="progressbar"
+            accessibilityLabel={`Session progress: ${Math.round(progress * 100)} percent`}
+            accessibilityValue={{ min: 0, max: 100, now: Math.round(progress * 100) }}
+          >
+            <View style={[styles.progressBar, { backgroundColor: withAlpha(colors.ink, 0.06) }]}>
+              <View
+                style={[
+                  styles.progressFill,
+                  {
+                    backgroundColor: colors.accentPrimary,
+                    width: `${Math.min(progress * 100, 100)}%`,
+                  },
+                ]}
+              />
+            </View>
           </View>
+        )}
+
+        {/* Offline indicator */}
+        {(isOffline || lastSyncError) && (
+          <Animated.View
+            entering={FadeIn.duration(200)}
+            exiting={FadeOut.duration(200)}
+            style={[styles.offlineBanner, { backgroundColor: withAlpha(colors.inkFaint, 0.12) }]}
+            accessibilityRole="alert"
+            accessibilityLiveRegion="assertive"
+          >
+            <Ionicons name="cloud-offline-outline" size={14} color={colors.inkMuted} />
+            <Text variant="labelSmall" color="inkMuted" style={styles.offlineText}>
+              {isOffline ? 'Offline — progress saves locally' : 'Syncing...'}
+            </Text>
+          </Animated.View>
         )}
 
         {/* Activity Content */}
@@ -654,6 +696,7 @@ export function UnifiedSessionScreen() {
               ]}
               accessibilityRole="button"
               accessibilityLabel={isPaused ? 'Resume session' : 'Pause session'}
+              accessibilityHint="Double tap to pause or resume the session"
             >
               <Ionicons
                 name={isPaused ? 'play' : 'pause'}
@@ -835,12 +878,22 @@ const styles = StyleSheet.create({
     height: 3,
     marginHorizontal: layout.screenPaddingHorizontal,
     borderRadius: 1.5,
-    backgroundColor: 'rgba(0,0,0,0.06)',
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     borderRadius: 1.5,
+  },
+  offlineBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing[1],
+    paddingHorizontal: layout.screenPaddingHorizontal,
+    gap: 6,
+  },
+  offlineText: {
+    fontSize: 11,
   },
   content: {
     flex: 1,

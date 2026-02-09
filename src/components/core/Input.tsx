@@ -9,6 +9,8 @@ import {
   View,
   TextInput,
   TextInputProps,
+  NativeSyntheticEvent,
+  TargetedEvent,
   StyleSheet,
 } from 'react-native';
 import Animated, {
@@ -62,12 +64,12 @@ export function Input({
     borderColor: borderColor.value,
   }));
 
-  const handleFocus = useCallback((e: any) => {
+  const handleFocus = useCallback((e: NativeSyntheticEvent<TargetedEvent>) => {
     borderColor.value = withTiming(colors.actionPrimary, { duration: 150 });
     onFocus?.(e);
   }, [colors.actionPrimary, onFocus]);
 
-  const handleBlur = useCallback((e: any) => {
+  const handleBlur = useCallback((e: NativeSyntheticEvent<TargetedEvent>) => {
     borderColor.value = withTiming(
       error ? colors.error : colors.border,
       { duration: 150 }

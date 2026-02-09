@@ -6,6 +6,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import api, { User, AuthTokens } from '../services/api';
+import { isAxiosError } from 'axios';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -143,9 +144,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading: false,
         isAnonymous: false,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       setState(prev => ({ ...prev, isLoading: false }));
-      throw new Error(error.response?.data?.message || 'Login failed');
+      const message = isAxiosError(error) ? (error.response?.data as { message?: string })?.message || error.message : error instanceof Error ? error.message : 'Login failed';
+      throw new Error(message);
     }
   };
 
@@ -160,9 +162,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading: false,
         isAnonymous: false,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       setState(prev => ({ ...prev, isLoading: false }));
-      throw new Error(error.response?.data?.message || 'Registration failed');
+      const message = isAxiosError(error) ? (error.response?.data as { message?: string })?.message || error.message : error instanceof Error ? error.message : 'Registration failed';
+      throw new Error(message);
     }
   };
 
@@ -211,13 +214,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading: false,
         isAnonymous: false,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       setState(prev => ({ ...prev, isLoading: false }));
-      if (error.code === 'ERR_REQUEST_CANCELED') {
+      if (isAxiosError(error) && error.code === 'ERR_REQUEST_CANCELED') {
         // User canceled - don't throw
         return;
       }
-      throw new Error(error.message || 'Apple Sign-In failed');
+      throw new Error(error instanceof Error ? error.message : 'Apple Sign-In failed');
     }
   };
 
@@ -230,9 +233,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await promptGoogleAsync();
       // Response is handled in useEffect
-    } catch (error: any) {
+    } catch (error: unknown) {
       setState(prev => ({ ...prev, isLoading: false }));
-      throw new Error(error.message || 'Google Sign-In failed');
+      throw new Error(error instanceof Error ? error.message : 'Google Sign-In failed');
     }
   };
 
@@ -245,7 +248,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading: false,
         isAnonymous: false,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       setState(prev => ({ ...prev, isLoading: false }));
       logger.error('Google sign-in failed:', error);
     }
@@ -261,9 +264,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading: false,
         isAnonymous: true,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       setState(prev => ({ ...prev, isLoading: false }));
-      throw new Error(error.response?.data?.message || 'Anonymous registration failed');
+      const message = isAxiosError(error) ? (error.response?.data as { message?: string })?.message || error.message : error instanceof Error ? error.message : 'Anonymous registration failed';
+      throw new Error(message);
     }
   };
 
@@ -277,9 +281,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading: false,
         isAnonymous: false,
       }));
-    } catch (error: any) {
+    } catch (error: unknown) {
       setState(prev => ({ ...prev, isLoading: false }));
-      throw new Error(error.response?.data?.message || 'Account upgrade failed');
+      const message = isAxiosError(error) ? (error.response?.data as { message?: string })?.message || error.message : error instanceof Error ? error.message : 'Account upgrade failed';
+      throw new Error(message);
     }
   };
 

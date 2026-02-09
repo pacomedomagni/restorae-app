@@ -30,7 +30,7 @@ export function CoachMarkOverlay({ markId, visible, onDismiss }: CoachMarkOverla
       exiting={reduceMotion ? undefined : FadeOut.duration(200)}
       style={styles.container}
     >
-      <Pressable style={styles.backdrop} onPress={onDismiss}>
+      <Pressable style={[styles.backdrop, { backgroundColor: colors.overlay }]} onPress={onDismiss}>
         <View
           style={[
             styles.tooltip,
@@ -67,7 +67,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
   },
   tooltip: {
     maxWidth: 280,

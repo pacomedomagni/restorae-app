@@ -8,6 +8,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, Rea
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import api from '../services/api';
+import { isAxiosError } from 'axios';
 import { syncQueue, SyncOperation } from '../services/syncQueue';
 import { MoodType } from '../types';
 import logger from '../services/logger';
@@ -200,22 +201,23 @@ export function MoodProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const processMoodOps = async (op: SyncOperation): Promise<{ success: boolean; serverId?: string }> => {
       if (op.entity !== 'mood') return { success: true };
+      const d = op.data as { mood?: string; context?: string; note?: string; localId?: string; serverId?: string };
       try {
         switch (op.type) {
           case 'create':
-            const res = await api.createMoodEntry({ mood: op.data.mood.toUpperCase(), context: mapContextToAPI(op.data.context), note: op.data.note });
-            setEntries(prev => prev.map(e => e.id === op.data.localId ? { ...e, serverId: res.id, isSynced: true } : e));
+            const res = await api.createMoodEntry({ mood: d.mood!.toUpperCase(), context: mapContextToAPI(d.context as 'morning' | 'midday' | 'evening' | 'manual' | undefined), note: d.note });
+            setEntries(prev => prev.map(e => e.id === d.localId ? { ...e, serverId: res.id, isSynced: true } : e));
             return { success: true, serverId: res.id };
           case 'update':
-            if (op.data.serverId) await api.updateMoodEntry(op.data.serverId, { mood: op.data.mood?.toUpperCase(), note: op.data.note });
+            if (d.serverId) await api.updateMoodEntry(d.serverId, { mood: d.mood?.toUpperCase(), note: d.note });
             return { success: true };
           case 'delete':
-            if (op.data.serverId) await api.deleteMoodEntry(op.data.serverId);
+            if (d.serverId) await api.deleteMoodEntry(d.serverId);
             return { success: true };
           default: return { success: true };
         }
-      } catch (error: any) {
-        if (error.response?.status === 404) return { success: true };
+      } catch (error: unknown) {
+        if (isAxiosError(error) && error.response?.status === 404) return { success: true };
         return { success: false };
       }
     };
@@ -274,12 +276,12 @@ export function MoodProvider({ children }: { children: ReactNode }) {
       const localEntries: MoodEntry[] = localData ? JSON.parse(localData) : [];
       const localByServerId = new Map(localEntries.filter(e => e.serverId).map(e => [e.serverId, e]));
       const mergedEntries: MoodEntry[] = [];
-      entries.forEach((se: any) => {
+      entries.forEach((se: { id: string; mood: string; note?: string; timestamp?: string; createdAt?: string; context: string }) => {
         const le = localByServerId.get(se.id);
         mergedEntries.push({
           id: le?.id || `mood_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           serverId: se.id, mood: se.mood.toLowerCase() as MoodType, note: se.note,
-          timestamp: se.timestamp || se.createdAt, context: mapContextFromAPI(se.context), isSynced: true,
+          timestamp: se.timestamp || se.createdAt || new Date().toISOString(), context: mapContextFromAPI(se.context), isSynced: true,
         });
       });
       localEntries.forEach(le => { if (!le.serverId && !le.isSynced) mergedEntries.push(le); });

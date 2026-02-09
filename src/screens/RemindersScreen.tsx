@@ -13,7 +13,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../contexts/ThemeContext';
 import { Text, Button, GlassCard, AmbientBackground, ScreenHeader, AlertModal } from '../components/ui';
 import { Modal } from '../components/core';
-import { spacing, borderRadius, withAlpha, layout } from '../theme';
+import { spacing, borderRadius, withAlpha, layout, ColorTokens } from '../theme';
 import { useHaptics } from '../hooks/useHaptics';
 import { useNotifications } from '../hooks/useNotifications';
 
@@ -30,7 +30,7 @@ function DaySelector({
 }: {
   selectedDays: number[];
   onToggle: (day: number) => void;
-  colors: any;
+  colors: ColorTokens;
 }) {
   return (
     <View style={styles.dayRow}>

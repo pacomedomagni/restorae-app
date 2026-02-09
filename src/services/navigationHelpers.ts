@@ -11,7 +11,7 @@ import { gamification, ActivityType } from './gamification';
 import { recommendations } from './recommendations';
 
 // Type for any navigation object that can navigate
-type AnyNavigation = NavigationProp<ParamListBase> | { navigate: (screen: string, params?: any) => void };
+type AnyNavigation = NavigationProp<ParamListBase> | { navigate: (screen: string, params?: Record<string, unknown>) => void };
 
 // =============================================================================
 // TYPES

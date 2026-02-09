@@ -1,11 +1,14 @@
 /**
  * EmotionalFlowContext - Emotional state tracking for personalization
  *
- * Derives emotional temperature and patterns from MoodContext data.
+ * Derives emotional temperature and patterns from MoodContext data
+ * and activity history from activityLogger.
  * Used by useContextualCopy (adaptive language) and useBreathingTransition (pacing).
  */
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import type { MoodType } from '../types';
+import { useMood } from './MoodContext';
+import { activityLogger } from '../services/activityLogger';
 
 // =============================================================================
 // TYPES
@@ -44,25 +47,35 @@ export interface EmotionalFlowContextType {
 }
 
 // =============================================================================
-// DEFAULTS
+// HELPERS
 // =============================================================================
 
-const DEFAULT_PATTERNS: EmotionalPattern = {
-  dominantMood: null,
-  recentTrend: null,
-  timeSinceLastVisit: null,
-  journeyDays: 0,
-};
+const CHALLENGING_MOODS: ReadonlySet<MoodType> = new Set(['anxious', 'low', 'tough']);
+const RELIEF_MOODS: ReadonlySet<MoodType> = new Set(['calm', 'good', 'energized']);
 
-const DEFAULT_JOURNEY: EmotionalJourney = {
-  totalCheckIns: 0,
-  reliefMoments: 0,
-  totalSessions: 0,
-};
+/** Map MoodContext trend vocabulary to EmotionalFlow vocabulary */
+function mapTrend(
+  moodTrend: 'improving' | 'stable' | 'declining' | 'insufficient',
+): 'improving' | 'struggling' | 'stable' | null {
+  switch (moodTrend) {
+    case 'improving': return 'improving';
+    case 'declining': return 'struggling';
+    case 'stable': return 'stable';
+    case 'insufficient': return null;
+  }
+}
 
-const DEFAULT_TEMPERATURE: EmotionalTemperature = {
-  pacing: 1.0,
-};
+/** Count unique calendar days from mood entry timestamps */
+function countUniqueDays(entries: Array<{ timestamp: string }>): number {
+  const days = new Set(entries.map(e => new Date(e.timestamp).toDateString()));
+  return days.size;
+}
+
+/** Hours since a timestamp, or null if no timestamp */
+function hoursSince(isoTimestamp: string | undefined): number | null {
+  if (!isoTimestamp) return null;
+  return (Date.now() - new Date(isoTimestamp).getTime()) / (1000 * 60 * 60);
+}
 
 // =============================================================================
 // CONTEXT
@@ -71,17 +84,68 @@ const DEFAULT_TEMPERATURE: EmotionalTemperature = {
 const EmotionalFlowContext = createContext<EmotionalFlowContextType | undefined>(undefined);
 
 export function EmotionalFlowProvider({ children }: { children: React.ReactNode }) {
+  const { entries, stats } = useMood();
   const [flowState, setFlowStateInternal] = useState<FlowState>('arriving');
+  const [sessionStats, setSessionStats] = useState({ totalSessions: 0, hasRecent: false });
+  const mountedRef = useRef(true);
 
-  // In a full implementation, these would derive from MoodContext entries.
-  // For now, provide sensible defaults that make all consuming code functional.
-  const currentMood: MoodType | null = null;
-  const hasRecentSession = false;
+  // Load activity logger stats on mount and periodically
+  useEffect(() => {
+    mountedRef.current = true;
 
-  const isInChallengingState = currentMood === 'anxious' || currentMood === 'low' || currentMood === 'tough';
+    async function loadActivityStats() {
+      await activityLogger.initialize();
+      if (!mountedRef.current) return;
+
+      const actStats = activityLogger.getStats();
+      const recentLogs = activityLogger.getRecentLogs(1);
+      const lastLogTime = recentLogs[0]?.completedAt;
+      const hoursAgo = lastLogTime ? hoursSince(lastLogTime) : null;
+
+      setSessionStats({
+        totalSessions: actStats.allTime.sessions,
+        hasRecent: hoursAgo !== null && hoursAgo < 2,
+      });
+    }
+
+    loadActivityStats();
+
+    // Refresh every 60s to keep hasRecentSession accurate
+    const interval = setInterval(loadActivityStats, 60_000);
+    return () => {
+      mountedRef.current = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Derive current mood from latest entry
+  const currentMood: MoodType | null = entries.length > 0 ? entries[0].mood : null;
+
+  // Derive patterns from MoodContext stats
+  const patterns = useMemo<EmotionalPattern>(() => {
+    const latestTimestamp = entries[0]?.timestamp;
+    const hoursSinceVisit = hoursSince(latestTimestamp);
+
+    return {
+      dominantMood: stats.mostCommonMood,
+      recentTrend: mapTrend(stats.moodTrend),
+      timeSinceLastVisit: hoursSinceVisit,
+      journeyDays: countUniqueDays(entries),
+    };
+  }, [entries, stats.mostCommonMood, stats.moodTrend]);
+
+  // Derive journey from mood entries + activity stats
+  const journey = useMemo<EmotionalJourney>(() => ({
+    totalCheckIns: stats.totalEntries,
+    reliefMoments: entries.filter(e => RELIEF_MOODS.has(e.mood)).length,
+    totalSessions: sessionStats.totalSessions,
+  }), [stats.totalEntries, entries, sessionStats.totalSessions]);
+
+  const hasRecentSession = sessionStats.hasRecent;
+  const isInChallengingState = currentMood !== null && CHALLENGING_MOODS.has(currentMood);
   const needsGentleness = isInChallengingState;
 
-  const temperature: EmotionalTemperature = useMemo(() => ({
+  const temperature = useMemo<EmotionalTemperature>(() => ({
     pacing: needsGentleness ? 0.8 : 1.0,
   }), [needsGentleness]);
 
@@ -92,8 +156,8 @@ export function EmotionalFlowProvider({ children }: { children: React.ReactNode 
   const value = useMemo<EmotionalFlowContextType>(
     () => ({
       currentMood,
-      patterns: DEFAULT_PATTERNS,
-      journey: DEFAULT_JOURNEY,
+      patterns,
+      journey,
       hasRecentSession,
       isInChallengingState,
       needsGentleness,
@@ -101,7 +165,7 @@ export function EmotionalFlowProvider({ children }: { children: React.ReactNode 
       temperature,
       setFlowState,
     }),
-    [currentMood, hasRecentSession, isInChallengingState, needsGentleness, flowState, temperature, setFlowState],
+    [currentMood, patterns, journey, hasRecentSession, isInChallengingState, needsGentleness, flowState, temperature, setFlowState],
   );
 
   return (

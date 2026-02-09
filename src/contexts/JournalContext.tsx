@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import NetInfo from '@react-native-community/netinfo';
 import api from '../services/api';
+import { isAxiosError } from 'axios';
 import { syncQueue, SyncOperation } from '../services/syncQueue';
 import { MoodType } from '../types';
 import logger from '../services/logger';
@@ -121,38 +122,39 @@ export function JournalProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const processJournalOps = async (op: SyncOperation): Promise<{ success: boolean; serverId?: string }> => {
       if (op.entity !== 'journal') return { success: true };
+      const d = op.data as { content?: string; promptId?: string; mood?: string; tags?: string[]; isPrivate?: boolean; localId?: string; serverId?: string };
       try {
         switch (op.type) {
           case 'create':
             const res = await api.createJournalEntry({
-              content: op.data.content,
-              promptId: op.data.promptId,
-              mood: op.data.mood?.toUpperCase(),
-              tags: op.data.tags,
-              isPrivate: op.data.isPrivate,
+              content: d.content!,
+              promptId: d.promptId,
+              mood: d.mood?.toUpperCase(),
+              tags: d.tags,
+              isPrivate: d.isPrivate,
             });
             setState(prev => ({
               ...prev,
-              entries: prev.entries.map(e => e.id === op.data.localId ? { ...e, serverId: res.id, isSynced: true } : e),
+              entries: prev.entries.map(e => e.id === d.localId ? { ...e, serverId: res.id, isSynced: true } : e),
             }));
             return { success: true, serverId: res.id };
           case 'update':
-            if (op.data.serverId) {
-              await api.updateJournalEntry(op.data.serverId, {
-                content: op.data.content,
-                mood: op.data.mood?.toUpperCase(),
-                tags: op.data.tags,
-                isPrivate: op.data.isPrivate,
+            if (d.serverId) {
+              await api.updateJournalEntry(d.serverId, {
+                content: d.content,
+                mood: d.mood?.toUpperCase(),
+                tags: d.tags,
+                isPrivate: d.isPrivate,
               });
             }
             return { success: true };
           case 'delete':
-            if (op.data.serverId) await api.deleteJournalEntry(op.data.serverId);
+            if (d.serverId) await api.deleteJournalEntry(d.serverId);
             return { success: true };
           default: return { success: true };
         }
-      } catch (error: any) {
-        if (error.response?.status === 404) return { success: true };
+      } catch (error: unknown) {
+        if (isAxiosError(error) && error.response?.status === 404) return { success: true };
         return { success: false };
       }
     };
@@ -222,7 +224,7 @@ export function JournalProvider({ children }: { children: ReactNode }) {
       const localEntries: JournalEntry[] = localData ? JSON.parse(localData) : [];
       const localByServerId = new Map(localEntries.filter(e => e.serverId).map(e => [e.serverId, e]));
       const mergedEntries: JournalEntry[] = [];
-      entries.forEach((se: any) => {
+      entries.forEach((se: { id: string; title?: string; content: string; promptId?: string; mood?: string; createdAt: string; updatedAt?: string; tags?: string[] }) => {
         const le = localByServerId.get(se.id);
         mergedEntries.push({
           id: le?.id || `entry_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,

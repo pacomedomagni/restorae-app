@@ -86,7 +86,7 @@ export interface Content {
   type: string;
   duration?: number;
   audioUrl?: string;
-  steps?: any;
+  steps?: Array<{ instruction: string; duration?: number }>;
   isPremium: boolean;
 }
 
@@ -119,7 +119,7 @@ class ApiClient {
   /**
    * Batch sync offline operations
    */
-  async batchSync(operations: any[]) {
+  async batchSync(operations: Array<Record<string, unknown>>) {
     return this.client.post('/sync/batch', { operations });
   }
 
@@ -694,7 +694,7 @@ class ApiClient {
     activityId?: string;
     duration: number;
     completed: boolean;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
     timestamp: string;
   }) {
     const response = await this.client.post('/activities/log', data);
@@ -707,7 +707,7 @@ class ApiClient {
     activityId?: string;
     duration: number;
     completed: boolean;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
     timestamp: string;
   }>) {
     const response = await this.client.post('/activities/log/batch', { activities });
@@ -807,7 +807,7 @@ class ApiClient {
   async submitFeedback(data: {
     type: string;
     message: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   }) {
     const device = this.getDeviceInfo();
     const response = await this.client.post('/feedback', {

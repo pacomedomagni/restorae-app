@@ -5,7 +5,7 @@
  * Used in OnboardingScreen for ambient visual atmosphere.
  */
 import React, { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -21,7 +21,7 @@ interface FloatingOrbProps {
   size?: number;
   color?: string;
   delay?: number;
-  style?: any;
+  style?: StyleProp<ViewStyle>;
 }
 
 export function FloatingOrb({ size = 120, color, delay = 0, style }: FloatingOrbProps) {

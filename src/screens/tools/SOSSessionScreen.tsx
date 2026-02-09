@@ -58,7 +58,11 @@ function PhaseProgress({ phases, currentPhaseIndex }: PhaseProgressProps) {
   const { colors } = useTheme();
 
   return (
-    <View style={styles.phaseProgress}>
+    <View
+      style={styles.phaseProgress}
+      accessible={true}
+      accessibilityLabel={`Phase ${currentPhaseIndex + 1} of ${phases.length}`}
+    >
       {phases.map((phase, index) => (
         <View key={phase.id} style={styles.phaseItem}>
           <View
@@ -229,7 +233,14 @@ export function SOSSessionScreen() {
           entering={reduceMotion ? undefined : FadeIn.duration(400)}
           style={styles.header}
         >
-          <Pressable onPress={handleClose} style={styles.closeButton} hitSlop={12}>
+          <Pressable
+            onPress={handleClose}
+            style={styles.closeButton}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Close SOS session"
+            accessibilityHint="Returns to the previous screen"
+          >
             <Text variant="bodyMedium" color="ink">Close</Text>
           </Pressable>
 
@@ -254,7 +265,7 @@ export function SOSSessionScreen() {
 
         {/* Breathing Animation */}
         {showBreathing && (
-          <View style={styles.breathingContainer}>
+          <View style={styles.breathingContainer} accessible={false} importantForAccessibility="no">
             <BreathingAnimation isActive={showBreathing} />
           </View>
         )}
@@ -284,7 +295,7 @@ export function SOSSessionScreen() {
               </GlassCard>
 
               {countdown > 0 && (
-                <View style={styles.countdownContainer}>
+                <View style={styles.countdownContainer} accessibilityLiveRegion="polite">
                   <Text variant="bodyLarge" color="inkMuted">
                     {countdown}s
                   </Text>
@@ -332,6 +343,9 @@ export function SOSSessionScreen() {
                 onPress={handleRestart}
                 style={styles.againButton}
                 hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Restart SOS session"
+                accessibilityHint="Starts the breathing exercise again"
               >
                 <Text variant="labelLarge" color="inkMuted">
                   I need to go again

@@ -116,7 +116,11 @@ export function SessionSummaryScreen() {
             entering={reduceMotion ? undefined : FadeInDown.delay(100).duration(500)}
             style={styles.iconContainer}
           >
-            <View style={[styles.checkCircle, { backgroundColor: withAlpha(colors.success, 0.12) }]}>
+            <View
+              style={[styles.checkCircle, { backgroundColor: withAlpha(colors.success, 0.12) }]}
+              accessible={false}
+              importantForAccessibility="no"
+            >
               <Ionicons name="checkmark" size={36} color={colors.success} />
             </View>
           </Animated.View>
@@ -141,11 +145,17 @@ export function SessionSummaryScreen() {
             entering={reduceMotion ? undefined : FadeInUp.delay(400).duration(500)}
             style={styles.statsRow}
           >
-            <View style={[styles.statItem, { backgroundColor: withAlpha(colors.accentPrimary, 0.08) }]}>
+            <View
+              style={[styles.statItem, { backgroundColor: withAlpha(colors.accentPrimary, 0.08) }]}
+              accessibilityLabel={`${activitiesCompleted.length} completed`}
+            >
               <Text variant="headlineMedium" color="ink">{activitiesCompleted.length}</Text>
               <Text variant="labelSmall" color="inkMuted">completed</Text>
             </View>
-            <View style={[styles.statItem, { backgroundColor: withAlpha(colors.accentCalm, 0.08) }]}>
+            <View
+              style={[styles.statItem, { backgroundColor: withAlpha(colors.accentCalm, 0.08) }]}
+              accessibilityLabel={`Total time: ${formatDuration(totalDuration)}`}
+            >
               <Text variant="headlineMedium" color="ink">{formatDuration(totalDuration)}</Text>
               <Text variant="labelSmall" color="inkMuted">total time</Text>
             </View>
@@ -157,7 +167,12 @@ export function SessionSummaryScreen() {
               entering={reduceMotion ? undefined : FadeInUp.delay(500).duration(500)}
               style={styles.activitiesSection}
             >
-              <Text variant="labelMedium" color="inkMuted" style={styles.sectionLabel}>
+              <Text
+                variant="labelMedium"
+                color="inkMuted"
+                style={styles.sectionLabel}
+                accessibilityRole="header"
+              >
                 COMPLETED
               </Text>
 
@@ -169,6 +184,8 @@ export function SessionSummaryScreen() {
                     styles.activityItem,
                     { backgroundColor: withAlpha(colors.success, 0.06) },
                   ]}
+                  accessibilityRole="summary"
+                  accessibilityLabel={`${actState.activity.name}, ${actState.actualDuration ? `${Math.ceil(actState.actualDuration / 60)} minutes` : 'completed'}`}
                 >
                   <Ionicons
                     name={getActivityIconName(actState.activity.type)}
@@ -198,7 +215,12 @@ export function SessionSummaryScreen() {
               entering={reduceMotion ? undefined : FadeInUp.delay(700).duration(500)}
               style={styles.activitiesSection}
             >
-              <Text variant="labelMedium" color="inkMuted" style={styles.sectionLabel}>
+              <Text
+                variant="labelMedium"
+                color="inkMuted"
+                style={styles.sectionLabel}
+                accessibilityRole="header"
+              >
                 SKIPPED
               </Text>
 
@@ -209,6 +231,8 @@ export function SessionSummaryScreen() {
                     styles.activityItem,
                     { backgroundColor: withAlpha(colors.ink, 0.03) },
                   ]}
+                  accessibilityRole="summary"
+                  accessibilityLabel={`${actState.activity.name}, skipped`}
                 >
                   <Ionicons
                     name={getActivityIconName(actState.activity.type)}
@@ -234,7 +258,13 @@ export function SessionSummaryScreen() {
             <Button variant="glow" size="lg" fullWidth onPress={handleDone}>
               Return to sanctuary
             </Button>
-            <Pressable onPress={handleStartAnother} style={styles.secondaryButton}>
+            <Pressable
+              onPress={handleStartAnother}
+              style={styles.secondaryButton}
+              accessibilityRole="button"
+              accessibilityLabel="Start another session"
+              accessibilityHint="Returns to session selection"
+            >
               <Text variant="labelMedium" color="inkMuted">Start another session</Text>
             </Pressable>
           </Animated.View>

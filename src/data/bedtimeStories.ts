@@ -512,7 +512,7 @@ export interface ApiStory {
   createdAt: string;
   updatedAt: string;
   publishedAt: string | null;
-  locales: any[];
+  locales: Array<{ locale: string; title?: string; description?: string }>;
 }
 
 // Map API response to local BedtimeStory format

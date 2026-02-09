@@ -12,6 +12,8 @@ import React, { useState, useRef } from 'react';
 import {
   View,
   StyleSheet,
+  StyleProp,
+  ViewStyle,
   TextInput,
   KeyboardAvoidingView,
   Platform,
@@ -30,6 +32,7 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
+import { NavigationProp, ParamListBase } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useHaptics } from '../hooks/useHaptics';
@@ -38,7 +41,7 @@ import { Text, GlassCard, AmbientBackground } from '../components/ui';
 import { spacing, borderRadius, withAlpha } from '../theme';
 
 interface RegisterScreenProps {
-  navigation: any;
+  navigation: NavigationProp<ParamListBase>;
 }
 
 // Animated Button Component
@@ -48,7 +51,7 @@ function AnimatedButton({ onPress, disabled, loading, variant, children, style, 
   loading?: boolean;
   variant: 'primary' | 'secondary' | 'ghost';
   children: React.ReactNode;
-  style?: any;
+  style?: StyleProp<ViewStyle>;
   accessibilityLabel?: string;
 }) {
   const { colors } = useTheme();
@@ -173,9 +176,9 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
     try {
       await impactMedium();
       await register(email.trim().toLowerCase(), password, name.trim());
-    } catch (error: any) {
+    } catch (error: unknown) {
       notificationError();
-      setErrors({ general: error.message || 'Registration failed. Please try again.' });
+      setErrors({ general: error instanceof Error ? error.message : 'Registration failed. Please try again.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -191,8 +194,8 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
     try {
       await impactMedium();
       await signInWithApple();
-    } catch (error: any) {
-      if (error.message) {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.message) {
         notificationError();
         setErrors({ general: error.message });
       }
@@ -209,9 +212,9 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
     try {
       await impactMedium();
       await signInWithGoogle();
-    } catch (error: any) {
+    } catch (error: unknown) {
       notificationError();
-      setErrors({ general: error.message || 'Google sign in failed' });
+      setErrors({ general: error instanceof Error ? error.message : 'Google sign in failed' });
     }
   };
 

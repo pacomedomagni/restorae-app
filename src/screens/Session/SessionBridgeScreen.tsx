@@ -16,7 +16,7 @@ import { Text } from '../../components/ui';
 import { getPatternById } from '../../data/breathingPatterns';
 import { getTechniqueById } from '../../data/groundingTechniques';
 import { spacing } from '../../theme';
-import type { Activity, BreathingConfig, GroundingConfig, FocusConfig } from '../../types/session';
+import type { Activity, ActivityType, BreathingConfig, GroundingConfig, FocusConfig } from '../../types/session';
 
 // =============================================================================
 // TYPES
@@ -106,7 +106,8 @@ function buildActivity(type: string, id: string): Activity | null {
   // Generic fallback
   return {
     id: `${type}-${id}`,
-    type: type as any,
+    // Type assertion needed: fallback for activity types not matched above
+    type: type as ActivityType,
     name: `${type.charAt(0).toUpperCase() + type.slice(1)} Session`,
     duration: 300,
     tone: 'neutral',
@@ -137,9 +138,22 @@ export function SessionBridgeScreen() {
   }, [type, id, startSingle, navigation]);
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.canvas }]}>
-      <ActivityIndicator size="large" color={colors.accentPrimary} />
-      <Text variant="bodyMedium" color="inkMuted" style={styles.label}>
+    <View
+      style={[styles.container, { backgroundColor: colors.canvas }]}
+      accessibilityRole="alert"
+      accessibilityLiveRegion="polite"
+    >
+      <ActivityIndicator
+        size="large"
+        color={colors.accentPrimary}
+        accessibilityLabel="Loading session"
+      />
+      <Text
+        variant="bodyMedium"
+        color="inkMuted"
+        style={styles.label}
+        accessibilityRole="text"
+      >
         Preparing your session...
       </Text>
     </View>

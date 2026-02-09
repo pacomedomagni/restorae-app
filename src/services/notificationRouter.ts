@@ -6,9 +6,10 @@
  */
 import { navigate, isNavigationReady } from './navigationRef';
 import logger from './logger';
+import type { RootStackParamList } from '../types';
 
 // Dynamic import for expo-notifications
-let Notifications: any = null;
+let Notifications: typeof import('expo-notifications') | null = null;
 try {
   Notifications = require('expo-notifications');
 } catch {
@@ -18,7 +19,7 @@ try {
 /**
  * Extract screen/tab info from notification data and navigate accordingly.
  */
-function handleNotificationResponse(response: any) {
+function handleNotificationResponse(response: { notification?: { request?: { content?: { data?: Record<string, unknown> } } } }) {
   try {
     const data = response?.notification?.request?.content?.data;
     if (!data) return;
@@ -28,43 +29,46 @@ function handleNotificationResponse(response: any) {
       return;
     }
 
-    const { screen, tab, type } = data;
+    const screen = data.screen as string | undefined;
+    const tab = data.tab as string | undefined;
+    const type = data.type as string | undefined;
 
     switch (type) {
       case 'morning':
         // Navigate to Sanctuary tab (default morning action)
-        navigate('Main' as any);
+        navigate('Main');
         break;
 
       case 'midday':
         // Navigate to breathing selection
-        navigate('BreathingSelect' as any);
+        navigate('BreathingSelect');
         break;
 
       case 'evening':
         // Navigate to journal with an evening prompt
-        navigate('JournalEntry' as any, {
+        navigate('JournalEntry', {
           prompt: 'What went well today? What would you like to release?',
         });
         break;
 
       case 'mood_check':
         // Navigate to Sanctuary for mood check-in
-        navigate('Main' as any);
+        navigate('Main');
         break;
 
       case 'custom':
       default:
         // Custom reminders and fallback → Sanctuary
         if (screen) {
-          navigate(screen as any, data.params);
+          // Type assertion needed: screen comes from notification data at runtime
+          navigate(screen as keyof RootStackParamList);
         } else {
-          navigate('Main' as any);
+          navigate('Main');
         }
         break;
     }
 
-    logger.debug('[NotificationRouter] Navigated for notification type:', type);
+    logger.debug('[NotificationRouter] Navigated for notification type:', { type });
   } catch (error) {
     logger.error('[NotificationRouter] Failed to handle notification response:', error);
   }

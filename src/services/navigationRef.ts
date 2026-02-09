@@ -20,7 +20,9 @@ export function navigate<RouteName extends keyof RootStackParamList>(
     : [screen: RouteName, params: RootStackParamList[RouteName]]
 ) {
   if (navigationRef.isReady()) {
-    navigationRef.navigate(...(args as any));
+    // Type assertion needed: navigate() overloads don't accept a spread tuple directly
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (navigationRef.navigate as (...a: unknown[]) => void)(...args);
   } else {
     console.warn('Navigation not ready, cannot navigate to:', args[0]);
   }

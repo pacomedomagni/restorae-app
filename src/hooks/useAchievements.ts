@@ -99,9 +99,9 @@ export function useAchievements() {
       }));
 
       return data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error('Failed to load achievements:', err);
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'Failed to load achievements');
       
       // Try cache on error
       const cached = await AsyncStorage.getItem(CACHE_KEY);
@@ -152,7 +152,7 @@ export function useAchievements() {
       }));
 
       return data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error('Failed to load user progress:', err);
       return null;
     }
@@ -183,7 +183,7 @@ export function useAchievements() {
       }
 
       return result;
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error('Failed to track session:', err);
       return null;
     }
@@ -206,7 +206,7 @@ export function useAchievements() {
       }
 
       return result;
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error('Failed to update streak:', err);
       return null;
     }
@@ -224,7 +224,7 @@ export function useAchievements() {
       }
 
       return result;
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error('Failed to unlock achievement:', err);
       throw err;
     }

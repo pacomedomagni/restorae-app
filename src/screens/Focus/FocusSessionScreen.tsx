@@ -277,7 +277,7 @@ export function FocusSessionScreen() {
         if (prev <= 1) {
           setIsRunning(false);
           setIsComplete(true);
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          try { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
           return 0;
         }
         return prev - 1;
@@ -299,7 +299,7 @@ export function FocusSessionScreen() {
   }, [isRunning, isOpenEnded]);
 
   const handleStart = useCallback(async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
     setIsRunning(true);
     startTimeRef.current = Date.now();
     if (selectedSound) {
@@ -308,17 +308,17 @@ export function FocusSessionScreen() {
   }, [selectedSound, startAudio]);
 
   const handlePause = useCallback(async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
     setIsRunning(false);
   }, []);
 
   const handleResume = useCallback(async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
     setIsRunning(true);
   }, []);
 
   const handleStop = useCallback(async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
     setIsRunning(false);
     setIsComplete(true);
     await stopAudio();

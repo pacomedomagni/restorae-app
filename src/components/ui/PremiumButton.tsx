@@ -10,7 +10,9 @@ import Animated, { useAnimatedStyle, withSpring, useSharedValue } from 'react-na
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Text } from './Text';
-import { spacing, borderRadius, withAlpha } from '../../theme';
+import { spacing, borderRadius, withAlpha, textStyles } from '../../theme';
+
+type TextVariant = keyof typeof textStyles;
 
 type ButtonVariant = 'glow' | 'solid' | 'outline' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg' | 'xl';
@@ -25,7 +27,7 @@ interface PremiumButtonProps {
   style?: ViewStyle;
 }
 
-const SIZE_CONFIG: Record<ButtonSize, { height: number; paddingHorizontal: number; textVariant: string }> = {
+const SIZE_CONFIG: Record<ButtonSize, { height: number; paddingHorizontal: number; textVariant: TextVariant }> = {
   sm: { height: 36, paddingHorizontal: spacing[3], textVariant: 'labelMedium' },
   md: { height: 44, paddingHorizontal: spacing[4], textVariant: 'labelLarge' },
   lg: { height: 52, paddingHorizontal: spacing[6], textVariant: 'labelLarge' },
@@ -130,7 +132,7 @@ export function PremiumButton({
       >
         {typeof children === 'string' ? (
           <Text
-            variant={config.textVariant as any}
+            variant={config.textVariant}
             style={{ color: getTextColor(), textAlign: 'center' }}
           >
             {children}

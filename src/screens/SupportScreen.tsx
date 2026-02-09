@@ -12,7 +12,7 @@ import { Text, GlassCard, AmbientBackground, ScreenHeader } from '../components/
 import { spacing, layout } from '../theme';
 import { useHaptics } from '../hooks/useHaptics';
 
-let StoreReview: any = null;
+let StoreReview: typeof import('expo-store-review') | null = null;
 try {
   StoreReview = require('expo-store-review');
 } catch {

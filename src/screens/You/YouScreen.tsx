@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAmbient } from '../../contexts/AmbientContext';
@@ -20,6 +20,7 @@ import { Avatar } from '../../components/core/Avatar';
 import { Text, GlassCard, ScreenHeader, AlertModal } from '../../components/ui';
 
 import { spacing, borderRadius, withAlpha, layout } from '../../theme';
+import type { RootStackParamList } from '../../types';
 
 // =============================================================================
 // SETTING ITEM
@@ -75,7 +76,7 @@ function SettingItem({ icon, title, subtitle, onPress, danger }: SettingItemProp
 export function YouScreen() {
   const { colors, mode, setMode } = useTheme();
   const { userName } = useAmbient();
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { logout } = useAuth();
 
   const [alertConfig, setAlertConfig] = useState<{

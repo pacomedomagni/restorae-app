@@ -3,7 +3,7 @@
  * 
  * Selection grid for all 12 grounding techniques
  */
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -51,7 +51,7 @@ interface CategoryPillProps {
   onPress: () => void;
 }
 
-function CategoryPill({ category, isActive, onPress }: CategoryPillProps) {
+const CategoryPill = React.memo(function CategoryPill({ category, isActive, onPress }: CategoryPillProps) {
   const { colors } = useTheme();
   const { impactLight } = useHaptics();
   const scale = useSharedValue(1);
@@ -100,7 +100,7 @@ function CategoryPill({ category, isActive, onPress }: CategoryPillProps) {
       </Animated.View>
     </Pressable>
   );
-}
+});
 
 // =============================================================================
 // TECHNIQUE CARD
@@ -111,7 +111,7 @@ interface TechniqueCardProps {
   onPress: () => void;
 }
 
-function TechniqueCard({ technique, index, onPress }: TechniqueCardProps) {
+const TechniqueCard = React.memo(function TechniqueCard({ technique, index, onPress }: TechniqueCardProps) {
   const { colors, reduceMotion } = useTheme();
   const { impactLight } = useHaptics();
   const scale = useSharedValue(1);
@@ -133,11 +133,11 @@ function TechniqueCard({ technique, index, onPress }: TechniqueCardProps) {
     transform: [{ scale: scale.value }],
   }));
 
-  const categoryColors: Record<string, string> = {
+  const categoryColors = useMemo<Record<string, string>>(() => ({
     sensory: colors.accentCalm,
     body: colors.accentWarm,
     mental: colors.accentPrimary,
-  };
+  }), [colors.accentCalm, colors.accentWarm, colors.accentPrimary]);
 
   const accentColor = categoryColors[technique.category] || colors.accentPrimary;
 
@@ -173,7 +173,7 @@ function TechniqueCard({ technique, index, onPress }: TechniqueCardProps) {
       </Pressable>
     </Animated.View>
   );
-}
+});
 
 // =============================================================================
 // MAIN SCREEN

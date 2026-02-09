@@ -87,6 +87,7 @@ export function ExitConfirmationModal({
                   fullWidth
                   onPress={onCancel}
                   accessibilityLabel={cancelText}
+                  accessibilityHint="Double tap to dismiss and continue the session"
                 >
                   {cancelText}
                 </Button>
@@ -96,6 +97,7 @@ export function ExitConfirmationModal({
                   fullWidth
                   onPress={onConfirm}
                   accessibilityLabel={confirmText}
+                  accessibilityHint="Double tap to end the session"
                   style={styles.leaveButton}
                 >
                   {confirmText}

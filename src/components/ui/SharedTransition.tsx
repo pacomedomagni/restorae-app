@@ -14,7 +14,7 @@
  */
 import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
 import Animated from 'react-native-reanimated';
-import { View, StyleSheet, LayoutChangeEvent } from 'react-native';
+import { View, StyleSheet, LayoutChangeEvent, StyleProp, ViewStyle } from 'react-native';
 
 // =============================================================================
 // TYPES
@@ -26,7 +26,7 @@ interface SharedElementProps {
   /** Children to render */
   children: React.ReactNode;
   /** Style for the container */
-  style?: any;
+  style?: StyleProp<ViewStyle>;
 }
 
 interface TransitionConfig {

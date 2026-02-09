@@ -119,6 +119,7 @@ export interface SessionState {
   
   // Backend Sync
   backendSessionId?: string; // ID from the backend UserSession
+  lastSyncError?: string; // Last backend sync error message (non-blocking)
   
   // Queue Management
   queue: ActivityState[];

@@ -16,7 +16,7 @@ import {
 import logger from '../services/logger';
 
 // Dynamic import for expo-notifications
-let Notifications: any = null;
+let Notifications: typeof import('expo-notifications') | null = null;
 try {
   Notifications = require('expo-notifications');
 } catch {
@@ -182,7 +182,7 @@ export function useNotifications(): UseNotificationsReturn {
   ): Promise<string | null> => {
     if (!Notifications) return null;
 
-    const trigger: any = weekday
+    const trigger: Parameters<typeof Notifications.scheduleNotificationAsync>[0]['trigger'] = weekday
       ? { type: Notifications.SchedulableTriggerInputTypes.WEEKLY, weekday, hour, minute }
       : { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute };
 

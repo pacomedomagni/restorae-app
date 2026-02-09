@@ -104,7 +104,8 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     
     // Simple linear fade out
     try {
-      const startVol = (await soundRef.current.getStatusAsync() as any).volume || state.volume;
+      const status = await soundRef.current.getStatusAsync();
+      const startVol = (status.isLoaded ? status.volume : state.volume) || state.volume;
       const steps = 10;
       const stepTime = duration / steps;
       const volStep = startVol / steps;

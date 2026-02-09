@@ -5,6 +5,7 @@
  * Provides ready-to-use Ritual and SOSPreset objects for the SessionContext.
  */
 import { Activity, Ritual, SOSPreset as SessionSOSPreset } from '../types/session';
+import type { MoodType } from '../types';
 import { MORNING_RITUALS, EVENING_RITUALS, MorningRitual, EveningRitual } from './rituals';
 import { SOS_PRESETS, SOSPreset as DataSOSPreset } from './sosPresets';
 import {
@@ -22,7 +23,7 @@ import {
  * Convert a ritual step type to a proper activity
  */
 function ritualStepToActivity(
-  step: { id: string; type: string; title: string; instruction: string; duration: number; breathingPattern?: any },
+  step: { id: string; type: string; title: string; instruction: string; duration: number; breathingPattern?: { inhale: number; hold: number; exhale: number; cycles?: number } },
   index: number
 ): Activity {
   // If it's a breathing step with a pattern, create a breathing activity
@@ -117,7 +118,7 @@ function convertRitualToSession(
  * Convert SOS phase to an activity
  */
 function sosPhaseToActivity(
-  phase: { id: string; type: string; title: string; instruction: string; duration: number; breathingPattern?: any },
+  phase: { id: string; type: string; title: string; instruction: string; duration: number; breathingPattern?: { inhale: number; hold: number; exhale: number; cycles?: number } },
   index: number
 ): Activity {
   // If it has a breathing pattern, treat as breathing activity
@@ -247,7 +248,7 @@ export function getRitualPresetById(id: string): Ritual | undefined {
  * Get morning rituals for a specific mood
  */
 export function getMorningRitualsForMood(mood: string): Ritual[] {
-  const matching = MORNING_RITUALS.filter(r => r.forMoods.includes(mood as any));
+  const matching = MORNING_RITUALS.filter(r => r.forMoods.includes(mood as MoodType));
   return matching.map(r => convertRitualToSession(r, 'morning'));
 }
 
@@ -255,7 +256,7 @@ export function getMorningRitualsForMood(mood: string): Ritual[] {
  * Get evening rituals for a specific mood
  */
 export function getEveningRitualsForMood(mood: string): Ritual[] {
-  const matching = EVENING_RITUALS.filter(r => r.forMoods.includes(mood as any));
+  const matching = EVENING_RITUALS.filter(r => r.forMoods.includes(mood as MoodType));
   return matching.map(r => convertRitualToSession(r, 'evening'));
 }
 

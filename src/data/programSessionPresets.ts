@@ -69,7 +69,7 @@ function programActivityToSessionActivity(activity: ProgramDayActivity): Activit
       config: {
         type: 'grounding',
         techniqueId: activity.referenceId,
-        steps: technique ? technique.steps.map((s: any) => s.instruction || s) : activity.steps || [activity.description],
+        steps: technique ? [...technique.steps] : activity.steps || [activity.description],
       },
     };
   }

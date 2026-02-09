@@ -42,6 +42,7 @@ import { gamification } from '../services/gamification';
 import { navigate } from '../services/navigationRef';
 import api from '../services/api';
 import logger from '../services/logger';
+import { syncQueue } from '../services/syncQueue';
 
 // =============================================================================
 // STORAGE KEYS
@@ -72,6 +73,7 @@ type SessionAction =
   | { type: 'HIDE_EXIT_CONFIRMATION' }
   | { type: 'RECOVER_SESSION'; state: SessionState }
   | { type: 'SET_BACKEND_SESSION_ID'; sessionId: string }
+  | { type: 'SET_SYNC_ERROR'; error: string | undefined }
   | { type: 'RESET' };
 
 // =============================================================================
@@ -387,6 +389,14 @@ function sessionReducer(state: SessionState, action: SessionAction): SessionStat
       return {
         ...state,
         backendSessionId: action.sessionId,
+        lastSyncError: undefined, // Clear error on successful ID set
+      };
+    }
+
+    case 'SET_SYNC_ERROR': {
+      return {
+        ...state,
+        lastSyncError: action.error,
       };
     }
 
@@ -501,24 +511,32 @@ export function SessionProvider({ children }: SessionProviderProps) {
     activities: Activity[],
     options?: { ritualId?: string; ritualSlug?: string; sosPresetId?: string; programId?: string; programDay?: number }
   ) => {
+    const sessionData = {
+      mode,
+      ritualId: options?.ritualId,
+      ritualSlug: options?.ritualSlug,
+      sosPresetId: options?.sosPresetId,
+      activities: activities.map((activity, index) => ({
+        activityType: activity.type,
+        activityId: activity.id,
+        activityName: activity.name,
+        order: index,
+      })),
+    };
+
     try {
-      const response = await api.createSession({
-        mode,
-        ritualId: options?.ritualId,
-        ritualSlug: options?.ritualSlug,
-        sosPresetId: options?.sosPresetId,
-        activities: activities.map((activity, index) => ({
-          activityType: activity.type,
-          activityId: activity.id,
-          activityName: activity.name,
-          order: index,
-        })),
-      });
+      const response = await api.createSession(sessionData);
       dispatch({ type: 'SET_BACKEND_SESSION_ID', sessionId: response.id });
       logger.info(`Backend session created: ${response.id}`);
     } catch (error) {
-      // Non-blocking - session still works locally
-      logger.warn('Failed to create backend session:', error as Error);
+      // Non-blocking - session still works locally; queue for later sync
+      logger.warn('Failed to create backend session, queuing for sync:', error as Error);
+      dispatch({ type: 'SET_SYNC_ERROR', error: 'Session will sync when connection is restored' });
+      syncQueue.addToQueue({
+        type: 'create',
+        entity: 'session',
+        data: sessionData,
+      });
     }
   }, []);
 
@@ -526,20 +544,35 @@ export function SessionProvider({ children }: SessionProviderProps) {
     status: 'COMPLETED' | 'EXITED' | 'INTERRUPTED',
     stats: { completedCount: number; skippedCount: number; totalDuration: number }
   ) => {
-    if (!state.backendSessionId) return;
-    
-    try {
-      await api.updateSession(state.backendSessionId, {
-        status,
-        completedCount: stats.completedCount,
-        skippedCount: stats.skippedCount,
-        totalDuration: stats.totalDuration,
-        wasPartial: status === 'EXITED' && stats.completedCount > 0,
-        completedAt: new Date().toISOString(),
+    const updateData = {
+      status,
+      completedCount: stats.completedCount,
+      skippedCount: stats.skippedCount,
+      totalDuration: stats.totalDuration,
+      wasPartial: status === 'EXITED' && stats.completedCount > 0,
+      completedAt: new Date().toISOString(),
+    };
+
+    if (!state.backendSessionId) {
+      // Session was never created on backend — queue the update for when it syncs
+      syncQueue.addToQueue({
+        type: 'update',
+        entity: 'session',
+        data: { ...updateData, backendSessionId: null },
       });
+      return;
+    }
+
+    try {
+      await api.updateSession(state.backendSessionId, updateData);
       logger.info(`Backend session updated: ${state.backendSessionId} -> ${status}`);
     } catch (error) {
-      logger.warn('Failed to update backend session:', error as Error);
+      logger.warn('Failed to update backend session, queuing for sync:', error as Error);
+      syncQueue.addToQueue({
+        type: 'update',
+        entity: 'session',
+        data: { ...updateData, backendSessionId: state.backendSessionId },
+      });
     }
   }, [state.backendSessionId]);
 
@@ -597,7 +630,7 @@ export function SessionProvider({ children }: SessionProviderProps) {
           : 'standalone';
       
       await activityLogger.logActivity({
-        category: activityState.activity.type as any,
+        category: activityState.activity.type as import('../services/activityLogger').ActivityCategory,
         activityId: activityState.activity.id,
         activityName: activityState.activity.name,
         startedAt: activityState.startedAt || Date.now(),

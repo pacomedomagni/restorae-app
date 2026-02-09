@@ -44,32 +44,32 @@ export function useHaptics() {
 
   const impactLight = useCallback(async () => {
     if (!hapticsEnabled) return;
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
   }, [hapticsEnabled]);
 
   const impactMedium = useCallback(async () => {
     if (!hapticsEnabled) return;
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
   }, [hapticsEnabled]);
 
   const impactHeavy = useCallback(async () => {
     if (!hapticsEnabled) return;
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    try { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
   }, [hapticsEnabled]);
 
   const selectionLight = useCallback(async () => {
     if (!hapticsEnabled) return;
-    await Haptics.selectionAsync();
+    try { await Haptics.selectionAsync(); } catch {}
   }, [hapticsEnabled]);
 
   const notificationSuccess = useCallback(async () => {
     if (!hapticsEnabled) return;
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    try { await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
   }, [hapticsEnabled]);
 
   const notificationError = useCallback(async () => {
     if (!hapticsEnabled) return;
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    try { await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); } catch {}
   }, [hapticsEnabled]);
 
   // ==========================================================================
@@ -82,26 +82,27 @@ export function useHaptics() {
    */
   const breatheIn = useCallback(async (duration: number = 4000) => {
     if (!hapticsEnabled) return;
-    
-    // Initial medium cue to signal inhale start
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    // Subtle texture during inhale (every ~800ms)
-    const steps = Math.floor(duration / 800);
-    const stepTime = duration / steps;
-    
-    if (intervalRef.current) clearInterval(intervalRef.current);
+    try {
+      // Initial medium cue to signal inhale start
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    let count = 0;
-    intervalRef.current = setInterval(async () => {
-      count++;
-      if (count >= steps) {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        return;
-      }
-      // Progressively lighter taps as lungs fill
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }, stepTime);
+      // Subtle texture during inhale (every ~800ms)
+      const steps = Math.floor(duration / 800);
+      const stepTime = duration / steps;
+
+      if (intervalRef.current) clearInterval(intervalRef.current);
+
+      let count = 0;
+      intervalRef.current = setInterval(async () => {
+        count++;
+        if (count >= steps) {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          return;
+        }
+        try { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
+      }, stepTime);
+    } catch {}
   }, [hapticsEnabled]);
 
   /**
@@ -111,9 +112,8 @@ export function useHaptics() {
   const breatheHold = useCallback(async () => {
     if (!hapticsEnabled) return;
     if (intervalRef.current) clearInterval(intervalRef.current);
-    
-    // Single soft pulse to mark hold start
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    try { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
   }, [hapticsEnabled]);
 
   /**
@@ -122,26 +122,27 @@ export function useHaptics() {
    */
   const breatheOut = useCallback(async (duration: number = 4000) => {
     if (!hapticsEnabled) return;
-    
-    // Initial heavier cue for release
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    
-    // Slower, fading texture for exhale
-    const steps = Math.floor(duration / 1000);
-    const stepTime = duration / steps;
-    
-    if (intervalRef.current) clearInterval(intervalRef.current);
 
-    let count = 0;
-    intervalRef.current = setInterval(async () => {
-      count++;
-      if (count >= steps) {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        return;
-      }
-      // Very light taps that fade out
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }, stepTime);
+    try {
+      // Initial heavier cue for release
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+
+      // Slower, fading texture for exhale
+      const steps = Math.floor(duration / 1000);
+      const stepTime = duration / steps;
+
+      if (intervalRef.current) clearInterval(intervalRef.current);
+
+      let count = 0;
+      intervalRef.current = setInterval(async () => {
+        count++;
+        if (count >= steps) {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          return;
+        }
+        try { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
+      }, stepTime);
+    } catch {}
   }, [hapticsEnabled]);
 
   const stopHaptics = useCallback(() => {
@@ -159,17 +160,18 @@ export function useHaptics() {
    */
   const celebration = useCallback(async () => {
     if (!hapticsEnabled) return;
-    
-    // Triple pulse celebration pattern
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    
-    setTimeout(async () => {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    }, 150);
-    
-    setTimeout(async () => {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    }, 300);
+
+    try {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      setTimeout(async () => {
+        try { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch {}
+      }, 150);
+
+      setTimeout(async () => {
+        try { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
+      }, 300);
+    } catch {}
   }, [hapticsEnabled]);
 
   /**
@@ -178,12 +180,13 @@ export function useHaptics() {
    */
   const milestone = useCallback(async () => {
     if (!hapticsEnabled) return;
-    
-    // Double success pulse
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setTimeout(async () => {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }, 200);
+
+    try {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setTimeout(async () => {
+        try { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch {}
+      }, 200);
+    } catch {}
   }, [hapticsEnabled]);
 
   /**
@@ -192,13 +195,14 @@ export function useHaptics() {
    */
   const countdown = useCallback(async (count: number) => {
     if (!hapticsEnabled) return;
-    
-    // Stronger haptic for final counts
-    if (count <= 3) {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    } else {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
+
+    try {
+      if (count <= 3) {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } else {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    } catch {}
   }, [hapticsEnabled]);
 
   /**
@@ -207,7 +211,7 @@ export function useHaptics() {
    */
   const gentle = useCallback(async () => {
     if (!hapticsEnabled) return;
-    await Haptics.selectionAsync();
+    try { await Haptics.selectionAsync(); } catch {}
   }, [hapticsEnabled]);
 
   // ==========================================================================

@@ -22,21 +22,22 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { NavigationProp, ParamListBase } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useHaptics } from '../hooks/useHaptics';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
-import { 
-  Text as PremiumText, 
-  GlassCard, 
-  AmbientBackground, 
+import {
+  Text as PremiumText,
+  GlassCard,
+  AmbientBackground,
   OfflineBanner,
   Button,
 } from '../components/ui';
 import { spacing, borderRadius, withAlpha, layout } from '../theme';
 
 interface ForgotPasswordScreenProps {
-  navigation: any;
+  navigation: NavigationProp<ParamListBase>;
 }
 
 export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScreenProps) {
@@ -82,9 +83,9 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
       await forgotPassword(email.trim().toLowerCase());
       await notificationSuccess();
       setIsEmailSent(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       await notificationError();
-      setError(err.message || 'Failed to send reset email. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to send reset email. Please try again.');
     } finally {
       setIsLoading(false);
     }

@@ -14,6 +14,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { useTheme } from '../../contexts/ThemeContext';
+import { withAlpha } from '../../theme';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -148,7 +149,7 @@ export function AmbientBackground({
 
       {/* Bottom fade for depth */}
       <LinearGradient
-        colors={gradients?.overlayFade || ['transparent', isDark ? 'rgba(0,0,0,0.35)' : 'rgba(43,32,24,0.06)']}
+        colors={gradients?.overlayFade || ['transparent', withAlpha(isDark ? '#000000' : '#2B2018', isDark ? 0.35 : 0.06)]}
         style={styles.bottomFade}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}

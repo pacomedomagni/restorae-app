@@ -3,7 +3,7 @@
  * 
  * Selection grid for all 15 breathing patterns
  */
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -52,7 +52,7 @@ interface CategoryPillProps {
   onPress: () => void;
 }
 
-function CategoryPill({ category, isActive, onPress }: CategoryPillProps) {
+const CategoryPill = React.memo(function CategoryPill({ category, isActive, onPress }: CategoryPillProps) {
   const { colors } = useTheme();
   const { impactLight } = useHaptics();
   const scale = useSharedValue(1);
@@ -101,7 +101,7 @@ function CategoryPill({ category, isActive, onPress }: CategoryPillProps) {
       </Animated.View>
     </Pressable>
   );
-}
+});
 
 // =============================================================================
 // PATTERN CARD
@@ -112,7 +112,7 @@ interface PatternCardProps {
   onPress: () => void;
 }
 
-function PatternCard({ pattern, index, onPress }: PatternCardProps) {
+const PatternCard = React.memo(function PatternCard({ pattern, index, onPress }: PatternCardProps) {
   const { colors, reduceMotion } = useTheme();
   const { impactLight } = useHaptics();
   const scale = useSharedValue(1);
@@ -134,14 +134,14 @@ function PatternCard({ pattern, index, onPress }: PatternCardProps) {
     transform: [{ scale: scale.value }],
   }));
 
-  const categoryColors: Record<string, string> = {
+  const categoryColors = useMemo<Record<string, string>>(() => ({
     calm: colors.accentCalm,
     focus: colors.accentPrimary,
     energy: colors.accentWarm,
     sleep: colors.moodLow,
     emergency: colors.statusError,
     balance: colors.accentPrimary,
-  };
+  }), [colors.accentCalm, colors.accentPrimary, colors.accentWarm, colors.moodLow, colors.statusError]);
 
   const accentColor = categoryColors[pattern.category || 'calm'] || colors.accentPrimary;
 
@@ -179,7 +179,7 @@ function PatternCard({ pattern, index, onPress }: PatternCardProps) {
       </Pressable>
     </Animated.View>
   );
-}
+});
 
 // =============================================================================
 // MAIN SCREEN

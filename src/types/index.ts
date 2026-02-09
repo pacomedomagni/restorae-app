@@ -117,7 +117,7 @@ export type RootStackParamList = {
     mood?: string;
   };
   UnifiedSession: undefined;
-  SessionSummary: { summary: any };
+  SessionSummary: { summary: import('./session').SessionSummary };
   SessionComplete: {
     sessionType: string;
     sessionName?: string;

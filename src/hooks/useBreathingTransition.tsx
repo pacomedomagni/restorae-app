@@ -59,7 +59,7 @@ export interface BreathingTransitionReturn {
   // Trigger a transition
   transitionTo: (
     screen: keyof RootStackParamList,
-    params?: any,
+    params?: RootStackParamList[keyof RootStackParamList],
     config?: TransitionConfig
   ) => Promise<void>;
   
@@ -176,7 +176,7 @@ export function useBreathingTransition(): BreathingTransitionReturn {
   // Main transition function
   const transitionTo = useCallback(async (
     screen: keyof RootStackParamList,
-    params?: any,
+    params?: RootStackParamList[keyof RootStackParamList],
     config: TransitionConfig = {}
   ) => {
     if (isTransitioningRef.current) return;

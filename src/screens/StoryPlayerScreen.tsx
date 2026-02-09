@@ -13,6 +13,7 @@ import {
   View,
   StyleSheet,
   Pressable,
+  GestureResponderEvent,
   Dimensions,
   Image,
   StatusBar,
@@ -142,7 +143,7 @@ function ProgressBar({ position, duration, onSeek }: ProgressBarProps) {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const handlePress = async (event: any) => {
+  const handlePress = async (event: GestureResponderEvent) => {
     await impactLight();
     const { locationX } = event.nativeEvent;
     const progressBarWidth = SCREEN_WIDTH - spacing[12] * 2;
@@ -288,12 +289,12 @@ export function StoryPlayerScreen() {
   useEffect(() => {
     if (story && premiumVerified) {
       loadAndPlayStory(story);
-      analytics.track(AnalyticsEvents.STORY_STARTED, {
+      try { analytics.track(AnalyticsEvents.STORY_STARTED, {
         storyId: story.id,
         storyTitle: story.title,
         category: story.category,
         duration: story.duration,
-      });
+      }); } catch {}
     }
 
     return () => {
@@ -331,51 +332,56 @@ export function StoryPlayerScreen() {
   }, [playbackState.isPlaying]);
 
   const loadAndPlayStory = async (story: BedtimeStory) => {
-    await audioService.play({
-      id: story.id,
-      title: story.title,
-      artist: story.narrator,
-      uri: story.audioUrl,
-      duration: story.duration * 60 * 1000,
-      artwork: story.artworkUrl,
-      type: 'story',
-    });
+    try {
+      await audioService.play({
+        id: story.id,
+        title: story.title,
+        artist: story.narrator,
+        uri: story.audioUrl,
+        duration: story.duration * 60 * 1000,
+        artwork: story.artworkUrl,
+        type: 'story',
+      });
+    } catch (error) {
+      console.warn('Failed to load story audio:', error);
+    }
   };
 
   const handlePlayPause = async () => {
     await impactMedium();
     playToggle();
-    await audioService.togglePlayPause();
+    try { await audioService.togglePlayPause(); } catch {}
   };
 
   const handleSkip = async (seconds: number) => {
     await impactLight();
     playTap();
-    await audioService.skip(seconds);
+    try { await audioService.skip(seconds); } catch {}
   };
 
   const handleSeek = async (position: number) => {
-    await audioService.seekTo(position);
+    try { await audioService.seekTo(position); } catch {}
   };
 
   const handleSleepTimer = (minutes: number) => {
     playTap();
-    if (minutes === 0) {
-      audioService.clearSleepTimer();
-    } else if (minutes === -1) {
-      // End of story - calculate remaining time
-      const remaining = playbackState.duration - playbackState.position;
-      audioService.setSleepTimer(Math.ceil(remaining / 60000));
-    } else {
-      audioService.setSleepTimer(minutes);
-      analytics.track(AnalyticsEvents.SLEEP_TIMER_SET, { minutes });
-    }
+    try {
+      if (minutes === 0) {
+        audioService.clearSleepTimer();
+      } else if (minutes === -1) {
+        const remaining = playbackState.duration - playbackState.position;
+        audioService.setSleepTimer(Math.ceil(remaining / 60000));
+      } else {
+        audioService.setSleepTimer(minutes);
+        try { analytics.track(AnalyticsEvents.SLEEP_TIMER_SET, { minutes }); } catch {}
+      }
+    } catch {}
     setShowSleepTimer(false);
   };
 
   const handleExitConfirm = async () => {
     setShowExitConfirm(false);
-    await audioService.stop();
+    try { await audioService.stop(); } catch {}
     navigation.goBack();
   };
 
@@ -388,15 +394,13 @@ export function StoryPlayerScreen() {
     if (playbackState.duration > 0) {
       const percentListened = playbackState.position / playbackState.duration;
       const durationSeconds = Math.round(playbackState.position / 1000);
-      
+
       if (percentListened >= 0.9) {
-        analytics.track(AnalyticsEvents.STORY_COMPLETED, {
+        try { analytics.track(AnalyticsEvents.STORY_COMPLETED, {
           storyId: story?.id,
           duration: playbackState.duration,
-        });
-        
-        // Navigate to session complete screen for the celebration
-        // (SessionCompleteScreen handles gamification, activity logging, etc.)
+        }); } catch {}
+
         navigation.replace('SessionComplete', {
           sessionType: 'story',
           sessionName: story?.title || 'Sleep Story',
@@ -404,14 +408,14 @@ export function StoryPlayerScreen() {
         });
         return;
       } else {
-        analytics.track(AnalyticsEvents.STORY_PAUSED, {
+        try { analytics.track(AnalyticsEvents.STORY_PAUSED, {
           storyId: story?.id,
           position: playbackState.position,
           percentListened: Math.round(percentListened * 100),
-        });
+        }); } catch {}
       }
     }
-    
+
     navigation.goBack();
   };
 

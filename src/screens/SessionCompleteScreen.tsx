@@ -42,6 +42,7 @@ import { gamification, Achievement, ActivityType } from '../services/gamificatio
 import { recommendations } from '../services/smartRecommendations';
 import { activityLogger, ActivityCategory } from '../services/activityLogger';
 import { analytics, AnalyticsEvents } from '../services/analytics';
+import { syncQueue } from '../services/syncQueue';
 import { getReflection } from '../data/reflections';
 import { RootStackParamList, MoodType } from '../types';
 
@@ -157,7 +158,11 @@ function AnimatedCheckmark() {
   const circumference = 2 * Math.PI * 40;
 
   return (
-    <Animated.View style={[styles.checkmarkContainer, containerStyle]}>
+    <Animated.View
+      style={[styles.checkmarkContainer, containerStyle]}
+      importantForAccessibility="no"
+      accessible={false}
+    >
       <View style={[styles.checkmarkCircle, { backgroundColor: withAlpha(colors.success, 0.12) }]}>
         <Svg width={100} height={100} viewBox="0 0 100 100">
           <Circle
@@ -197,6 +202,7 @@ function SessionStat({ iconName, label, value, delay = 0 }: SessionStatProps) {
     <Animated.View
       entering={reduceMotion ? undefined : FadeInUp.delay(delay).duration(400)}
       style={styles.statItem}
+      accessibilityLabel={`${label}: ${value}`}
     >
       <Ionicons name={iconName} size={20} color={colors.inkFaint} style={styles.statIconStyle} />
       <Text variant="labelSmall" color="inkFaint" style={styles.statLabel}>
@@ -267,7 +273,11 @@ function NextActionSuggestion({ sessionType, onPress }: NextActionProps) {
         <Animated.View style={animatedStyle}>
           <GlassCard variant="elevated" padding="md">
             <View style={styles.suggestionContent}>
-              <View style={[styles.suggestionIconWrapper, { backgroundColor: withAlpha(colors.accentPrimary, 0.1) }]}>
+              <View
+                style={[styles.suggestionIconWrapper, { backgroundColor: withAlpha(colors.accentPrimary, 0.1) }]}
+                importantForAccessibility="no"
+                accessible={false}
+              >
                 <Ionicons name={iconName} size={22} color={colors.accentPrimary} />
               </View>
               <View style={styles.suggestionText}>
@@ -344,17 +354,19 @@ export function SessionCompleteScreen() {
         mood: 'mood',
       };
 
-      await activityLogger.logActivity({
-        category: categoryMap[sessionType],
-        activityId: sessionName || sessionType,
-        activityName: sessionName || sessionType,
-        startedAt: Date.now() - (duration || 0) * 1000,
-        durationSeconds: duration || 0,
-        completed: true,
-        metadata: { cycles, steps, wordCount, mood },
-      });
+      try {
+        await activityLogger.logActivity({
+          category: categoryMap[sessionType],
+          activityId: sessionName || sessionType,
+          activityName: sessionName || sessionType,
+          startedAt: Date.now() - (duration || 0) * 1000,
+          durationSeconds: duration || 0,
+          completed: true,
+          metadata: { cycles, steps, wordCount, mood },
+        });
+      } catch {}
 
-      analytics.track(AnalyticsEvents.TOOL_COMPLETED, {
+      try { analytics.track(AnalyticsEvents.TOOL_COMPLETED, {
         sessionType,
         sessionName: sessionName || sessionType,
         durationSeconds: duration || 0,
@@ -364,40 +376,58 @@ export function SessionCompleteScreen() {
         wordCount,
         mood,
         xpEarned,
-      });
+      }); } catch {}
+
+      // Queue session completion for offline sync
+      try {
+        await syncQueue.addToQueue({
+          type: 'create',
+          entity: 'session',
+          data: {
+            sessionType,
+            sessionName: sessionName || sessionType,
+            durationSeconds: duration || 0,
+            completedAt: new Date().toISOString(),
+            metadata: { cycles, steps, wordCount, mood },
+          },
+        });
+      } catch {}
 
       // Record activity internally (XP, streaks, achievements — tracked but not displayed)
-      const result = await gamification.recordActivity(
-        activityType,
-        durationMinutes,
-        { sessionName: sessionName || sessionType }
-      );
-
-      await recommendations.recordActivity(sessionType, sessionName || sessionType);
-
-      // Store pending celebrations for home screen (subtle acknowledgment only)
-      if (result.levelUp && result.newLevel) {
-        await AsyncStorage.setItem(
-          '@restorae:pending_levelup',
-          JSON.stringify(result.newLevel)
+      try {
+        const result = await gamification.recordActivity(
+          activityType,
+          durationMinutes,
+          { sessionName: sessionName || sessionType }
         );
-      }
 
-      if (result.newAchievements.length > 0) {
-        await AsyncStorage.setItem(
-          '@restorae:pending_achievement',
-          JSON.stringify(result.newAchievements[0])
-        );
-        // Show as a subtle milestone, not a trophy popup
-        setMilestone(result.newAchievements[0].title);
-      }
+        try { await recommendations.recordActivity(sessionType, sessionName || sessionType); } catch {}
+
+        // Store pending celebrations for home screen (subtle acknowledgment only)
+        if (result.levelUp && result.newLevel) {
+          await AsyncStorage.setItem(
+            '@restorae:pending_levelup',
+            JSON.stringify(result.newLevel)
+          );
+        }
+
+        if (result.newAchievements.length > 0) {
+          await AsyncStorage.setItem(
+            '@restorae:pending_achievement',
+            JSON.stringify(result.newAchievements[0])
+          );
+          setMilestone(result.newAchievements[0].title);
+        }
+      } catch {}
 
       // Gentle haptic and soft glow — the only celebration
       await notificationSuccess();
       setShowGlow(true);
     };
 
-    processCompletion();
+    processCompletion().catch(() => {
+      setShowGlow(true); // Still show completion UI even if tracking fails
+    });
   }, []);
 
   // Format duration
@@ -452,7 +482,8 @@ export function SessionCompleteScreen() {
     if (targetRoute === 'JournalEntry') {
       navigation.navigate('JournalEntry', { mode: 'new' });
     } else {
-      navigation.navigate(targetRoute as any);
+      // Type assertion needed: targetRoute is a dynamic key from a lookup table
+      (navigation.navigate as (screen: keyof RootStackParamList) => void)(targetRoute);
     }
   };
 
@@ -461,7 +492,9 @@ export function SessionCompleteScreen() {
       <AmbientBackground variant="calm" intensity="normal" />
 
       {/* Soft glow — replaces confetti */}
-      <SoftGlow active={showGlow} variant="completion" size={250} />
+      <View accessible={false} importantForAccessibility="no">
+        <SoftGlow active={showGlow} variant="completion" size={250} />
+      </View>
 
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.content}>
@@ -491,6 +524,7 @@ export function SessionCompleteScreen() {
               color="inkMuted"
               align="center"
               style={styles.reflectionText}
+              accessibilityRole="text"
             >
               {reflection}
             </Text>

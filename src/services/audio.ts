@@ -60,7 +60,7 @@ class AudioService {
   private sleepTimerRemaining: number | null = null;
   private sleepTimerInterval: NodeJS.Timeout | null = null;
   private fadeInterval: NodeJS.Timeout | null = null;
-  private appStateSubscription: any = null;
+  private appStateSubscription: { remove: () => void } | null = null;
 
   // Config
   private readonly CROSSFADE_DURATION = 2000; // 2 seconds

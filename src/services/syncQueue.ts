@@ -19,20 +19,29 @@ export type SyncOperationType =
 export interface SyncOperation {
   id: string;
   type: SyncOperationType;
-  entity: 'mood' | 'journal' | 'ritual' | 'completion';
-  data: any;
+  entity: 'mood' | 'journal' | 'ritual' | 'completion' | 'session';
+  data: Record<string, unknown>;
   localId?: string;
   createdAt: string;
   retryCount: number;
 }
 
 const SYNC_QUEUE_KEY = '@restorae/sync_queue';
-const MAX_RETRIES = 3;
+const MAX_RETRIES = 5;
+const BASE_DELAY_MS = 1000; // 1s base delay for exponential backoff
 
 class SyncQueueManager {
   private queue: SyncOperation[] = [];
   private isProcessing = false;
   private listeners: Set<(queue: SyncOperation[]) => void> = new Set();
+  private retryTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  /** Calculate delay with exponential backoff + jitter */
+  private getRetryDelay(retryCount: number): number {
+    const exponentialDelay = BASE_DELAY_MS * Math.pow(2, retryCount);
+    const jitter = Math.random() * BASE_DELAY_MS;
+    return Math.min(exponentialDelay + jitter, 60_000); // cap at 60s
+  }
 
   async initialize() {
     try {
@@ -132,32 +141,51 @@ class SyncQueueManager {
       const batch = sortedQueue.slice(0, 50);
 
       try {
-        const response = await api.batchSync(batch);
-        
+        const response = await api.batchSync(batch as unknown as Array<Record<string, unknown>>);
+
         if (response.data?.results) {
            const successIds = response.data.results
-             .filter((r: any) => r.success)
-             .map((r: any) => r.id);
-             
+             .filter((r: { success: boolean }) => r.success)
+             .map((r: { id: string }) => r.id);
+
            const failedIds = response.data.results
-             .filter((r: any) => !r.success)
-             .map((r: any) => r.id);
-             
+             .filter((r: { success: boolean }) => !r.success)
+             .map((r: { id: string }) => r.id);
+
            this.queue = this.queue.filter(op => !successIds.includes(op.id));
-           
+
            this.queue = this.queue.map(op => {
              if (failedIds.includes(op.id)) {
                return { ...op, retryCount: op.retryCount + 1 };
              }
              return op;
            });
-           
+
            this.queue = this.queue.filter(op => op.retryCount < MAX_RETRIES);
-           
+
            await this.saveQueue();
+
+           // Schedule retry with backoff if there are still failed items
+           const maxRetry = Math.max(0, ...this.queue.map(op => op.retryCount));
+           if (this.queue.length > 0 && maxRetry > 0) {
+             this.scheduleRetry(maxRetry);
+           }
         }
       } catch (error) {
+        // Network-level failure — increment all batch items and schedule backoff retry
         logger.error('Batch sync failed:', error);
+        const maxRetry = Math.max(0, ...batch.map(op => op.retryCount));
+        this.queue = this.queue.map(op => {
+          if (batch.some(b => b.id === op.id)) {
+            return { ...op, retryCount: op.retryCount + 1 };
+          }
+          return op;
+        });
+        this.queue = this.queue.filter(op => op.retryCount < MAX_RETRIES);
+        await this.saveQueue();
+        if (this.queue.length > 0) {
+          this.scheduleRetry(maxRetry + 1);
+        }
       }
 
     } catch (error) {
@@ -199,7 +227,24 @@ class SyncQueueManager {
     }
   }
 
+  /** Schedule a retry with exponential backoff */
+  private scheduleRetry(retryCount: number) {
+    if (this.retryTimeoutId) {
+      clearTimeout(this.retryTimeoutId);
+    }
+    const delay = this.getRetryDelay(retryCount);
+    logger.info(`Sync retry scheduled in ${Math.round(delay / 1000)}s (attempt ${retryCount})`);
+    this.retryTimeoutId = setTimeout(() => {
+      this.retryTimeoutId = null;
+      this.processQueue();
+    }, delay);
+  }
+
   async clearQueue() {
+    if (this.retryTimeoutId) {
+      clearTimeout(this.retryTimeoutId);
+      this.retryTimeoutId = null;
+    }
     this.queue = [];
     await AsyncStorage.removeItem(SYNC_QUEUE_KEY);
     this.notifyListeners();

@@ -4,7 +4,7 @@
  * Card for displaying wellness content in the Library.
  */
 import React from 'react';
-import { View, StyleSheet, Pressable, ImageBackground } from 'react-native';
+import { View, StyleSheet, Pressable, ImageBackground, GestureResponderEvent } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -106,7 +106,7 @@ export function ContentCard({
     onPress?.();
   };
 
-  const handleFavoritePress = async (e: any) => {
+  const handleFavoritePress = async (e: GestureResponderEvent) => {
     e.stopPropagation();
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onFavoriteToggle?.();
@@ -145,7 +145,7 @@ export function ContentCard({
 
         {/* Progress indicator for "Continue" items */}
         {progress !== undefined && progress > 0 && (
-          <View style={styles.progressBar}>
+          <View style={[styles.progressBar, { backgroundColor: withAlpha(colors.textPrimary, 0.1) }]}>
             <View
               style={[
                 styles.progressFill,
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 3,
-    backgroundColor: 'rgba(0,0,0,0.1)',
+    // backgroundColor applied inline with theme colors
   },
   progressFill: {
     height: '100%',

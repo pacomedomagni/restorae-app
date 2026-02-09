@@ -12,6 +12,8 @@ import React, { useState, useRef } from 'react';
 import {
   View,
   StyleSheet,
+  StyleProp,
+  ViewStyle,
   TextInput,
   KeyboardAvoidingView,
   Platform,
@@ -30,6 +32,7 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
+import { NavigationProp, ParamListBase } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useHaptics } from '../hooks/useHaptics';
@@ -39,7 +42,7 @@ import { Logo } from '../components/Logo';
 import { spacing, borderRadius, withAlpha } from '../theme';
 
 interface LoginScreenProps {
-  navigation: any;
+  navigation: NavigationProp<ParamListBase>;
 }
 
 // =============================================================================
@@ -51,7 +54,7 @@ interface AnimatedButtonProps {
   loading?: boolean;
   variant: 'primary' | 'secondary' | 'ghost';
   children: React.ReactNode;
-  style?: any;
+  style?: StyleProp<ViewStyle>;
   accessibilityLabel?: string;
 }
 
@@ -168,10 +171,10 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
       await impactMedium();
       await login(email.trim().toLowerCase(), password);
       // Navigation will be handled by auth state change
-    } catch (error: any) {
+    } catch (error: unknown) {
       notificationError();
-      setErrors({ 
-        general: error.message || 'Unable to sign in. Please check your credentials.' 
+      setErrors({
+        general: error instanceof Error ? error.message : 'Unable to sign in. Please check your credentials.'
       });
     } finally {
       setIsSubmitting(false);
@@ -188,8 +191,8 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
     try {
       await impactMedium();
       await signInWithApple();
-    } catch (error: any) {
-      if (error.message) {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.message) {
         notificationError();
         setErrors({ general: error.message });
       }
@@ -206,9 +209,9 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
     try {
       await impactMedium();
       await signInWithGoogle();
-    } catch (error: any) {
+    } catch (error: unknown) {
       notificationError();
-      setErrors({ general: error.message || 'Google sign in failed' });
+      setErrors({ general: error instanceof Error ? error.message : 'Google sign in failed' });
     }
   };
 
@@ -216,7 +219,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
     try {
       await impactLight();
       await registerAnonymous();
-    } catch (error: any) {
+    } catch (error: unknown) {
       notificationError();
       setErrors({ general: 'Failed to continue. Please try again.' });
     }
