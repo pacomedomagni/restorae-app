@@ -949,6 +949,47 @@ class ApiClient {
     const response = await this.client.post('/coach-marks/user/reset');
     return response.data;
   }
+
+  // =========================================================================
+  // CONTENT SYNC ENDPOINTS
+  // =========================================================================
+
+  async checkContentVersion(currentVersion: number): Promise<{ hasUpdates: boolean; latestVersion: number }> {
+    const response = await this.client.get('/content/version', {
+      params: { currentVersion },
+    });
+    return response.data;
+  }
+
+  async fetchAllContent(): Promise<Array<{
+    id: string;
+    slug: string;
+    name: string;
+    description: string;
+    type: string;
+    data: Record<string, unknown>;
+    isPremium: boolean;
+    order: number;
+    version: number;
+    updatedAt: string;
+  }>> {
+    const response = await this.client.get('/content/all');
+    return response.data;
+  }
+
+  async fetchContentByCategory(category: string): Promise<Array<{
+    id: string;
+    slug: string;
+    name: string;
+    description: string;
+    type: string;
+    data: Record<string, unknown>;
+    isPremium: boolean;
+    order: number;
+  }>> {
+    const response = await this.client.get(`/content/category/${category}`);
+    return response.data;
+  }
 }
 
 // Export singleton instance
