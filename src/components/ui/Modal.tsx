@@ -1,8 +1,13 @@
 /**
- * Modal Component - Core
+ * Modal Component
+ * Premium modal with smooth animations and gesture support
  * 
- * Unified modal with smooth animations.
- * Replaces SwipeableModal, AlertModal, etc.
+ * Features:
+ * - Slide-up animation with spring physics
+ * - Swipe-to-dismiss gesture
+ * - Keyboard avoiding behavior
+ * - Accessibility support
+ * - Uses ThemeContext (no manual color passing)
  */
 import React, { useEffect } from 'react';
 import {
@@ -21,17 +26,18 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import * as Haptics from 'expo-haptics';
+import { useTheme } from '../../contexts/ThemeContext';
+import { useHaptics } from '../../hooks/useHaptics';
 import { Text } from './Text';
 import { Button } from './Button';
-import { spacing, radius, withAlpha } from '../../theme/tokens';
+import { spacing, borderRadius, withAlpha } from '../../theme';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface ModalAction {
   label: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'ghost' | 'destructive';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'glow';
 }
 
 interface ModalProps {
@@ -42,18 +48,7 @@ interface ModalProps {
   children?: React.ReactNode;
   actions?: ModalAction[];
   dismissible?: boolean;
-  colors: {
-    surface: string;
-    surfaceElevated: string;
-    textPrimary: string;
-    textSecondary: string;
-    overlay: string;
-    actionPrimary: string;
-    actionSecondary: string;
-    actionDestructive: string;
-    textInverse: string;
-    border: string;
-  };
+  size?: 'sm' | 'md' | 'lg' | 'full';
 }
 
 export function Modal({
@@ -64,24 +59,28 @@ export function Modal({
   children,
   actions = [],
   dismissible = true,
-  colors,
+  size = 'md',
 }: ModalProps) {
+  const { colors, reduceMotion } = useTheme();
+  const { impactLight } = useHaptics();
   const translateY = useSharedValue(SCREEN_HEIGHT);
   const opacity = useSharedValue(0);
 
   useEffect(() => {
     if (visible) {
       opacity.value = withTiming(1, { duration: 200 });
-      translateY.value = withSpring(0, { damping: 20, stiffness: 300 });
+      translateY.value = reduceMotion 
+        ? withTiming(0, { duration: 200 })
+        : withSpring(0, { damping: 20, stiffness: 300 });
     } else {
       opacity.value = withTiming(0, { duration: 150 });
       translateY.value = withTiming(SCREEN_HEIGHT, { duration: 200 });
     }
-  }, [visible]);
+  }, [visible, reduceMotion]);
 
   const handleClose = async () => {
     if (!dismissible) return;
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await impactLight();
     onClose();
   };
 
@@ -103,9 +102,24 @@ export function Modal({
       if (dismissible && event.translationY > 100) {
         runOnJS(onClose)();
       } else {
-        translateY.value = withSpring(0, { damping: 20, stiffness: 300 });
+        translateY.value = reduceMotion
+          ? withTiming(0, { duration: 200 })
+          : withSpring(0, { damping: 20, stiffness: 300 });
       }
     });
+
+  const getSizeStyles = () => {
+    switch (size) {
+      case 'sm':
+        return { maxHeight: SCREEN_HEIGHT * 0.4 };
+      case 'lg':
+        return { maxHeight: SCREEN_HEIGHT * 0.85 };
+      case 'full':
+        return { maxHeight: SCREEN_HEIGHT * 0.95 };
+      default:
+        return { maxHeight: SCREEN_HEIGHT * 0.6 };
+    }
+  };
 
   if (!visible) return null;
 
@@ -118,7 +132,12 @@ export function Modal({
           accessibilityLabel="Close modal"
           accessibilityRole="button"
         >
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.overlay }]} />
+          <View 
+            style={[
+              StyleSheet.absoluteFill, 
+              { backgroundColor: withAlpha(colors.ink, 0.6) }
+            ]} 
+          />
         </Pressable>
       </Animated.View>
 
@@ -130,7 +149,8 @@ export function Modal({
           <Animated.View
             style={[
               styles.modal,
-              { backgroundColor: colors.surfaceElevated },
+              getSizeStyles(),
+              { backgroundColor: colors.canvasElevated },
               modalStyle,
             ]}
           >
@@ -138,7 +158,10 @@ export function Modal({
             {dismissible && (
               <View style={styles.handleContainer}>
                 <View
-                  style={[styles.handle, { backgroundColor: colors.border }]}
+                  style={[
+                    styles.handle, 
+                    { backgroundColor: withAlpha(colors.ink, 0.2) }
+                  ]}
                 />
               </View>
             )}
@@ -146,19 +169,13 @@ export function Modal({
             {/* Content */}
             <View style={styles.content}>
               {title && (
-                <Text
-                  variant="headlineMedium"
-                  style={[styles.title, { color: colors.textPrimary }]}
-                >
+                <Text variant="headlineMedium" color="ink" style={styles.title}>
                   {title}
                 </Text>
               )}
 
               {description && (
-                <Text
-                  variant="bodyMedium"
-                  style={[styles.description, { color: colors.textSecondary }]}
-                >
+                <Text variant="bodyMedium" color="inkMuted" style={styles.description}>
                   {description}
                 </Text>
               )}
@@ -175,8 +192,7 @@ export function Modal({
                     variant={action.variant || 'primary'}
                     onPress={action.onPress}
                     fullWidth
-                    colors={colors}
-                    style={index > 0 ? styles.actionSpacing : undefined}
+                    style={index > 0 ? styles.actionButton : undefined}
                   >
                     {action.label}
                   </Button>
@@ -193,16 +209,16 @@ export function Modal({
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
+    justifyContent: 'flex-end',
   },
   keyboardAvoid: {
     flex: 1,
     justifyContent: 'flex-end',
   },
   modal: {
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
     paddingBottom: spacing.xl,
-    maxHeight: SCREEN_HEIGHT * 0.9,
   },
   handleContainer: {
     alignItems: 'center',
@@ -218,7 +234,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
   },
   title: {
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   description: {
     marginBottom: spacing.md,
@@ -226,8 +242,9 @@ const styles = StyleSheet.create({
   actions: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
+    gap: spacing.sm,
   },
-  actionSpacing: {
+  actionButton: {
     marginTop: spacing.sm,
   },
 });

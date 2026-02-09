@@ -18,10 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useJourney, TimelineEntry as TimelineEntryData } from '../../contexts/JourneyContext';
 
-import { Text, Button, GlassCard, ScreenHeader, AsyncErrorWrapper } from '../../components/ui';
-import { Input } from '../../components/core/Input';
-import { SkeletonCard } from '../../components/ui/Skeleton';
-import { EmptyState } from '../../components/core/EmptyState';
+import { Text, Button, GlassCard, ScreenHeader, AsyncErrorWrapper, Input, EmptyState, SkeletonCard } from '../../components/ui';
 import { TimelineEntry } from '../../components/domain/TimelineEntry';
 import { StatPill } from '../../components/domain/StatPill';
 
@@ -75,7 +72,6 @@ function QuickJournal({ onSave }: { onSave: (content: string) => void }) {
           maxLength={500}
           showCharCount
           autoFocus
-          colors={colors}
         />
         <View style={styles.journalActions}>
           <Button
@@ -144,10 +140,10 @@ export function JourneyScreen() {
         entering={FadeInUp.delay(index * 50).duration(300)}
         layout={Layout}
       >
-        <TimelineEntry entry={item} colors={colors} />
+        <TimelineEntry entry={item} />
       </Animated.View>
     ),
-    [colors],
+    [],
   );
 
   const renderHeader = useCallback(() => (
@@ -225,13 +221,12 @@ export function JourneyScreen() {
       </View>
     ) : (
       <EmptyState
-        icon="time-outline"
+        icon="focus"
         title="Your journey starts here"
         description="Check in with your mood from the Sanctuary to begin building your timeline."
-        colors={colors}
       />
     ),
-    [colors, isLoading],
+    [isLoading],
   );
 
   return (

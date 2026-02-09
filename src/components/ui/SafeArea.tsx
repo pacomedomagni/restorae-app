@@ -1,11 +1,16 @@
 /**
- * SafeArea Component - Core
+ * SafeArea Component
+ * Wrapper for safe area handling with consistent padding
  * 
- * Wrapper for safe area handling.
+ * Features:
+ * - Configurable edges
+ * - Background color support
+ * - Uses ThemeContext for default background
  */
 import React from 'react';
-import { View, ViewStyle } from 'react-native';
+import { ViewStyle } from 'react-native';
 import { SafeAreaView, Edge } from 'react-native-safe-area-context';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface SafeAreaProps {
   children: React.ReactNode;
@@ -20,12 +25,14 @@ export function SafeArea({
   style,
   backgroundColor,
 }: SafeAreaProps) {
+  const { colors } = useTheme();
+  const bgColor = backgroundColor ?? colors.canvas;
+
   return (
     <SafeAreaView
       edges={edges}
       style={[
-        { flex: 1 },
-        backgroundColor ? { backgroundColor } : undefined,
+        { flex: 1, backgroundColor: bgColor },
         style,
       ]}
     >

@@ -184,7 +184,6 @@ export function SanctuaryScreen() {
                     selected={selectedMood === mood}
                     onPress={() => handleMoodSelect(mood)}
                     size="md"
-                    colors={colors}
                   />
                 </Animated.View>
               ))}

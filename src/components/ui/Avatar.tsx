@@ -1,21 +1,23 @@
 /**
- * Avatar Component - Core
+ * Avatar Component
+ * User avatar with image or initials fallback
  * 
- * User avatar with initials fallback.
+ * Features:
+ * - Multiple sizes
+ * - Image or initials
+ * - Accessibility labels
+ * - Uses ThemeContext (no manual color passing)
  */
 import React from 'react';
 import { View, StyleSheet, Image } from 'react-native';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Text } from './Text';
-import { withAlpha } from '../../theme/tokens';
+import { withAlpha } from '../../theme';
 
 interface AvatarProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   name?: string;
   imageUrl?: string;
-  colors: {
-    actionPrimary: string;
-    textInverse: string;
-  };
 }
 
 const sizes = {
@@ -32,7 +34,8 @@ const fontVariants = {
   xl: 'headlineMedium' as const,
 };
 
-export function Avatar({ size = 'md', name, imageUrl, colors }: AvatarProps) {
+export function Avatar({ size = 'md', name, imageUrl }: AvatarProps) {
+  const { colors } = useTheme();
   const dimension = sizes[size];
 
   const getInitials = (name?: string) => {
@@ -67,14 +70,14 @@ export function Avatar({ size = 'md', name, imageUrl, colors }: AvatarProps) {
           width: dimension,
           height: dimension,
           borderRadius: dimension / 2,
-          backgroundColor: withAlpha(colors.actionPrimary, 0.15),
+          backgroundColor: withAlpha(colors.accentPrimary, 0.15),
         },
       ]}
       accessibilityLabel={name ? `${name}'s avatar` : 'User avatar'}
     >
       <Text
         variant={fontVariants[size]}
-        style={{ color: colors.actionPrimary }}
+        style={{ color: colors.accentPrimary }}
       >
         {getInitials(name)}
       </Text>

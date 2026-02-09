@@ -2,6 +2,7 @@
  * TimelineEntry Component - Domain
  * 
  * Displays a single entry in the Journey timeline.
+ * Now uses ThemeContext instead of colors prop.
  */
 import React from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
@@ -12,20 +13,18 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
-import { Text } from '../core/Text';
-import { Card } from '../core/Card';
-import { Badge } from '../core/Badge';
-import { MoodType, moodLabels, moodIcons, spacing, radius, withAlpha } from '../../theme/tokens';
+import { Text, Badge, GlassCard } from '../ui';
+import { useTheme } from '../../contexts/ThemeContext';
+import { MoodType, moodLabels, moodIcons, spacing, withAlpha } from '../../theme/tokens';
 import { TimelineEntry as TimelineEntryType } from '../../contexts/JourneyContext';
 
 interface TimelineEntryProps {
   entry: TimelineEntryType;
   onPress?: () => void;
-  colors: Record<string, string>;
-  isDark?: boolean;
 }
 
-export function TimelineEntry({ entry, onPress, colors, isDark }: TimelineEntryProps) {
+export function TimelineEntry({ entry, onPress }: TimelineEntryProps) {
+  const { colors } = useTheme();
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -76,20 +75,21 @@ export function TimelineEntry({ entry, onPress, colors, isDark }: TimelineEntryP
               <Text style={styles.moodEmoji}>{moodIcons[entry.mood!]}</Text>
             </View>
             <View style={styles.textContent}>
-              <Text variant="bodyMedium" style={{ color: colors.textPrimary }}>
+              <Text variant="bodyMedium" color="ink">
                 Feeling {moodLabels[entry.mood!].toLowerCase()}
               </Text>
               {entry.moodNote && (
                 <Text
                   variant="bodySmall"
-                  style={{ color: colors.textSecondary, marginTop: 2 }}
+                  color="inkMuted"
+                  style={{ marginTop: 2 }}
                   numberOfLines={2}
                 >
                   "{entry.moodNote}"
                 </Text>
               )}
             </View>
-            <Text variant="labelSmall" style={{ color: colors.textTertiary }}>
+            <Text variant="labelSmall" color="inkFaint">
               {formatTime(entry.timestamp)}
             </Text>
           </View>
@@ -106,34 +106,29 @@ export function TimelineEntry({ entry, onPress, colors, isDark }: TimelineEntryP
             <View
               style={[
                 styles.iconCircle,
-                { backgroundColor: withAlpha(colors.actionPrimary, 0.15) },
+                { backgroundColor: withAlpha(colors.accentPrimary, 0.15) },
               ]}
             >
               <Ionicons
                 name={getSessionIcon(entry.sessionType)}
                 size={18}
-                color={colors.actionPrimary}
+                color={colors.accentPrimary}
               />
             </View>
             <View style={styles.textContent}>
-              <Text variant="bodyMedium" style={{ color: colors.textPrimary }}>
+              <Text variant="bodyMedium" color="ink">
                 {entry.sessionName}
               </Text>
               <View style={styles.sessionMeta}>
-                <Text variant="bodySmall" style={{ color: colors.textSecondary }}>
+                <Text variant="bodySmall" color="inkMuted">
                   {formatDuration(entry.sessionDuration || 0)}
                 </Text>
                 {improved && (
-                  <Badge
-                    label="Improved"
-                    variant="success"
-                    size="sm"
-                    colors={colors}
-                  />
+                  <Badge label="Improved" variant="success" size="sm" />
                 )}
               </View>
             </View>
-            <Text variant="labelSmall" style={{ color: colors.textTertiary }}>
+            <Text variant="labelSmall" color="inkFaint">
               {formatTime(entry.timestamp)}
             </Text>
           </View>
@@ -145,15 +140,15 @@ export function TimelineEntry({ entry, onPress, colors, isDark }: TimelineEntryP
             <View
               style={[
                 styles.iconCircle,
-                { backgroundColor: withAlpha(colors.actionSecondary, 0.15) },
+                { backgroundColor: withAlpha(colors.accentWarm, 0.15) },
               ]}
             >
-              <Ionicons name="book-outline" size={18} color={colors.actionSecondary} />
+              <Ionicons name="book-outline" size={18} color={colors.accentWarm} />
             </View>
             <View style={styles.textContent}>
               <Text
                 variant="bodyMedium"
-                style={{ color: colors.textPrimary }}
+                color="ink"
                 numberOfLines={2}
               >
                 {entry.journalContent}
@@ -161,13 +156,14 @@ export function TimelineEntry({ entry, onPress, colors, isDark }: TimelineEntryP
               {entry.journalPrompt && (
                 <Text
                   variant="labelSmall"
-                  style={{ color: colors.textTertiary, marginTop: 4 }}
+                  color="inkFaint"
+                  style={{ marginTop: 4 }}
                 >
                   Prompt: {entry.journalPrompt}
                 </Text>
               )}
             </View>
-            <Text variant="labelSmall" style={{ color: colors.textTertiary }}>
+            <Text variant="labelSmall" color="inkFaint">
               {formatTime(entry.timestamp)}
             </Text>
           </View>
@@ -177,7 +173,7 @@ export function TimelineEntry({ entry, onPress, colors, isDark }: TimelineEntryP
         return (
           <View style={[styles.entryContent, styles.milestoneContent]}>
             <Text style={styles.milestoneEmoji}>🎉</Text>
-            <Text variant="bodyMedium" style={{ color: colors.textPrimary }}>
+            <Text variant="bodyMedium" color="ink">
               {getMilestoneText(entry.milestoneType, entry.milestoneValue)}
             </Text>
           </View>
@@ -189,15 +185,9 @@ export function TimelineEntry({ entry, onPress, colors, isDark }: TimelineEntryP
   };
 
   const content = (
-    <Card
-      variant="outlined"
-      padding="md"
-      colors={colors}
-      isDark={isDark}
-      style={styles.card}
-    >
+    <GlassCard variant="subtle" padding="md" style={styles.card}>
       {renderContent()}
-    </Card>
+    </GlassCard>
   );
 
   if (onPress) {

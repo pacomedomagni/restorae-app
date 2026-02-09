@@ -1,7 +1,13 @@
 /**
- * List Component - Core
- * 
+ * List Component
  * Unified list and list item for settings, menus, etc.
+ * 
+ * Features:
+ * - Section headers
+ * - Press animations
+ * - Chevron indicators
+ * - Destructive variant
+ * - Uses ThemeContext (no manual color passing)
  */
 import React from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
@@ -10,37 +16,35 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../contexts/ThemeContext';
+import { useHaptics } from '../../hooks/useHaptics';
 import { Text } from './Text';
-import { spacing, radius, withAlpha } from '../../theme/tokens';
+import { spacing, borderRadius, withAlpha } from '../../theme';
 
 interface ListProps {
   children: React.ReactNode;
   header?: string;
-  colors: {
-    surface: string;
-    textSecondary: string;
-    border: string;
-  };
   style?: object;
 }
 
-export function List({ children, header, colors, style }: ListProps) {
+export function List({ children, header, style }: ListProps) {
+  const { colors } = useTheme();
+
   return (
     <View style={[styles.listContainer, style]}>
       {header && (
-        <Text
-          variant="labelSmall"
-          style={[styles.header, { color: colors.textSecondary }]}
-        >
+        <Text variant="labelSmall" color="inkMuted" style={styles.header}>
           {header}
         </Text>
       )}
       <View
         style={[
           styles.list,
-          { backgroundColor: colors.surface, borderColor: colors.border },
+          { 
+            backgroundColor: withAlpha(colors.canvasElevated, 0.8),
+            borderColor: colors.border,
+          },
         ]}
       >
         {children}
@@ -59,14 +63,6 @@ interface ListItemProps {
   destructive?: boolean;
   disabled?: boolean;
   isLast?: boolean;
-  colors: {
-    textPrimary: string;
-    textSecondary: string;
-    textTertiary: string;
-    actionDestructive: string;
-    actionPrimary: string;
-    border: string;
-  };
 }
 
 export function ListItem({
@@ -79,8 +75,9 @@ export function ListItem({
   destructive = false,
   disabled = false,
   isLast = false,
-  colors,
 }: ListItemProps) {
+  const { colors } = useTheme();
+  const { impactLight } = useHaptics();
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -99,28 +96,25 @@ export function ListItem({
 
   const handlePress = async () => {
     if (disabled) return;
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await impactLight();
     onPress?.();
   };
 
-  const textColor = destructive
-    ? colors.actionDestructive
-    : disabled
-    ? colors.textTertiary
-    : colors.textPrimary;
+  const textColor = destructive ? colors.accentWarm : colors.ink;
+  const iconColor = destructive ? colors.accentWarm : colors.accentPrimary;
 
   const content = (
     <View
       style={[
         styles.itemContent,
-        !isLast && { borderBottomColor: withAlpha(colors.border, 0.5), borderBottomWidth: 1 },
+        !isLast && { borderBottomWidth: 1, borderBottomColor: colors.border },
       ]}
     >
       {leftIcon && (
-        <View
+        <View 
           style={[
-            styles.iconContainer,
-            { backgroundColor: withAlpha(colors.actionPrimary, 0.1) },
+            styles.iconContainer, 
+            { backgroundColor: withAlpha(iconColor, 0.1) }
           ]}
         >
           {leftIcon}
@@ -128,14 +122,14 @@ export function ListItem({
       )}
 
       <View style={styles.textContainer}>
-        <Text variant="bodyMedium" style={{ color: textColor }}>
+        <Text
+          variant="bodyMedium"
+          style={{ color: textColor, opacity: disabled ? 0.5 : 1 }}
+        >
           {title}
         </Text>
         {subtitle && (
-          <Text
-            variant="bodySmall"
-            style={{ color: colors.textSecondary, marginTop: 2 }}
-          >
+          <Text variant="bodySmall" color="inkMuted">
             {subtitle}
           </Text>
         )}
@@ -147,7 +141,7 @@ export function ListItem({
         <Ionicons
           name="chevron-forward"
           size={20}
-          color={colors.textTertiary}
+          color={colors.inkFaint}
           style={styles.chevron}
         />
       )}
@@ -163,6 +157,7 @@ export function ListItem({
         disabled={disabled}
         accessibilityRole="button"
         accessibilityLabel={title}
+        accessibilityHint={subtitle}
       >
         <Animated.View style={animatedStyle}>{content}</Animated.View>
       </Pressable>
@@ -174,14 +169,16 @@ export function ListItem({
 
 const styles = StyleSheet.create({
   listContainer: {
-    width: '100%',
+    marginBottom: spacing.lg,
   },
   header: {
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
     marginLeft: spacing.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   list: {
-    borderRadius: radius.lg,
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
     overflow: 'hidden',
   },
@@ -190,15 +187,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
-    minHeight: 52,
+    minHeight: 56,
   },
   iconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.sm,
+    marginRight: spacing.md,
   },
   textContainer: {
     flex: 1,

@@ -1,7 +1,12 @@
 /**
- * ProgressRing Component - Core
+ * ProgressRing Component
+ * Circular progress indicator for sessions and completion
  * 
- * Circular progress indicator for sessions and completion.
+ * Features:
+ * - Animated progress
+ * - Multiple sizes
+ * - Optional label
+ * - Uses ThemeContext (no manual color passing)
  */
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
@@ -11,23 +16,21 @@ import Animated, {
   useDerivedValue,
   withTiming,
 } from 'react-native-reanimated';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Text } from './Text';
-import { withAlpha } from '../../theme/tokens';
+import { withAlpha } from '../../theme';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 interface ProgressRingProps {
-  progress: number; // 0-1
+  /** Progress value 0-1 */
+  progress: number;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   strokeWidth?: number;
   showLabel?: boolean;
   label?: string;
-  colors: {
-    actionPrimary: string;
-    border: string;
-    textPrimary: string;
-    textSecondary: string;
-  };
+  /** Color tone */
+  tone?: 'primary' | 'calm' | 'warm';
 }
 
 const sizes = {
@@ -43,16 +46,33 @@ export function ProgressRing({
   strokeWidth,
   showLabel = true,
   label,
-  colors,
+  tone = 'primary',
 }: ProgressRingProps) {
+  const { colors, reduceMotion } = useTheme();
   const dimension = sizes[size];
   const stroke = strokeWidth || Math.max(4, dimension / 12);
   const radius = (dimension - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
 
+  const getToneColor = () => {
+    switch (tone) {
+      case 'calm':
+        return colors.accentCalm;
+      case 'warm':
+        return colors.accentWarm;
+      default:
+        return colors.accentPrimary;
+    }
+  };
+
+  const progressColor = getToneColor();
+
   const animatedProgress = useDerivedValue(() => {
-    return withTiming(Math.min(Math.max(progress, 0), 1), { duration: 500 });
-  }, [progress]);
+    const clampedProgress = Math.min(Math.max(progress, 0), 1);
+    return reduceMotion 
+      ? clampedProgress 
+      : withTiming(clampedProgress, { duration: 500 });
+  }, [progress, reduceMotion]);
 
   const animatedProps = useAnimatedProps(() => ({
     strokeDashoffset: circumference * (1 - animatedProgress.value),
@@ -61,7 +81,12 @@ export function ProgressRing({
   const percentage = Math.round(progress * 100);
 
   return (
-    <View style={[styles.container, { width: dimension, height: dimension }]}>
+    <View 
+      style={[styles.container, { width: dimension, height: dimension }]}
+      accessibilityRole="progressbar"
+      accessibilityValue={{ min: 0, max: 100, now: percentage }}
+      accessibilityLabel={label || `${percentage}% complete`}
+    >
       <Svg width={dimension} height={dimension}>
         {/* Background Circle */}
         <Circle
@@ -77,7 +102,7 @@ export function ProgressRing({
           cx={dimension / 2}
           cy={dimension / 2}
           r={radius}
-          stroke={colors.actionPrimary}
+          stroke={progressColor}
           strokeWidth={stroke}
           fill="transparent"
           strokeLinecap="round"
@@ -92,14 +117,14 @@ export function ProgressRing({
           {label ? (
             <Text
               variant={size === 'sm' ? 'labelSmall' : size === 'md' ? 'labelMedium' : 'headlineSmall'}
-              style={{ color: colors.textPrimary }}
+              color="ink"
             >
               {label}
             </Text>
           ) : (
             <Text
-              variant={size === 'sm' ? 'labelMedium' : size === 'md' ? 'headlineSmall' : 'headlineLarge'}
-              style={{ color: colors.textPrimary }}
+              variant={size === 'sm' ? 'labelSmall' : size === 'md' ? 'headlineSmall' : 'headlineMedium'}
+              color="ink"
             >
               {percentage}%
             </Text>

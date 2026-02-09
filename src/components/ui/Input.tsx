@@ -1,8 +1,14 @@
 /**
- * Input Component - Core
+ * Input Component
+ * Premium text input with validation, animations, and accessibility
  * 
- * Unified text input with variants and states.
- * Supports multiline, character count, and validation.
+ * Features:
+ * - Animated border on focus
+ * - Error and hint states
+ * - Character count
+ * - Left/right icons
+ * - Multiline support
+ * - Uses ThemeContext (no manual color passing)
  */
 import React, { useCallback } from 'react';
 import {
@@ -12,14 +18,16 @@ import {
   NativeSyntheticEvent,
   TargetedEvent,
   StyleSheet,
+  Platform,
 } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
 } from 'react-native-reanimated';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Text } from './Text';
-import { spacing, radius, fontFamily, fontSize } from '../../theme/tokens';
+import { spacing, borderRadius, withAlpha, textStyles } from '../../theme';
 
 interface InputProps extends Omit<TextInputProps, 'style'> {
   label?: string;
@@ -29,16 +37,6 @@ interface InputProps extends Omit<TextInputProps, 'style'> {
   showCharCount?: boolean;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
-  colors: {
-    textPrimary: string;
-    textSecondary: string;
-    textTertiary: string;
-    surface: string;
-    border: string;
-    borderStrong: string;
-    actionPrimary: string;
-    error: string;
-  };
   containerStyle?: object;
 }
 
@@ -50,7 +48,6 @@ export function Input({
   showCharCount = false,
   leftIcon,
   rightIcon,
-  colors,
   containerStyle,
   value,
   onFocus,
@@ -58,6 +55,7 @@ export function Input({
   multiline,
   ...props
 }: InputProps) {
+  const { colors } = useTheme();
   const borderColor = useSharedValue(colors.border);
 
   const animatedBorderStyle = useAnimatedStyle(() => ({
@@ -65,27 +63,24 @@ export function Input({
   }));
 
   const handleFocus = useCallback((e: NativeSyntheticEvent<TargetedEvent>) => {
-    borderColor.value = withTiming(colors.actionPrimary, { duration: 150 });
+    borderColor.value = withTiming(colors.accentPrimary, { duration: 150 });
     onFocus?.(e);
-  }, [colors.actionPrimary, onFocus]);
+  }, [colors.accentPrimary, onFocus]);
 
   const handleBlur = useCallback((e: NativeSyntheticEvent<TargetedEvent>) => {
     borderColor.value = withTiming(
-      error ? colors.error : colors.border,
+      error ? colors.accentWarm : colors.border,
       { duration: 150 }
     );
     onBlur?.(e);
-  }, [error, colors.error, colors.border, onBlur]);
+  }, [error, colors.accentWarm, colors.border, onBlur]);
 
   const charCount = value?.length || 0;
 
   return (
     <View style={[styles.container, containerStyle]}>
       {label && (
-        <Text
-          variant="labelSmall"
-          style={[styles.label, { color: colors.textSecondary }]}
-        >
+        <Text variant="labelSmall" color="inkMuted" style={styles.label}>
           {label}
         </Text>
       )}
@@ -94,8 +89,8 @@ export function Input({
         style={[
           styles.inputContainer,
           {
-            backgroundColor: colors.surface,
-            borderColor: error ? colors.error : colors.border,
+            backgroundColor: withAlpha(colors.canvas, 0.5),
+            borderColor: error ? colors.accentWarm : colors.border,
           },
           animatedBorderStyle,
           multiline && styles.multilineContainer,
@@ -109,15 +104,17 @@ export function Input({
           onBlur={handleBlur}
           multiline={multiline}
           maxLength={maxLength}
-          placeholderTextColor={colors.textTertiary}
+          placeholderTextColor={colors.inkFaint}
           style={[
             styles.input,
             {
-              color: colors.textPrimary,
-              fontFamily: fontFamily.sans,
+              color: colors.ink,
+              ...textStyles.bodyMedium,
             },
             multiline && styles.multilineInput,
           ]}
+          allowFontScaling={true}
+          maxFontSizeMultiplier={1.3}
           {...props}
         />
         
@@ -128,7 +125,8 @@ export function Input({
         {(hint || error) && (
           <Text
             variant="bodySmall"
-            style={{ color: error ? colors.error : colors.textTertiary }}
+            color={error ? 'accent' : 'inkFaint'}
+            style={error ? { color: colors.accentWarm } : undefined}
           >
             {error || hint}
           </Text>
@@ -137,9 +135,10 @@ export function Input({
         {showCharCount && maxLength && (
           <Text
             variant="labelSmall"
+            color={charCount >= maxLength ? 'accent' : 'inkFaint'}
             style={[
               styles.charCount,
-              { color: charCount >= maxLength ? colors.error : colors.textTertiary },
+              charCount >= maxLength && { color: colors.accentWarm },
             ]}
           >
             {charCount}/{maxLength}
@@ -152,7 +151,7 @@ export function Input({
 
 const styles = StyleSheet.create({
   container: {
-    width: '100%',
+    marginBottom: spacing.md,
   },
   label: {
     marginBottom: spacing.xs,
@@ -161,19 +160,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.lg,
     minHeight: 48,
+    paddingHorizontal: spacing.md,
   },
   multilineContainer: {
+    minHeight: 120,
     alignItems: 'flex-start',
     paddingVertical: spacing.sm,
-    minHeight: 120,
   },
   input: {
     flex: 1,
-    fontSize: fontSize.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: Platform.OS === 'ios' ? spacing.sm : spacing.xs,
   },
   multilineInput: {
     textAlignVertical: 'top',
@@ -188,9 +186,8 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
     marginTop: spacing.xs,
-    minHeight: 20,
+    minHeight: 18,
   },
   charCount: {
     marginLeft: 'auto',

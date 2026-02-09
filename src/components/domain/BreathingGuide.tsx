@@ -2,20 +2,21 @@
  * BreathingGuide Component - Domain
  * 
  * Visual breathing guide with expanding/contracting circle.
+ * Now uses ThemeContext instead of colors prop.
  */
 import React, { useEffect } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
   withSequence,
-  withRepeat,
   Easing,
   cancelAnimation,
 } from 'react-native-reanimated';
-import { Text } from '../core/Text';
-import { spacing, withAlpha } from '../../theme/tokens';
+import { Text } from '../ui/Text';
+import { useTheme } from '../../contexts/ThemeContext';
+import { withAlpha } from '../../theme/tokens';
 
 interface BreathingPattern {
   inhale: number;
@@ -29,12 +30,6 @@ interface BreathingGuideProps {
   pattern: BreathingPattern;
   isActive: boolean;
   size?: number;
-  colors: {
-    actionPrimary: string;
-    textPrimary: string;
-    textSecondary: string;
-    surface: string;
-  };
 }
 
 type BreathPhase = 'inhale' | 'hold1' | 'exhale' | 'hold2';
@@ -43,10 +38,9 @@ export function BreathingGuide({
   pattern,
   isActive,
   size = 200,
-  colors,
 }: BreathingGuideProps) {
+  const { colors } = useTheme();
   const scale = useSharedValue(0.4);
-  const phase = useSharedValue<BreathPhase>('inhale');
   const phaseText = useSharedValue('Breathe in');
 
   useEffect(() => {
@@ -95,42 +89,6 @@ export function BreathingGuide({
     };
   }, [isActive, pattern]);
 
-  // Track phase for text display
-  useEffect(() => {
-    if (!isActive) return;
-
-    const { inhale, hold1 = 0, exhale, hold2 = 0 } = pattern;
-
-    const updatePhase = () => {
-      phaseText.value = 'Breathe in';
-      
-      // Inhale
-      setTimeout(() => {
-        if (hold1 > 0) {
-          phaseText.value = 'Hold';
-        }
-      }, inhale * 1000);
-
-      // Hold 1
-      setTimeout(() => {
-        phaseText.value = 'Breathe out';
-      }, (inhale + hold1) * 1000);
-
-      // Exhale
-      setTimeout(() => {
-        if (hold2 > 0) {
-          phaseText.value = 'Hold';
-        }
-      }, (inhale + hold1 + exhale) * 1000);
-    };
-
-    updatePhase();
-    const totalCycle = (inhale + hold1 + exhale + hold2) * 1000;
-    const interval = setInterval(updatePhase, totalCycle);
-
-    return () => clearInterval(interval);
-  }, [isActive, pattern]);
-
   const animatedCircleStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
     opacity: 0.3 + scale.value * 0.4,
@@ -150,7 +108,7 @@ export function BreathingGuide({
             width: size,
             height: size,
             borderRadius: size / 2,
-            backgroundColor: withAlpha(colors.actionPrimary, 0.2),
+            backgroundColor: withAlpha(colors.accentPrimary, 0.2),
           },
           animatedCircleStyle,
         ]}
@@ -164,16 +122,12 @@ export function BreathingGuide({
             width: size * 0.8,
             height: size * 0.8,
             borderRadius: size * 0.4,
-            backgroundColor: colors.actionPrimary,
+            backgroundColor: colors.accentPrimary,
           },
           animatedInnerStyle,
         ]}
       >
-        <PhaseText
-          pattern={pattern}
-          isActive={isActive}
-          colors={colors}
-        />
+        <PhaseText pattern={pattern} isActive={isActive} />
       </Animated.View>
     </View>
   );
@@ -183,12 +137,11 @@ export function BreathingGuide({
 function PhaseText({
   pattern,
   isActive,
-  colors,
 }: {
   pattern: BreathingPattern;
   isActive: boolean;
-  colors: { textPrimary: string; surface: string };
 }) {
+  const { colors } = useTheme();
   const [text, setText] = React.useState('Breathe in');
 
   useEffect(() => {
@@ -240,7 +193,7 @@ function PhaseText({
     <Text
       variant="headlineSmall"
       align="center"
-      style={{ color: colors.surface }}
+      style={{ color: colors.canvas }}
     >
       {text}
     </Text>

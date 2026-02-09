@@ -2,6 +2,7 @@
  * SessionPlayer Component - Domain
  * 
  * Unified session playback UI for all content types.
+ * Now uses ThemeContext instead of colors prop.
  */
 import React from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
@@ -12,9 +13,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
-import { Text } from '../core/Text';
-import { ProgressRing } from '../core/ProgressRing';
-import { spacing, radius, withAlpha } from '../../theme/tokens';
+import { Text, ProgressRing } from '../ui';
+import { useTheme } from '../../contexts/ThemeContext';
+import { spacing, borderRadius, withAlpha } from '../../theme/tokens';
 
 interface SessionPlayerProps {
   title: string;
@@ -25,17 +26,6 @@ interface SessionPlayerProps {
   onPause: () => void;
   onResume: () => void;
   onEnd: () => void;
-  colors: {
-    background: string;
-    surface: string;
-    surfaceElevated: string;
-    textPrimary: string;
-    textSecondary: string;
-    textInverse: string;
-    actionPrimary: string;
-    actionDestructive: string;
-    border: string;
-  };
   children?: React.ReactNode; // For custom content (breathing guide, etc.)
 }
 
@@ -48,9 +38,9 @@ export function SessionPlayer({
   onPause,
   onResume,
   onEnd,
-  colors,
   children,
 }: SessionPlayerProps) {
+  const { colors } = useTheme();
   const pauseScale = useSharedValue(1);
   const endScale = useSharedValue(1);
 
@@ -77,30 +67,20 @@ export function SessionPlayer({
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.canvas }]}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.titleContainer}>
-          <Text
-            variant="headlineMedium"
-            style={{ color: colors.textPrimary }}
-            numberOfLines={1}
-          >
+          <Text variant="headlineMedium" color="ink" numberOfLines={1}>
             {title}
           </Text>
           {subtitle && (
-            <Text
-              variant="bodySmall"
-              style={{ color: colors.textSecondary, marginTop: 2 }}
-            >
+            <Text variant="bodySmall" color="inkMuted" style={{ marginTop: 2 }}>
               {subtitle}
             </Text>
           )}
         </View>
-        <Text
-          variant="headlineSmall"
-          style={{ color: colors.textSecondary }}
-        >
+        <Text variant="headlineSmall" color="inkMuted">
           {timeRemaining}
         </Text>
       </View>
@@ -111,7 +91,6 @@ export function SessionPlayer({
           <ProgressRing
             progress={progress}
             size="xl"
-            colors={colors}
             label={`${Math.round(progress * 100)}%`}
           />
         )}
@@ -129,7 +108,7 @@ export function SessionPlayer({
             style={[
               styles.progressFill,
               {
-                backgroundColor: colors.actionPrimary,
+                backgroundColor: colors.accentPrimary,
                 width: `${progress * 100}%`,
               },
             ]}
@@ -154,14 +133,14 @@ export function SessionPlayer({
           <Animated.View
             style={[
               styles.secondaryButton,
-              { backgroundColor: withAlpha(colors.actionDestructive, 0.1) },
+              { backgroundColor: withAlpha(colors.statusError, 0.1) },
               endAnimatedStyle,
             ]}
           >
-            <Ionicons name="stop" size={20} color={colors.actionDestructive} />
+            <Ionicons name="stop" size={20} color={colors.statusError} />
             <Text
               variant="labelMedium"
-              style={{ color: colors.actionDestructive, marginLeft: spacing.xs }}
+              style={{ color: colors.statusError, marginLeft: spacing.xs }}
             >
               End
             </Text>
@@ -183,14 +162,14 @@ export function SessionPlayer({
           <Animated.View
             style={[
               styles.primaryButton,
-              { backgroundColor: colors.actionPrimary },
+              { backgroundColor: colors.accentPrimary },
               pauseAnimatedStyle,
             ]}
           >
             <Ionicons
               name={isPaused ? 'play' : 'pause'}
               size={28}
-              color={colors.textInverse}
+              color={colors.inkInverse}
             />
           </Animated.View>
         </Pressable>
@@ -258,7 +237,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
+    borderRadius: borderRadius.md,
     minWidth: 80,
   },
 });

@@ -16,8 +16,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAmbient } from '../../contexts/AmbientContext';
 import { useAuth } from '../../contexts/AuthContext';
 
-import { Avatar } from '../../components/core/Avatar';
-import { Text, GlassCard, ScreenHeader, AlertModal } from '../../components/ui';
+import { Text, GlassCard, ScreenHeader, AlertModal, Avatar } from '../../components/ui';
 
 import { spacing, borderRadius, withAlpha, layout } from '../../theme';
 import type { RootStackParamList } from '../../types';
@@ -166,7 +165,7 @@ export function YouScreen() {
           <Animated.View entering={FadeInDown.delay(100).duration(300)} style={styles.section}>
             <GlassCard variant="elevated" padding="lg" onPress={handleEditProfile}>
               <View style={styles.profileRow}>
-                <Avatar name={userName} size="lg" colors={colors} />
+                <Avatar name={userName} size="lg" />
                 <View style={styles.profileInfo}>
                   <Text variant="headlineMedium" color="ink">
                     {userName}

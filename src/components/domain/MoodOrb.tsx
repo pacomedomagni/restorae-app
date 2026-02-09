@@ -2,7 +2,7 @@
  * MoodOrb Component - Domain
  * 
  * Interactive mood selection orb with animations.
- * Simplified from the original 374-line version.
+ * Now uses ThemeContext instead of colors prop.
  */
 import React, { useEffect } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
@@ -15,8 +15,9 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Text } from '../core/Text';
-import { MoodType, moodLabels, moodIcons, spacing, radius, withAlpha } from '../../theme/tokens';
+import { Text } from '../ui/Text';
+import { useTheme } from '../../contexts/ThemeContext';
+import { MoodType, moodLabels, moodIcons, spacing } from '../../theme/tokens';
 
 interface MoodOrbProps {
   mood: MoodType;
@@ -24,16 +25,6 @@ interface MoodOrbProps {
   onPress?: () => void;
   size?: 'sm' | 'md' | 'lg';
   showLabel?: boolean;
-  colors: {
-    moodCalm: string;
-    moodGood: string;
-    moodAnxious: string;
-    moodLow: string;
-    textPrimary: string;
-    textSecondary: string;
-    surface: string;
-  };
-  reduceMotion?: boolean;
 }
 
 const sizes = {
@@ -48,9 +39,8 @@ export function MoodOrb({
   onPress,
   size = 'md',
   showLabel = true,
-  colors,
-  reduceMotion = false,
 }: MoodOrbProps) {
+  const { colors, reduceMotion } = useTheme();
   const scale = useSharedValue(1);
   const breathe = useSharedValue(1);
   const glow = useSharedValue(0);
@@ -142,7 +132,7 @@ export function MoodOrb({
                 borderRadius: dimension / 2,
                 backgroundColor: moodColor,
                 borderWidth: selected ? 3 : 0,
-                borderColor: colors.surface,
+                borderColor: colors.canvas,
               },
               animatedOrbStyle,
             ]}
@@ -161,7 +151,7 @@ export function MoodOrb({
           style={[
             styles.label,
             {
-              color: selected ? colors.textPrimary : colors.textSecondary,
+              color: selected ? colors.ink : colors.inkMuted,
               fontWeight: selected ? '600' : '400',
             },
           ]}

@@ -11,11 +11,13 @@ import { Button } from './Button';
 import logger from '../../services/logger';
 import { LuxeIcon } from '../LuxeIcon';
 import { spacing, borderRadius, withAlpha, light, dark } from '../../theme';
+import { useTheme } from '../../contexts/ThemeContext';
 
 // =============================================================================
 // BREATHING ANIMATION FOR ERROR ICON
 // =============================================================================
-function BreathingErrorIcon({ colors }: { colors: typeof light }) {
+function BreathingErrorIcon() {
+  const { colors } = useTheme();
   const breathe = useSharedValue(1);
 
   React.useEffect(() => {
@@ -95,7 +97,7 @@ export function ErrorState({
   const content = (
     <>
       <Animated.View entering={FadeIn.delay(100).duration(400)}>
-        <BreathingErrorIcon colors={colors} />
+        <BreathingErrorIcon />
       </Animated.View>
 
       <Animated.View entering={FadeInUp.delay(150).duration(400)}>

@@ -1,12 +1,18 @@
 /**
- * Badge Component - Core
+ * Badge Component
+ * Small badge for counts, status, and labels
  * 
- * Small badge for counts, status, and labels.
+ * Features:
+ * - Multiple variants (default, success, warning, error, info)
+ * - Count and label modes
+ * - Two sizes
+ * - Uses ThemeContext (no manual color passing)
  */
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Text } from './Text';
-import { spacing, radius, withAlpha } from '../../theme/tokens';
+import { spacing, borderRadius, withAlpha } from '../../theme';
 
 type BadgeVariant = 'default' | 'success' | 'warning' | 'error' | 'info';
 
@@ -15,7 +21,6 @@ interface BadgeProps {
   count?: number;
   variant?: BadgeVariant;
   size?: 'sm' | 'md';
-  colors: Record<string, string>;
 }
 
 export function Badge({
@@ -23,34 +28,35 @@ export function Badge({
   count,
   variant = 'default',
   size = 'md',
-  colors,
 }: BadgeProps) {
+  const { colors } = useTheme();
+
   const getColors = () => {
     switch (variant) {
       case 'success':
         return {
-          bg: withAlpha(colors.success, 0.15),
-          text: colors.success,
+          bg: withAlpha(colors.accentCalm, 0.15),
+          text: colors.accentCalm,
         };
       case 'warning':
         return {
-          bg: withAlpha(colors.warning, 0.15),
-          text: colors.warning,
+          bg: withAlpha(colors.accentWarm, 0.15),
+          text: colors.accentWarm,
         };
       case 'error':
         return {
-          bg: withAlpha(colors.error, 0.15),
-          text: colors.error,
+          bg: withAlpha(colors.accentWarm, 0.2),
+          text: colors.accentWarm,
         };
       case 'info':
         return {
-          bg: withAlpha(colors.actionPrimary, 0.15),
-          text: colors.actionPrimary,
+          bg: withAlpha(colors.accentPrimary, 0.15),
+          text: colors.accentPrimary,
         };
       default:
         return {
-          bg: colors.surface,
-          text: colors.textPrimary,
+          bg: withAlpha(colors.ink, 0.08),
+          text: colors.ink,
         };
     }
   };
@@ -59,14 +65,14 @@ export function Badge({
   const isSmall = size === 'sm';
   const displayText = count !== undefined ? (count > 99 ? '99+' : count.toString()) : label;
 
-  // Count-only badge (dot style when count is shown)
+  // Count-only badge (notification style)
   if (count !== undefined && !label) {
     return (
       <View
         style={[
           styles.countBadge,
           {
-            backgroundColor: colors.error,
+            backgroundColor: colors.accentWarm,
             minWidth: isSmall ? 16 : 20,
             height: isSmall ? 16 : 20,
             paddingHorizontal: isSmall ? 4 : 6,
@@ -75,7 +81,7 @@ export function Badge({
       >
         <Text
           variant={isSmall ? 'labelSmall' : 'labelMedium'}
-          style={{ color: colors.textInverse, fontSize: isSmall ? 10 : 11 }}
+          style={{ color: colors.inkInverse, fontSize: isSmall ? 10 : 11 }}
         >
           {displayText}
         </Text>
@@ -106,11 +112,11 @@ export function Badge({
 
 const styles = StyleSheet.create({
   badge: {
-    borderRadius: radius.sm,
+    borderRadius: borderRadius.full,
     alignSelf: 'flex-start',
   },
   countBadge: {
-    borderRadius: radius.full,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
   },

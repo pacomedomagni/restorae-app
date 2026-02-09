@@ -2,9 +2,10 @@
  * ContentCard Component - Domain
  * 
  * Card for displaying wellness content in the Library.
+ * Now uses ThemeContext instead of colors prop.
  */
 import React from 'react';
-import { View, StyleSheet, Pressable, ImageBackground, GestureResponderEvent } from 'react-native';
+import { View, StyleSheet, Pressable, GestureResponderEvent } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -13,9 +14,9 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Text } from '../core/Text';
-import { Badge } from '../core/Badge';
-import { spacing, radius, withAlpha } from '../../theme/tokens';
+import { Text, Badge } from '../ui';
+import { useTheme } from '../../contexts/ThemeContext';
+import { spacing, borderRadius, withAlpha } from '../../theme/tokens';
 
 interface ContentCardProps {
   title: string;
@@ -29,21 +30,6 @@ interface ContentCardProps {
   onPress?: () => void;
   onFavoriteToggle?: () => void;
   size?: 'sm' | 'md' | 'lg';
-  colors: {
-    surface: string;
-    surfaceElevated: string;
-    textPrimary: string;
-    textSecondary: string;
-    textInverse: string;
-    actionPrimary: string;
-    actionSecondary: string;
-    actionDestructive: string;
-    success: string;
-    warning: string;
-    error: string;
-    border: string;
-  };
-  isDark?: boolean;
 }
 
 const typeIcons: Record<ContentCardProps['type'], keyof typeof Ionicons.glyphMap> = {
@@ -82,9 +68,8 @@ export function ContentCard({
   onPress,
   onFavoriteToggle,
   size = 'md',
-  colors,
-  isDark,
 }: ContentCardProps) {
+  const { colors, isDark } = useTheme();
   const scale = useSharedValue(1);
   const dimensions = cardSizes[size];
   const accentColor = typeColors[type];
@@ -126,7 +111,7 @@ export function ContentCard({
           {
             width: dimensions.width,
             height: dimensions.height,
-            backgroundColor: colors.surface,
+            backgroundColor: colors.card,
             borderColor: colors.border,
           },
           animatedStyle,
@@ -145,13 +130,13 @@ export function ContentCard({
 
         {/* Progress indicator for "Continue" items */}
         {progress !== undefined && progress > 0 && (
-          <View style={[styles.progressBar, { backgroundColor: withAlpha(colors.textPrimary, 0.1) }]}>
+          <View style={[styles.progressBar, { backgroundColor: withAlpha(colors.ink, 0.1) }]}>
             <View
               style={[
                 styles.progressFill,
                 {
                   width: `${progress * 100}%`,
-                  backgroundColor: colors.actionPrimary,
+                  backgroundColor: colors.accentPrimary,
                 },
               ]}
             />
@@ -171,7 +156,7 @@ export function ContentCard({
 
           <View style={styles.badges}>
             {isPremium && (
-              <Badge label="PRO" variant="warning" size="sm" colors={colors} />
+              <Badge label="PRO" variant="warning" size="sm" />
             )}
             {onFavoriteToggle && (
               <Pressable
@@ -183,7 +168,7 @@ export function ContentCard({
                 <Ionicons
                   name={isFavorite ? 'heart' : 'heart-outline'}
                   size={18}
-                  color={isFavorite ? colors.actionDestructive : colors.textSecondary}
+                  color={isFavorite ? colors.statusError : colors.inkMuted}
                 />
               </Pressable>
             )}
@@ -194,7 +179,7 @@ export function ContentCard({
         <View style={styles.bottomRow}>
           <Text
             variant="labelLarge"
-            style={{ color: colors.textPrimary }}
+            color="ink"
             numberOfLines={size === 'lg' ? 2 : 1}
           >
             {title}
@@ -202,16 +187,12 @@ export function ContentCard({
           {(subtitle || duration) && (
             <View style={styles.meta}>
               {duration && (
-                <Text variant="labelSmall" style={{ color: colors.textSecondary }}>
+                <Text variant="labelSmall" color="inkMuted">
                   {duration}
                 </Text>
               )}
               {subtitle && size === 'lg' && (
-                <Text
-                  variant="bodySmall"
-                  style={{ color: colors.textSecondary }}
-                  numberOfLines={1}
-                >
+                <Text variant="bodySmall" color="inkMuted" numberOfLines={1}>
                   {subtitle}
                 </Text>
               )}
@@ -225,7 +206,7 @@ export function ContentCard({
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: radius.lg,
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
     overflow: 'hidden',
     padding: spacing.sm,
@@ -237,7 +218,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 3,
-    // backgroundColor applied inline with theme colors
   },
   progressFill: {
     height: '100%',

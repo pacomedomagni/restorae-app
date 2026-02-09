@@ -11,8 +11,7 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { useTheme } from '../contexts/ThemeContext';
-import { Text, Button, GlassCard, AmbientBackground, ScreenHeader, AlertModal } from '../components/ui';
-import { Modal } from '../components/core';
+import { Text, Button, GlassCard, AmbientBackground, ScreenHeader, AlertModal, Modal } from '../components/ui';
 import { spacing, borderRadius, withAlpha, layout, ColorTokens } from '../theme';
 import { useHaptics } from '../hooks/useHaptics';
 import { useNotifications } from '../hooks/useNotifications';
@@ -26,12 +25,11 @@ const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 function DaySelector({
   selectedDays,
   onToggle,
-  colors,
 }: {
   selectedDays: number[];
   onToggle: (day: number) => void;
-  colors: ColorTokens;
 }) {
+  const { colors } = useTheme();
   return (
     <View style={styles.dayRow}>
       {DAY_LABELS.map((label, index) => {
@@ -208,20 +206,6 @@ export function RemindersScreen() {
     setDeleteTarget(null);
   }, [deleteTarget, removeCustomReminder]);
 
-  // Map colors for core Modal component
-  const modalColors = {
-    surface: colors.canvas,
-    surfaceElevated: colors.canvasElevated,
-    textPrimary: colors.ink,
-    textSecondary: colors.inkMuted,
-    overlay: withAlpha(colors.ink, 0.5),
-    actionPrimary: colors.accentPrimary,
-    actionSecondary: colors.canvasElevated,
-    actionDestructive: colors.statusError,
-    textInverse: colors.inkInverse,
-    border: colors.border,
-  };
-
   return (
     <View style={styles.container}>
       <AmbientBackground />
@@ -387,7 +371,6 @@ export function RemindersScreen() {
         visible={showAddModal}
         onClose={() => setShowAddModal(false)}
         title="New reminder"
-        colors={modalColors}
         actions={[
           {
             label: 'Save',
@@ -460,7 +443,6 @@ export function RemindersScreen() {
           <DaySelector
             selectedDays={newDays}
             onToggle={handleToggleDay}
-            colors={colors}
           />
         </View>
       </Modal>
